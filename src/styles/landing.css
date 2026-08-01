@@ -214,27 +214,70 @@
 	border-radius: 1px;
 }
 
-/* Feature cards: one Catppuccin accent each, hover lift */
-.pz-section .card {
-	border-radius: 12px;
+/* Why-pz bento: each tile leads with a real artifact */
+.pz-bento {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+.pz-tile {
+	grid-column: span 6;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 1.15rem 1.25rem 1.25rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--pz-card) 4%, var(--sl-color-bg));
 	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.pz-section .card:nth-child(1) { --pz-card: var(--pz-green); }
-.pz-section .card:nth-child(2) { --pz-card: var(--pz-sky); }
-.pz-section .card:nth-child(3) { --pz-card: var(--pz-blue); }
-.pz-section .card:nth-child(4) { --pz-card: var(--pz-peach); }
-.pz-section .card:nth-child(5) { --pz-card: var(--pz-red); }
-.pz-section .card:nth-child(6) { --pz-card: var(--pz-teal); }
-.pz-section .card .icon {
-	color: var(--pz-card, var(--sl-color-accent));
-	border: 1px solid color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 35%, transparent);
-	background: color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 12%, transparent);
-	border-radius: 8px;
+@media (min-width: 50rem) {
+	.pz-tile:nth-child(1), .pz-tile:nth-child(4) { grid-column: span 4; }
+	.pz-tile:nth-child(2), .pz-tile:nth-child(3) { grid-column: span 2; }
+	.pz-tile:nth-child(5), .pz-tile:nth-child(6) { grid-column: span 3; }
 }
-.pz-section .card:hover {
+.pz-tile:hover {
 	transform: translateY(-3px);
-	border-color: color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 55%, var(--sl-color-gray-5));
-	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 60%, transparent);
+	border-color: color-mix(in srgb, var(--pz-card) 55%, var(--sl-color-gray-5));
+	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--pz-card) 60%, transparent);
+}
+.pz-tile p { margin: 0 !important; }
+.pz-tile p:not(.pz-tile-title) {
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-2);
+	flex: 1;
+}
+.pz-tile-title {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-weight: 600;
+	font-size: 1.05rem;
+	color: var(--sl-color-white);
+}
+.pz-tile-title i {
+	width: 0.6rem;
+	height: 0.6rem;
+	border-radius: 3px;
+	background: var(--pz-card);
+	box-shadow: 0 0 10px color-mix(in srgb, var(--pz-card) 65%, transparent);
+}
+.pz-proof {
+	display: block;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-2);
+	background: color-mix(in srgb, var(--pz-card) 8%, var(--sl-color-black));
+	border: 1px solid color-mix(in srgb, var(--pz-card) 25%, transparent);
+	border-radius: 8px;
+	padding: 0.55rem 0.75rem;
+}
+.pz-proof b {
+	font-weight: 500;
+	color: var(--pz-card);
 }
 
 /* Connector badge strip */
@@ -278,5 +321,5 @@
 	.pz-term .ln { animation: none; opacity: 1; }
 	.pz-term pre::after { animation: none; opacity: 1; }
 	.pz-arch .flow { animation: none; }
-	.pz-section .card { transition: none; }
+	.pz-tile { transition: none; }
 }

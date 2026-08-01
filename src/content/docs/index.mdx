@@ -24,7 +24,7 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
+import { LinkCard, Steps } from '@astrojs/starlight/components';
 
 <div class="pz-section">
 <span class="pz-kicker">The whole project</span>
@@ -129,38 +129,44 @@ a native scan.
 <span class="pz-kicker">Why pz</span>
 ## Built for pipelines you can trust
 
-<CardGrid>
-	<Card title="Incremental by declaration" icon="approve-check">
-		`where cursor > {'{{ watermark(s, e) }}'}` is the whole incremental
-		story. Watermarks advance only after every downstream sink commits —
-		plus bounded backfill windows and CDC from Postgres and SQL Server.
-	</Card>
-	<Card title="Honest delivery guarantees" icon="seti:lock">
-		Merge and replace are effectively-once; append is at-least-once, and
-		the compiler makes you acknowledge duplicates before it will build
-		that plan. The guarantee matrix is a documented stability contract.
-	</Card>
-	<Card title="Retries that reuse work" icon="rocket">
-		`pz retry` re-runs a failed run without re-extracting what already
-		landed and without re-writing sinks that already committed. Per-node
-		retries, concurrency caps, and a circuit breaker are built in.
-	</Card>
-	<Card title="Data quality inline" icon="magnifier">
-		`not_null`, `unique`, and custom SQL checks run as first-class DAG
-		nodes in the same run as the data they check — failures block
-		downstream writes instead of paging you afterwards.
-	</Card>
-	<Card title="Fast by architecture" icon="seti:db">
-		DuckDB does the heavy lifting in-process; the .NET side only ever
-		holds in-flight Arrow batches. Projection and predicate pushdown are
-		extracted from your SQL and passed to capable connectors.
-	</Card>
-	<Card title="Observable runs" icon="setting">
-		Every run emits a stable NDJSON event stream, OpenTelemetry traces
-		and metrics, and a `run_results.json` artifact — the same contract
-		whether you run locally or in CI.
-	</Card>
-</CardGrid>
+<div class="pz-bento">
+	<div class="pz-tile" style="--pz-card: var(--pz-green)">
+		<p class="pz-tile-title"><i></i>Incremental by declaration</p>
+		<p>One where-clause makes a source incremental — typed from the stored
+		watermark, no column contract. CDC from Postgres and SQL Server too.</p>
+		<code class="pz-proof">where updated_at &gt; <b>{'{{ watermark(\'crm\', \'orders\') }}'}</b></code>
+	</div>
+	<div class="pz-tile" style="--pz-card: var(--pz-sky)">
+		<p class="pz-tile-title"><i></i>Honest delivery guarantees</p>
+		<p>Merge and replace are effectively-once. Append is at-least-once —
+		and the compiler refuses to build a plan that can silently duplicate.</p>
+		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
+	</div>
+	<div class="pz-tile" style="--pz-card: var(--pz-blue)">
+		<p class="pz-tile-title"><i></i>Retries that reuse work</p>
+		<p>`pz retry` re-runs only what failed. Staged data is not re-extracted;
+		committed sinks stay committed.</p>
+		<code class="pz-proof"><b>note:</b> reusing staged data for 2 source load(s)</code>
+	</div>
+	<div class="pz-tile" style="--pz-card: var(--pz-peach)">
+		<p class="pz-tile-title"><i></i>Data quality inline</p>
+		<p>`not_null`, `unique`, and custom SQL checks are DAG nodes in the same
+		run — a failure blocks the writes downstream of it, nothing else.</p>
+		<code class="pz-proof"><b>ok</b> check_orders_enriched_unique_id 0 rows 3ms</code>
+	</div>
+	<div class="pz-tile" style="--pz-card: var(--pz-red)">
+		<p class="pz-tile-title"><i></i>Fast by architecture</p>
+		<p>DuckDB does the heavy lifting in-process; .NET only ever holds
+		in-flight Arrow batches. Pushdown is read straight from your SQL.</p>
+		<code class="pz-proof">zero-copy Arrow · <b>native scan</b> when the connector can</code>
+	</div>
+	<div class="pz-tile" style="--pz-card: var(--pz-teal)">
+		<p class="pz-tile-title"><i></i>Observable runs</p>
+		<p>A stable NDJSON event stream, OpenTelemetry traces and metrics, and
+		`run_results.json` — the same contract locally and in CI.</p>
+		<code class="pz-proof">{'{'}"event":<b>"run_completed"</b>,"status":"success","succeeded":12{'}'}</code>
+	</div>
+</div>
 </div>
 
 <div class="pz-section">
