@@ -8,6 +8,12 @@ hero:
     A dbt-inspired batch ETL CLI for .NET, powered by DuckDB. One
     connections.yml plus SQL files compile into a dependency-ordered DAG and
     run in-process, moving data through zero-copy Arrow.
+  image:
+    html: |-
+      <div class="pz-term" aria-label="Terminal showing a pz run">
+        <div class="pz-term-bar"><i></i><i></i><i></i><span>demo — pz</span></div>
+        <pre><span class="ln"><span class="prompt">$</span> <span class="accent">pz</span> run --all</span><span class="ln"><span class="ok">ok</span> src_raw__customers <span class="dim">3 rows 65ms</span></span><span class="ln"><span class="ok">ok</span> src_raw__orders <span class="dim">5 rows 49ms</span></span><span class="ln"><span class="ok">ok</span> stg_orders <span class="dim">3 rows 6ms</span></span><span class="ln"><span class="ok">ok</span> orders_enriched <span class="dim">3 rows 23ms</span></span><span class="ln"><span class="ok">ok</span> check_orders_enriched_unique_id <span class="dim">0 rows 5ms</span></span><span class="ln"><span class="ok">ok</span> lake.orders_curated <span class="dim">3 rows 31ms</span></span><span class="ln"><span class="ok">ok</span> lake.order_totals <span class="dim">2 rows 45ms</span></span><span class="ln">run: <span class="ok">12 succeeded</span>, 0 failed, 0 skipped</span></pre>
+      </div>
   actions:
     - text: Read the book
       link: book/
@@ -18,25 +24,165 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
 
-## Why pz
+<div class="pz-section">
+<span class="pz-kicker">The whole project</span>
+## SQL files and one YAML file
 
-<CardGrid stagger>
-	<Card title="SQL is the pipeline" icon="pencil">
-		Transformations, reads, and writes are declared in the SQL you already
-		write — `pz` compiles them into a DAG, no orchestration code.
-	</Card>
-	<Card title="DuckDB as the hub" icon="rocket">
-		Sources land into a local DuckDB staging database, pipelines transform
-		inside it, sinks drain results out — fast and in-process.
-	</Card>
+A pipeline is the SQL you would write anyway. `source()` reads an entity,
+`sink()` writes one, `ref()` chains pipelines — and those template calls are
+what `pz` compiles into a dependency-ordered DAG. No orchestration code, no
+DSL, no scheduler config.
+
+<div class="pz-cols">
+
+```sql title="pipelines/orders_enriched.sql"
+INSERT INTO {{ sink('lake', 'orders_curated',
+                    strategy: 'replace', format: 'parquet') }}
+select
+    o.id,
+    o.amount,
+    c.email
+from {{ ref('stg_orders') }} as o
+join {{ source('raw', 'customers') }} as c
+  on c.id = o.customer_id
+```
+
+```yaml title="connections.yml"
+raw:
+  connector: localfiles
+  entities:
+    customers:
+      read:
+        path: data/customers.csv
+        format: csv
+
+lake:
+  connector: localfiles
+  root: out   # writes land under out/<entity>/
+```
+
+</div>
+</div>
+
+<div class="pz-section">
+<span class="pz-kicker">Architecture</span>
+## DuckDB is the hub
+
+Sources land data into a local DuckDB staging database, SQL pipelines
+transform inside it, sinks drain the results out. Data moves as zero-copy
+Arrow batches — or never enters .NET at all when a connector can hand DuckDB
+a native scan.
+
+<svg class="pz-arch" viewBox="0 0 860 330" role="img" aria-label="Hub-and-spoke architecture: sources flow into a DuckDB staging hub, pipelines transform inside it, sinks write results out">
+  <rect class="box" x="20" y="45" width="170" height="44" rx="8"/>
+  <text x="105" y="72" text-anchor="middle">Postgres</text>
+  <rect class="box" x="20" y="143" width="170" height="44" rx="8"/>
+  <text x="105" y="170" text-anchor="middle">SQL Server</text>
+  <rect class="box" x="20" y="241" width="170" height="44" rx="8"/>
+  <text x="105" y="268" text-anchor="middle">CSV / S3 / Blob</text>
+
+  <path class="flow" d="M190 67 C 260 67, 250 120, 310 130"/>
+  <path class="flow" d="M190 165 L 310 165"/>
+  <path class="flow" d="M190 263 C 260 263, 250 210, 310 200"/>
+
+  <rect class="hub" x="310" y="65" width="240" height="200" rx="12"/>
+  <text class="title" x="430" y="95" text-anchor="middle">DuckDB staging</text>
+  <rect class="box" x="335" y="115" width="190" height="40" rx="6"/>
+  <text x="430" y="140" text-anchor="middle">staging.duckdb</text>
+  <rect class="box" x="335" y="170" width="190" height="40" rx="6"/>
+  <text x="430" y="195" text-anchor="middle">SQL pipelines + checks</text>
+  <text class="note" x="430" y="245" text-anchor="middle">one run, one file, in-process</text>
+
+  <path class="flow" d="M550 130 C 610 120, 600 67, 670 67"/>
+  <path class="flow" d="M550 165 L 670 165"/>
+  <path class="flow" d="M550 200 C 610 210, 600 263, 670 263"/>
+
+  <rect class="box" x="670" y="45" width="170" height="44" rx="8"/>
+  <text x="755" y="72" text-anchor="middle">Parquet lake</text>
+  <rect class="box" x="670" y="143" width="170" height="44" rx="8"/>
+  <text x="755" y="170" text-anchor="middle">Postgres merge</text>
+  <rect class="box" x="670" y="241" width="170" height="44" rx="8"/>
+  <text x="755" y="268" text-anchor="middle">SQL Server</text>
+
+  <text class="note" x="250" y="30">zero-copy Arrow / native scan</text>
+  <text class="note" x="565" y="30">merge · replace · append</text>
+</svg>
+</div>
+
+<div class="pz-section">
+<span class="pz-kicker">Why pz</span>
+## Built for pipelines you can trust
+
+<CardGrid>
 	<Card title="Incremental by declaration" icon="approve-check">
 		`where cursor > {'{{ watermark(s, e) }}'}` is the whole incremental
-		story: watermarks, bounded windows, retries, and CDC built in.
+		story. Watermarks advance only after every downstream sink commits —
+		plus bounded backfill windows and CDC from Postgres and SQL Server.
 	</Card>
-	<Card title="Honest delivery guarantees" icon="open-book">
-		Merge and replace are effectively-once; append is at-least-once and the
-		compiler makes you say so. Start with the book to see why that matters.
+	<Card title="Honest delivery guarantees" icon="seti:lock">
+		Merge and replace are effectively-once; append is at-least-once, and
+		the compiler makes you acknowledge duplicates before it will build
+		that plan. The guarantee matrix is a documented stability contract.
+	</Card>
+	<Card title="Retries that reuse work" icon="rocket">
+		`pz retry` re-runs a failed run without re-extracting what already
+		landed and without re-writing sinks that already committed. Per-node
+		retries, concurrency caps, and a circuit breaker are built in.
+	</Card>
+	<Card title="Data quality inline" icon="magnifier">
+		`not_null`, `unique`, and custom SQL checks run as first-class DAG
+		nodes in the same run as the data they check — failures block
+		downstream writes instead of paging you afterwards.
+	</Card>
+	<Card title="Fast by architecture" icon="seti:db">
+		DuckDB does the heavy lifting in-process; the .NET side only ever
+		holds in-flight Arrow batches. Projection and predicate pushdown are
+		extracted from your SQL and passed to capable connectors.
+	</Card>
+	<Card title="Observable runs" icon="setting">
+		Every run emits a stable NDJSON event stream, OpenTelemetry traces
+		and metrics, and a `run_results.json` artifact — the same contract
+		whether you run locally or in CI.
 	</Card>
 </CardGrid>
+</div>
+
+<div class="pz-section">
+<span class="pz-kicker">Quickstart</span>
+## Running in five minutes
+
+<Steps>
+
+1. Install the CLI as a .NET global tool:
+
+   ```console
+   $ dotnet tool install --global Pz.Cli --prerelease
+   ```
+
+2. Scaffold a small, complete, runnable project:
+
+   ```console
+   $ pz init demo && cd demo
+   ```
+
+3. Run both flows — sources, pipelines, checks, and sinks in one command:
+
+   ```console
+   $ pz run --all
+   ```
+
+</Steps>
+</div>
+
+<div class="pz-section">
+<span class="pz-kicker">Start here</span>
+## New to data pipelines?
+
+<LinkCard
+	title="The Little Book of Data Pipelines"
+	description="An 11-chapter, beginner-friendly book: nine vendor-neutral chapters on pipeline fundamentals built around one running example, then two chapters on how pz maps onto them — including what it deliberately doesn't do."
+	href="book/"
+/>
+</div>

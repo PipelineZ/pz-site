@@ -21,6 +21,7 @@ export default defineConfig({
 				},
 			],
 			plugins: [catppuccin()],
+			customCss: ['./src/styles/landing.css'],
 			head: [
 				{
 					tag: 'script',
