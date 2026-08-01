@@ -5,9 +5,8 @@ template: splash
 hero:
   title: PipelineZ
   tagline: >-
-    Small, fast, simple. Plain SQL in, a reliable pipeline out — on your
-    laptop, a VM, Docker, or Kubernetes; Linux, macOS, or Windows. Installed
-    in a minute, understood in an afternoon.
+    A data pipeline tool that runs everywhere. Plain SQL in; extraction,
+    transforms, checks, and loads out. Simple, fast, free, and open source.
   image:
     html: |-
       <div class="pz-term" aria-label="Terminal showing a pz run">
@@ -127,53 +126,54 @@ a native scan.
 
 <div class="pz-section">
 <span class="pz-kicker">Why pz</span>
-## Small. Fast. Simple. Anywhere.
+## Everything a pipeline tool should be
 
-Not a platform, not a control plane — a CLI you install in a minute, run
-the same everywhere, and actually understand.
+The tools pz grew up on — DuckDB and dbt — won by being simple, fast,
+and free. pz follows the same path, for the whole pipeline.
 
 <div class="pz-bento">
 	<div class="pz-tile" style="--pz-card: var(--pz-green)">
-		<p class="pz-tile-title"><i></i>Small</p>
-		<p>One binary and a project folder. No web server, no metadata
-		database, no worker fleet, no agents to babysit. Everything a run
-		produces sits in `.pz/` next to your SQL — delete the folder and pz
-		is gone without a trace.</p>
-		<code class="pz-proof">$ <b>dotnet tool install</b> --global Pz.Cli</code>
+		<p class="pz-tile-title"><i></i>Simple</p>
+		<p>Installed in seconds, learned in an afternoon. A project is SQL
+		files plus one YAML, and the dependency graph is read from the SQL
+		you already wrote — no DSL, no DAG files, no wiring. If you know SQL,
+		you know pz.</p>
+		<code class="pz-proof">from <b>{'{{ ref(\'stg_orders\') }}'}</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-sky)">
-		<p class="pz-tile-title"><i></i>Simple</p>
-		<p>A pipeline is SQL plus one YAML file. The dependency graph is read
-		from the SQL you already wrote — no DSL, no DAG files, no wiring.</p>
-		<code class="pz-proof">from <b>{'{{ ref(\'stg_orders\') }}'}</b></code>
+		<p class="pz-tile-title"><i></i>Feature-rich</p>
+		<p>Incremental reads, change data capture, bounded backfills, retries
+		that resume, inline data-quality checks, delivery guarantees,
+		OpenTelemetry — built in, not bolted on.</p>
+		<code class="pz-proof">sync: {'{'} mode: <b>cdc</b>, on_delete: soft {'}'}</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-blue)">
 		<p class="pz-tile-title"><i></i>Fast</p>
-		<p>An embedded analytical engine does the heavy lifting in-process,
-		and data moves in zero-copy batches. Node times are milliseconds, not
-		minutes of cluster spin-up.</p>
+		<p>An embedded analytical engine does the work in-process; data moves
+		in zero-copy batches, and connectors hand over native scans when they
+		can. Node times are milliseconds, not minutes of spin-up.</p>
 		<code class="pz-proof"><b>ok</b> orders_enriched 3 rows 23ms</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-peach)">
-		<p class="pz-tile-title"><i></i>Anywhere</p>
-		<p>Laptop, VM, Docker, Kubernetes — Linux, macOS, or Windows. Same
-		binary, same behavior, same output. Watermarks and run state can live
-		in a database when the host is ephemeral.</p>
-		<code class="pz-proof">$ pz run --all  <b># laptop · VM · Docker · K8s</b></code>
+		<p class="pz-tile-title"><i></i>Extensible</p>
+		<p>Connectors are ordinary packages built against a small, versioned
+		ABI, with a contract test kit that keeps them honest. Five ship
+		first-party; yours is a package away.</p>
+		<code class="pz-proof">- package: <b>Pz.Connector.LocalFiles</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-red)">
-		<p class="pz-tile-title"><i></i>Simple is not sloppy</p>
-		<p>A plan that can silently duplicate rows is a compile error, not a
-		wiki footnote. Watermarks advance only after every sink commits, and
-		`pz retry` resumes instead of redoing finished work.</p>
-		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
+		<p class="pz-tile-title"><i></i>Free</p>
+		<p>MIT-licensed, open source, and yours. No SaaS meter, no per-row
+		pricing, no gated enterprise tier — it runs on hardware you already
+		have and writes to storage you already own.</p>
+		<code class="pz-proof"><b>MIT License</b> · no meter · no tiers</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-teal)">
-		<p class="pz-tile-title"><i></i>Tells you what it did</p>
-		<p>Every run emits a stable, diffable NDJSON event stream, OpenTelemetry
-		traces and metrics, and a `run_results.json` artifact — the same
-		contract on your laptop and in CI.</p>
-		<code class="pz-proof">{'{'}"event":<b>"run_completed"</b>,"status":"success","succeeded":12{'}'}</code>
+		<p class="pz-tile-title"><i></i>Portable</p>
+		<p>One binary for Linux, macOS, and Windows. The same run, the same
+		behavior, on a laptop, a VM, Docker, or Kubernetes — and state can
+		live in a database when the host is ephemeral.</p>
+		<code class="pz-proof">$ pz run --all  <b># laptop · VM · Docker · K8s</b></code>
 	</div>
 </div>
 </div>
