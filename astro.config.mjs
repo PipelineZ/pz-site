@@ -21,7 +21,10 @@ export default defineConfig({
 				},
 			],
 			plugins: [catppuccin()],
-			customCss: ['./src/styles/landing.css'],
+			customCss: [
+				'@fontsource-variable/bricolage-grotesque',
+				'./src/styles/landing.css',
+			],
 			head: [
 				{
 					tag: 'script',

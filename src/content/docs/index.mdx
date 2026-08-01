@@ -76,6 +76,11 @@ Arrow batches — or never enters .NET at all when a connector can hand DuckDB
 a native scan.
 
 <svg class="pz-arch" viewBox="0 0 860 330" role="img" aria-label="Hub-and-spoke architecture: sources flow into a DuckDB staging hub, pipelines transform inside it, sinks write results out">
+  <defs>
+    <marker id="pz-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L8 4 L0 8 Z" fill="var(--sl-color-accent)"/>
+    </marker>
+  </defs>
   <rect class="box" x="20" y="45" width="170" height="44" rx="8"/>
   <text x="105" y="72" text-anchor="middle">Postgres</text>
   <rect class="box" x="20" y="143" width="170" height="44" rx="8"/>
@@ -83,9 +88,9 @@ a native scan.
   <rect class="box" x="20" y="241" width="170" height="44" rx="8"/>
   <text x="105" y="268" text-anchor="middle">CSV / S3 / Blob</text>
 
-  <path class="flow" d="M190 67 C 260 67, 250 120, 310 130"/>
-  <path class="flow" d="M190 165 L 310 165"/>
-  <path class="flow" d="M190 263 C 260 263, 250 210, 310 200"/>
+  <path class="flow" d="M190 67 C 260 67, 250 120, 310 130" marker-end="url(#pz-arrow)"/>
+  <path class="flow" d="M190 165 L 310 165" marker-end="url(#pz-arrow)"/>
+  <path class="flow" d="M190 263 C 260 263, 250 210, 310 200" marker-end="url(#pz-arrow)"/>
 
   <rect class="hub" x="310" y="65" width="240" height="200" rx="12"/>
   <text class="title" x="430" y="95" text-anchor="middle">DuckDB staging</text>
@@ -95,9 +100,9 @@ a native scan.
   <text x="430" y="195" text-anchor="middle">SQL pipelines + checks</text>
   <text class="note" x="430" y="245" text-anchor="middle">one run, one file, in-process</text>
 
-  <path class="flow" d="M550 130 C 610 120, 600 67, 670 67"/>
-  <path class="flow" d="M550 165 L 670 165"/>
-  <path class="flow" d="M550 200 C 610 210, 600 263, 670 263"/>
+  <path class="flow" d="M550 130 C 610 120, 600 67, 670 67" marker-end="url(#pz-arrow)"/>
+  <path class="flow" d="M550 165 L 670 165" marker-end="url(#pz-arrow)"/>
+  <path class="flow" d="M550 200 C 610 210, 600 263, 670 263" marker-end="url(#pz-arrow)"/>
 
   <rect class="box" x="670" y="45" width="170" height="44" rx="8"/>
   <text x="755" y="72" text-anchor="middle">Parquet lake</text>
@@ -109,6 +114,15 @@ a native scan.
   <text class="note" x="250" y="30">zero-copy Arrow / native scan</text>
   <text class="note" x="565" y="30">merge · replace · append</text>
 </svg>
+
+<div class="pz-badges" aria-label="First-party connectors">
+  <span>postgres</span>
+  <span>sqlserver</span>
+  <span>s3</span>
+  <span>azureblob</span>
+  <span>localfiles</span>
+  <span>+ your own — versioned connector ABI</span>
+</div>
 </div>
 
 <div class="pz-section">
@@ -180,9 +194,11 @@ a native scan.
 <span class="pz-kicker">Start here</span>
 ## New to data pipelines?
 
+<div class="pz-cta">
 <LinkCard
 	title="The Little Book of Data Pipelines"
 	description="An 11-chapter, beginner-friendly book: nine vendor-neutral chapters on pipeline fundamentals built around one running example, then two chapters on how pz maps onto them — including what it deliberately doesn't do."
 	href="book/"
 />
+</div>
 </div>

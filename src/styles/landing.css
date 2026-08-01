@@ -1,5 +1,49 @@
 /* ---- Landing page ---------------------------------------------------- */
 
+/* Catppuccin accents (Mocha by default, Latte overrides below) */
+:root {
+	--pz-mauve: #cba6f7;
+	--pz-blue: #89b4fa;
+	--pz-peach: #fab387;
+	--pz-green: #a6e3a1;
+	--pz-red: #f38ba8;
+	--pz-teal: #94e2d5;
+	--pz-yellow: #f9e2af;
+}
+:root[data-theme='light'] {
+	--pz-mauve: #8839ef;
+	--pz-blue: #1e66f5;
+	--pz-peach: #fe640b;
+	--pz-green: #40a02b;
+	--pz-red: #d20f39;
+	--pz-teal: #179299;
+	--pz-yellow: #df8e1d;
+}
+
+/* Hero: display type + soft atmosphere behind the splash page */
+[data-has-hero] .hero h1,
+[data-has-hero] .sl-markdown-content h2 {
+	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+}
+[data-has-hero] .hero h1 {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+.site-title span {
+	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+	font-weight: 700;
+}
+[data-has-hero] .main-frame {
+	background:
+		radial-gradient(42rem 22rem at 85% -5%,
+			color-mix(in srgb, var(--pz-mauve) 14%, transparent), transparent 70%),
+		radial-gradient(36rem 20rem at 0% 18%,
+			color-mix(in srgb, var(--pz-blue) 10%, transparent), transparent 70%),
+		radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
+	background-size: auto, auto, 26px 26px;
+	background-attachment: local;
+}
+
 /* Terminal window (stays Catppuccin-Mocha dark in both themes) */
 .pz-term {
 	width: 100%;
@@ -61,6 +105,22 @@
 .pz-term .dim { color: #6c7086; }
 .pz-term .prompt { color: #89b4fa; }
 .pz-term .accent { color: #cba6f7; }
+.pz-term pre::after {
+	content: '';
+	display: inline-block;
+	width: 0.55em;
+	height: 1.05em;
+	margin-inline-start: 0.15em;
+	vertical-align: text-bottom;
+	background: #cdd6f4;
+	opacity: 0;
+	animation: pz-cursor 1.1s steps(2, start) infinite;
+	animation-delay: 2.4s;
+}
+@keyframes pz-cursor {
+	from { opacity: 1; }
+	50% { opacity: 0; }
+}
 @keyframes pz-line-in {
 	from { opacity: 0; transform: translateY(3px); }
 	to { opacity: 1; transform: none; }
@@ -142,7 +202,81 @@
 	color: var(--sl-color-accent-high);
 }
 
+/* Kicker dash */
+.pz-kicker::before {
+	content: '';
+	display: inline-block;
+	width: 1.4rem;
+	height: 2px;
+	background: currentColor;
+	vertical-align: middle;
+	margin-inline-end: 0.5rem;
+	border-radius: 1px;
+}
+
+/* Feature cards: one Catppuccin accent each, hover lift */
+.pz-section .card {
+	border-radius: 12px;
+	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.pz-section .card:nth-child(1) { --pz-card: var(--pz-green); }
+.pz-section .card:nth-child(2) { --pz-card: var(--pz-mauve); }
+.pz-section .card:nth-child(3) { --pz-card: var(--pz-blue); }
+.pz-section .card:nth-child(4) { --pz-card: var(--pz-peach); }
+.pz-section .card:nth-child(5) { --pz-card: var(--pz-red); }
+.pz-section .card:nth-child(6) { --pz-card: var(--pz-teal); }
+.pz-section .card .icon {
+	color: var(--pz-card, var(--sl-color-accent));
+	border: 1px solid color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 35%, transparent);
+	background: color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 12%, transparent);
+	border-radius: 8px;
+}
+.pz-section .card:hover {
+	transform: translateY(-3px);
+	border-color: color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 55%, var(--sl-color-gray-5));
+	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--pz-card, var(--sl-color-accent)) 60%, transparent);
+}
+
+/* Connector badge strip */
+.pz-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: center;
+	margin-top: 1rem;
+}
+.pz-badges span {
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-2);
+	border: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+	border-radius: 999px;
+	padding: 0.25rem 0.75rem;
+}
+
+/* Closing CTA band around the book link */
+.pz-cta {
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
+	background:
+		linear-gradient(135deg,
+			color-mix(in srgb, var(--pz-mauve) 10%, transparent),
+			color-mix(in srgb, var(--pz-blue) 8%, transparent) 60%,
+			color-mix(in srgb, var(--pz-teal) 8%, transparent));
+	border-radius: 16px;
+	padding: 1.5rem;
+	margin-bottom: 3rem;
+}
+.pz-cta .sl-link-card {
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	padding: 0.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.pz-term .ln { animation: none; opacity: 1; }
+	.pz-term pre::after { animation: none; opacity: 1; }
 	.pz-arch .flow { animation: none; }
+	.pz-section .card { transition: none; }
 }
