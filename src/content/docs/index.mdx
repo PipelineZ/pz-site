@@ -5,9 +5,9 @@ template: splash
 hero:
   title: PipelineZ
   tagline: >-
-    One tool instead of three. Write plain SQL; pz compiles it into the whole
-    pipeline — extraction, transforms, checks, loads, retries — and refuses to
-    build one that can lie to you. One process. Nothing to operate.
+    Small, fast, simple. Plain SQL in, a reliable pipeline out — on your
+    laptop, a VM, Docker, or Kubernetes; Linux, macOS, or Windows. Installed
+    in a minute, understood in an afternoon.
   image:
     html: |-
       <div class="pz-term" aria-label="Terminal showing a pz run">
@@ -127,54 +127,53 @@ a native scan.
 
 <div class="pz-section">
 <span class="pz-kicker">Why pz</span>
-## Why pz, and not another tool?
+## Small. Fast. Simple. Anywhere.
 
-Because the usual answer is three products and a scheduler: something to
-extract, something to transform, something to orchestrate. pz is one tool
-with a compiler — and the compiler has opinions.
+Not a platform, not a control plane — a CLI you install in a minute, run
+the same everywhere, and actually understand.
 
 <div class="pz-bento">
 	<div class="pz-tile" style="--pz-card: var(--pz-green)">
-		<p class="pz-tile-title"><i></i>The whole pipeline, one run</p>
-		<p>An extractor, a transform tool, and an orchestrator is three bills,
-		three configs, and three places to fail. One `pz run` extracts,
-		transforms, checks, and loads — in dependency order, in one process.
-		There is nothing left to glue together.</p>
-		<code class="pz-proof">run: <b>12 succeeded</b>, 0 failed, 0 skipped</code>
+		<p class="pz-tile-title"><i></i>Small</p>
+		<p>One binary and a project folder. No web server, no metadata
+		database, no worker fleet, no agents to babysit. Everything a run
+		produces sits in `.pz/` next to your SQL — delete the folder and pz
+		is gone without a trace.</p>
+		<code class="pz-proof">$ <b>dotnet tool install</b> --global Pz.Cli</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-sky)">
-		<p class="pz-tile-title"><i></i>The DAG writes itself</p>
-		<p>No DAG files, no operator classes, no wiring YAML. The graph is read
-		from the SQL you already wrote.</p>
+		<p class="pz-tile-title"><i></i>Simple</p>
+		<p>A pipeline is SQL plus one YAML file. The dependency graph is read
+		from the SQL you already wrote — no DSL, no DAG files, no wiring.</p>
 		<code class="pz-proof">from <b>{'{{ ref(\'stg_orders\') }}'}</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-blue)">
-		<p class="pz-tile-title"><i></i>Correctness is compiler-enforced</p>
-		<p>Other tools document their delivery guarantees in a wiki. pz makes
-		them a compile error: a plan that can duplicate rows does not build
-		without your explicit consent.</p>
-		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
+		<p class="pz-tile-title"><i></i>Fast</p>
+		<p>An embedded analytical engine does the heavy lifting in-process,
+		and data moves in zero-copy batches. Node times are milliseconds, not
+		minutes of cluster spin-up.</p>
+		<code class="pz-proof"><b>ok</b> orders_enriched 3 rows 23ms</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-peach)">
-		<p class="pz-tile-title"><i></i>Incremental in one line</p>
-		<p>No cursor tables, no state plugins, no sync configs. A where-clause
-		makes the read incremental, and the watermark advances only after every
-		downstream sink has committed — a crash cannot strand data.</p>
-		<code class="pz-proof">where updated_at &gt; <b>{'{{ watermark(\'crm\', \'orders\') }}'}</b></code>
+		<p class="pz-tile-title"><i></i>Anywhere</p>
+		<p>Laptop, VM, Docker, Kubernetes — Linux, macOS, or Windows. Same
+		binary, same behavior, same output. Watermarks and run state can live
+		in a database when the host is ephemeral.</p>
+		<code class="pz-proof">$ pz run --all  <b># laptop · VM · Docker · K8s</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-red)">
-		<p class="pz-tile-title"><i></i>Retries don't redo work</p>
-		<p>Most schedulers rerun the whole job and call it recovery. `pz retry`
-		resumes: already-extracted data is reused from staging, committed sinks
-		stay committed, only the failed nodes run again.</p>
-		<code class="pz-proof"><b>note:</b> reusing staged data for 2 source load(s)</code>
+		<p class="pz-tile-title"><i></i>Simple is not sloppy</p>
+		<p>A plan that can silently duplicate rows is a compile error, not a
+		wiki footnote. Watermarks advance only after every sink commits, and
+		`pz retry` resumes instead of redoing finished work.</p>
+		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-teal)">
-		<p class="pz-tile-title"><i></i>Nothing to operate</p>
-		<p>No web server, no metadata database, no worker fleet, no per-row
-		SaaS bill. One binary that behaves the same on your laptop and in CI —
-		and tells you exactly what it did in a stable, diffable event stream.</p>
-		<code class="pz-proof">$ <b>dotnet tool install</b> --global Pz.Cli</code>
+		<p class="pz-tile-title"><i></i>Tells you what it did</p>
+		<p>Every run emits a stable, diffable NDJSON event stream, OpenTelemetry
+		traces and metrics, and a `run_results.json` artifact — the same
+		contract on your laptop and in CI.</p>
+		<code class="pz-proof">{'{'}"event":<b>"run_completed"</b>,"status":"success","succeeded":12{'}'}</code>
 	</div>
 </div>
 </div>
