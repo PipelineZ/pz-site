@@ -107,10 +107,24 @@
 .pz-cols {
 	display: grid;
 	gap: 1rem;
-	align-items: start;
+	align-items: stretch;
 }
 @media (min-width: 72rem) {
 	.pz-cols { grid-template-columns: 1fr 1fr; }
+}
+.pz-cols > * {
+	margin-top: 0 !important; /* cancel Starlight's flow margin so panels align */
+}
+/* Equal-height code panels: stretch each frame to fill its grid cell */
+.pz-cols .expressive-code,
+.pz-cols .expressive-code figure {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+}
+.pz-cols .expressive-code pre {
+	flex: 1;
 }
 .pz-kicker {
 	letter-spacing: 0.12em;
