@@ -1,0 +1,42 @@
+---
+title: PipelineZ
+description: A dbt-inspired batch ETL CLI for .NET powered by DuckDB.
+template: splash
+hero:
+  title: PipelineZ
+  tagline: >-
+    A dbt-inspired batch ETL CLI for .NET, powered by DuckDB. One
+    connections.yml plus SQL files compile into a dependency-ordered DAG and
+    run in-process, moving data through zero-copy Arrow.
+  actions:
+    - text: Read the book
+      link: book/
+      icon: open-book
+    - text: PipelineZ on GitHub
+      link: https://github.com/coccor/pz
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why pz
+
+<CardGrid stagger>
+	<Card title="SQL is the pipeline" icon="pencil">
+		Transformations, reads, and writes are declared in the SQL you already
+		write — `pz` compiles them into a DAG, no orchestration code.
+	</Card>
+	<Card title="DuckDB as the hub" icon="rocket">
+		Sources land into a local DuckDB staging database, pipelines transform
+		inside it, sinks drain results out — fast and in-process.
+	</Card>
+	<Card title="Incremental by declaration" icon="approve-check">
+		`where cursor > {'{{ watermark(s, e) }}'}` is the whole incremental
+		story: watermarks, bounded windows, retries, and CDC built in.
+	</Card>
+	<Card title="Honest delivery guarantees" icon="open-book">
+		Merge and replace are effectively-once; append is at-least-once and the
+		compiler makes you say so. Start with the book to see why that matters.
+	</Card>
+</CardGrid>
