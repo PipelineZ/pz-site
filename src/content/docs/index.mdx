@@ -5,9 +5,9 @@ template: splash
 hero:
   title: PipelineZ
   tagline: >-
-    SQL in, pipeline out. Extraction, transforms, quality checks, loads,
-    retries — one command, one process. No cluster. No scheduler. No 2 a.m.
-    pages. Your pipeline is three SQL files, not a platform team.
+    One tool instead of three. Write plain SQL; pz compiles it into the whole
+    pipeline — extraction, transforms, checks, loads, retries — and refuses to
+    build one that can lie to you. One process. Nothing to operate.
   image:
     html: |-
       <div class="pz-term" aria-label="Terminal showing a pz run">
@@ -127,55 +127,54 @@ a native scan.
 
 <div class="pz-section">
 <span class="pz-kicker">Why pz</span>
-## Sound familiar?
+## Why pz, and not another tool?
 
-Every one of these has paged somebody at 2 a.m. `pz` was designed around
-them — not around a feature list.
+Because the usual answer is three products and a scheduler: something to
+extract, something to transform, something to orchestrate. pz is one tool
+with a compiler — and the compiler has opinions.
 
 <div class="pz-bento">
 	<div class="pz-tile" style="--pz-card: var(--pz-green)">
-		<p class="pz-tile-title"><i></i>The nightly full reload</p>
-		<p>The job re-reads 40 million rows to pick up two thousand new ones,
-		and the warehouse bill shows it. In pz, one where-clause makes the read
-		incremental — and the watermark only advances after every downstream
-		sink has committed, so a crash can't strand data.</p>
-		<code class="pz-proof">where updated_at &gt; <b>{'{{ watermark(\'crm\', \'orders\') }}'}</b></code>
+		<p class="pz-tile-title"><i></i>The whole pipeline, one run</p>
+		<p>An extractor, a transform tool, and an orchestrator is three bills,
+		three configs, and three places to fail. One `pz run` extracts,
+		transforms, checks, and loads — in dependency order, in one process.
+		There is nothing left to glue together.</p>
+		<code class="pz-proof">run: <b>12 succeeded</b>, 0 failed, 0 skipped</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-sky)">
-		<p class="pz-tile-title"><i></i>Tuesday's revenue is double</p>
-		<p>A retried batch replayed a slice into an append sink. Finance found
-		it before you did. pz refuses to compile that plan without your
-		signature on it.</p>
-		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
+		<p class="pz-tile-title"><i></i>The DAG writes itself</p>
+		<p>No DAG files, no operator classes, no wiring YAML. The graph is read
+		from the SQL you already wrote.</p>
+		<code class="pz-proof">from <b>{'{{ ref(\'stg_orders\') }}'}</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-blue)">
-		<p class="pz-tile-title"><i></i>Failed at 5:47, on the last node</p>
-		<p>And the rerun starts the whole four hours from zero. `pz retry`
-		re-executes only what failed — staged data is reused, committed sinks
-		stay committed.</p>
-		<code class="pz-proof"><b>note:</b> reusing staged data for 2 source load(s)</code>
+		<p class="pz-tile-title"><i></i>Correctness is compiler-enforced</p>
+		<p>Other tools document their delivery guarantees in a wiki. pz makes
+		them a compile error: a plan that can duplicate rows does not build
+		without your explicit consent.</p>
+		<code class="pz-proof"><b>error PZ0214:</b> append fed by an incremental dataset — a replayed slice can duplicate rows</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-peach)">
-		<p class="pz-tile-title"><i></i>The bad rows shipped a week ago</p>
-		<p>The check that would have caught them lived in another tool, on
-		another schedule. In pz, checks are DAG nodes in the same run — a
-		failure blocks the writes downstream of it before anyone dashboards
-		bad numbers.</p>
-		<code class="pz-proof"><b>ok</b> check_orders_enriched_unique_id 0 rows 3ms</code>
+		<p class="pz-tile-title"><i></i>Incremental in one line</p>
+		<p>No cursor tables, no state plugins, no sync configs. A where-clause
+		makes the read incremental, and the watermark advances only after every
+		downstream sink has committed — a crash cannot strand data.</p>
+		<code class="pz-proof">where updated_at &gt; <b>{'{{ watermark(\'crm\', \'orders\') }}'}</b></code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-red)">
-		<p class="pz-tile-title"><i></i>A cluster to copy a CSV</p>
-		<p>Moving a few gigabytes shouldn't need one. pz is a single process:
-		DuckDB does the heavy lifting, .NET holds only in-flight Arrow batches,
-		and connectors hand DuckDB a native scan when they can.</p>
-		<code class="pz-proof">zero-copy Arrow · <b>native scan</b> when the connector can</code>
+		<p class="pz-tile-title"><i></i>Retries don't redo work</p>
+		<p>Most schedulers rerun the whole job and call it recovery. `pz retry`
+		resumes: already-extracted data is reused from staging, committed sinks
+		stay committed, only the failed nodes run again.</p>
+		<code class="pz-proof"><b>note:</b> reusing staged data for 2 source load(s)</code>
 	</div>
 	<div class="pz-tile" style="--pz-card: var(--pz-teal)">
-		<p class="pz-tile-title"><i></i>"It succeeded." Succeeded at what?</p>
-		<p>An exit code is not an audit trail. Every run emits a stable NDJSON
-		event stream, OpenTelemetry traces and metrics, and a
-		`run_results.json` you can diff — locally and in CI alike.</p>
-		<code class="pz-proof">{'{'}"event":<b>"run_completed"</b>,"status":"success","succeeded":12{'}'}</code>
+		<p class="pz-tile-title"><i></i>Nothing to operate</p>
+		<p>No web server, no metadata database, no worker fleet, no per-row
+		SaaS bill. One binary that behaves the same on your laptop and in CI —
+		and tells you exactly what it did in a stable, diffable event stream.</p>
+		<code class="pz-proof">$ <b>dotnet tool install</b> --global Pz.Cli</code>
 	</div>
 </div>
 </div>
