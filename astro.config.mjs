@@ -20,7 +20,12 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'book' } }],
 				},
 			],
-			plugins: [catppuccin()],
+			plugins: [
+				catppuccin({
+					dark: { flavor: 'mocha', accent: 'teal' },
+					light: { flavor: 'latte', accent: 'teal' },
+				}),
+			],
 			customCss: [
 				'@fontsource-variable/bricolage-grotesque',
 				'./src/styles/landing.css',

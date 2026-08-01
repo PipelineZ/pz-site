@@ -2,7 +2,7 @@
 
 /* Catppuccin accents (Mocha by default, Latte overrides below) */
 :root {
-	--pz-mauve: #cba6f7;
+	--pz-sky: #89dceb;
 	--pz-blue: #89b4fa;
 	--pz-peach: #fab387;
 	--pz-green: #a6e3a1;
@@ -11,7 +11,7 @@
 	--pz-yellow: #f9e2af;
 }
 :root[data-theme='light'] {
-	--pz-mauve: #8839ef;
+	--pz-sky: #04a5e5;
 	--pz-blue: #1e66f5;
 	--pz-peach: #fe640b;
 	--pz-green: #40a02b;
@@ -36,7 +36,7 @@
 [data-has-hero] .main-frame {
 	background:
 		radial-gradient(42rem 22rem at 85% -5%,
-			color-mix(in srgb, var(--pz-mauve) 14%, transparent), transparent 70%),
+			color-mix(in srgb, var(--pz-teal) 14%, transparent), transparent 70%),
 		radial-gradient(36rem 20rem at 0% 18%,
 			color-mix(in srgb, var(--pz-blue) 10%, transparent), transparent 70%),
 		radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
@@ -104,7 +104,7 @@
 .pz-term .ok { color: #a6e3a1; }
 .pz-term .dim { color: #6c7086; }
 .pz-term .prompt { color: #89b4fa; }
-.pz-term .accent { color: #cba6f7; }
+.pz-term .accent { color: #94e2d5; }
 .pz-term pre::after {
 	content: '';
 	display: inline-block;
@@ -220,7 +220,7 @@
 	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .pz-section .card:nth-child(1) { --pz-card: var(--pz-green); }
-.pz-section .card:nth-child(2) { --pz-card: var(--pz-mauve); }
+.pz-section .card:nth-child(2) { --pz-card: var(--pz-sky); }
 .pz-section .card:nth-child(3) { --pz-card: var(--pz-blue); }
 .pz-section .card:nth-child(4) { --pz-card: var(--pz-peach); }
 .pz-section .card:nth-child(5) { --pz-card: var(--pz-red); }
@@ -260,7 +260,7 @@
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background:
 		linear-gradient(135deg,
-			color-mix(in srgb, var(--pz-mauve) 10%, transparent),
+			color-mix(in srgb, var(--pz-teal) 10%, transparent),
 			color-mix(in srgb, var(--pz-blue) 8%, transparent) 60%,
 			color-mix(in srgb, var(--pz-teal) 8%, transparent));
 	border-radius: 16px;
