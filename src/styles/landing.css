@@ -104,6 +104,14 @@
 
 /* Section rhythm + code showcase grid */
 .pz-section { margin-top: 4rem; }
+/* Starlight's splash hero reserves up to 10rem of block padding — trim it */
+[data-has-hero] .hero {
+	padding-block: clamp(1.5rem, 4vmin, 3rem) 0;
+}
+[data-has-hero] .hero + * .pz-section:first-child,
+.pz-section:first-of-type {
+	margin-top: 2.5rem;
+}
 .pz-cols {
 	display: grid;
 	gap: 1rem;
