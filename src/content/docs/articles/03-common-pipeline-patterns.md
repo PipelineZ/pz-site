@@ -1,11 +1,11 @@
 ---
-title: "Chapter 3 - Common pipeline patterns"
+title: "3. Common pipeline patterns"
 sidebar:
   order: 3
 ---
 Every pipeline answers the same four questions: *when* does data move, *how much* moves each
 time, *where* does the reshaping happen, and *how do we notice changes* in the source? The
-recurring answers to those questions are the patterns in this chapter. Learn these names and
+recurring answers to those questions are the patterns in this article. Learn these names and
 most pipeline documentation - for any tool - starts making sense.
 
 ## Batch vs streaming: when does data move?
@@ -36,7 +36,7 @@ flowchart TB
 The honest guidance: **most analytical needs are batch needs.** "Real-time" in a stakeholder
 request usually means "not a week old." Ask what decision would change if the number were
 five minutes fresh instead of five hours - if the answer is "none," batch wins, because
-batch systems are dramatically simpler to build, test, rerun, and reason about. This book -
+batch systems are dramatically simpler to build, test, rerun, and reason about. This series -
 and `pz` in Part II - lives in the batch world.
 
 (There's a middle ground, **micro-batching**: run a small batch every few minutes. It buys
@@ -76,7 +76,7 @@ flowchart LR
 Incremental's price is state. The watermark is a little piece of memory between runs, and
 everything that can go wrong with pipelines-with-memory - missed rows when a clock skews,
 double-counting when a run is retried, "how do I rebuild from scratch?" - becomes your
-problem. Chapters 4 and 9 deal with exactly these. Rule of thumb: **stay full-refresh until
+problem. articles 4 and 9 deal with exactly these. Rule of thumb: **stay full-refresh until
 the runtime or the source's pain forces incremental**, and even then, keep the ability to
 fall back to a full rebuild.
 
@@ -102,7 +102,7 @@ flowchart LR
 
 ELT won the last decade, for two reasons. First, warehouses became cheap and fast, and SQL is
 the most widely shared data skill - transforming *in* the warehouse means analysts can read
-and fix the logic. Second, keeping the raw data (Chapter 2's landing zone) means you can
+and fix the logic. Second, keeping the raw data (article 2's landing zone) means you can
 re-run transformations without re-extracting: when the revenue definition changes, you replay
 the T, not the E.
 
@@ -131,7 +131,7 @@ delete  order 8102                    -- cancelled and purged
 CDC gives you a complete, ordered story - at the cost of setup on the source database and a
 consumer that must keep up with the log. It's the right tool when deletes matter, when
 there's no usable cursor column, or when hammering the source with big queries is off the
-table. Chapter 4 covers the mechanics; `pz` supports a batch-shaped version of it.
+table. Article 4 covers the mechanics; `pz` supports a batch-shaped version of it.
 
 ## Layered transformation: raw → staging → marts
 
@@ -145,7 +145,7 @@ may hear it as "bronze/silver/gold" or "medallion"; the names vary, the idea doe
 - **Marts**: the business-facing answers - joined, aggregated tables like
   `revenue_by_store_by_day`, shaped for dashboards.
 
-This is the backbone of Chapter 5, so we'll leave the details there. The pattern to register
+This is the backbone of article 5, so we'll leave the details there. The pattern to register
 now: each layer reads only the layer before it, which turns one tangled query into a chain of
 small, testable steps.
 
@@ -156,7 +156,7 @@ logic, or added a new column, and now three years of history must be rebuilt. Ba
 routine - plan for them from day one, because two properties decide whether they're an
 afternoon or a disaster:
 
-- **Idempotency**: running the same period twice must not double the numbers (Chapter 4's
+- **Idempotency**: running the same period twice must not double the numbers (article 4's
   load strategies are what make this true).
 - **Bounded windows**: rebuild three years as many small slices - a month at a time - not
   one heroic query, so a failure loses minutes of progress rather than hours, and the source
@@ -164,7 +164,7 @@ afternoon or a disaster:
 
 ## Choosing for Sunrise Bakery
 
-Applying the chapter to our bakery: the dashboard needs morning-fresh numbers → **nightly
+Applying the article to our bakery: the dashboard needs morning-fresh numbers → **nightly
 batch**. Orders and customers are small → **full refresh**, moving orders to
 **incremental** with an `updated_at` cursor when the table grows. Analysts know SQL and raw
 extracts are worth keeping → **ELT-style, layered transformation**. Cancelled orders are
@@ -182,4 +182,4 @@ eventually. Every choice is the boring one, on purpose.
 
 ---
 
-*Next: [Chapter 4 - Data ingestion: extracting and loading](../04-data-ingestion-extracting-and-loading/)*
+*Next: [4. Data ingestion: extracting and loading](../04-data-ingestion-extracting-and-loading/)*

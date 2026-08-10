@@ -1,5 +1,5 @@
 ---
-title: "Chapter 1 - What is a data pipeline?"
+title: "1. What is a data pipeline?"
 sidebar:
   order: 1
 ---
@@ -105,16 +105,16 @@ grows, the same pains appear in every company, in the same order:
 
 1. The script gets a second data source, then a third. Now steps depend on each other -
    customers must be downloaded before orders can be joined to them. You've discovered
-   **orchestration** (Chapter 6).
+   **orchestration** (article 6).
 2. A source starts sending garbage - an order with no ID, a negative price. The report is
-   silently wrong for three weeks. You've discovered **data validation** (Chapter 7).
+   silently wrong for three weeks. You've discovered **data validation** (article 7).
 3. The script fails at 6 a.m. and nobody notices until the owner opens an empty dashboard.
-   You've discovered **monitoring** (Chapter 8).
+   You've discovered **monitoring** (article 8).
 4. The orders table grows from thousands of rows to millions, and re-downloading all of it
    every night stops being reasonable. You've discovered **incremental loading**
-   (Chapters 3 and 4).
+   (articles 3 and 4).
 5. The script runs twice by accident and every number doubles. You've discovered
-   **idempotency and delivery guarantees** (Chapters 4 and 9).
+   **idempotency and delivery guarantees** (articles 4 and 9).
 
 Pipeline tools exist because these problems are universal. Whether you use a heavyweight
 platform or a small CLI tool, you are buying the same things: structure for the steps,
@@ -146,21 +146,21 @@ Two boundaries worth drawing early:
 
 - **A pipeline is not a database.** It moves and reshapes data; the data itself lives in
   sources and destinations. (Some tools use an internal database as a workbench - we'll see
-  that in Chapter 10 - but the workbench isn't the product.)
+  that in article 10 - but the workbench isn't the product.)
 - **A pipeline is not a dashboard.** The dashboard is the *consumer*. The pipeline's job ends
   when correct, fresh data is sitting where the dashboard reads it.
 
 ## Where we're headed
 
-Over the next eight chapters we'll rebuild Dana's Monday morning properly: we'll see where
-each system fits in a modern data platform (Chapter 2), pick the right movement pattern
-(Chapter 3), get the data out and in reliably (Chapter 4), transform it in maintainable
-layers (Chapter 5), run steps in the right order automatically (Chapter 6), catch bad data
-before the owner does (Chapter 7), find out about failures before Monday (Chapter 8), and
-collect the habits that keep all of it trustworthy (Chapter 9).
+Over the next eight articles we'll rebuild Dana's Monday morning properly: we'll see where
+each system fits in a modern data platform (article 2), pick the right movement pattern
+(article 3), get the data out and in reliably (article 4), transform it in maintainable
+layers (article 5), run steps in the right order automatically (article 6), catch bad data
+before the owner does (article 7), find out about failures before Monday (article 8), and
+collect the habits that keep all of it trustworthy (article 9).
 
 Then, in Part II, we'll do all of it for real with a small tool called `pz`.
 
 ---
 
-*Next: [Chapter 2 - What modern data infrastructure looks like](../02-modern-data-infrastructure/)*
+*Next: [2. What modern data infrastructure looks like](../02-modern-data-infrastructure/)*

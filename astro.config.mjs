@@ -16,8 +16,8 @@ export default defineConfig({
 			],
 			sidebar: [
 				{
-					label: 'The Little Book of Data Pipelines',
-					items: [{ autogenerate: { directory: 'book' } }],
+					label: 'Data Pipelines: An Article Series',
+					items: [{ autogenerate: { directory: 'articles' } }],
 				},
 			],
 			plugins: [

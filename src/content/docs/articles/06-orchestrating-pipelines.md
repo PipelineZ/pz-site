@@ -1,9 +1,9 @@
 ---
-title: "Chapter 6 - Orchestrating pipelines"
+title: "6. Orchestrating pipelines"
 sidebar:
   order: 6
 ---
-Chapter 5 left us with a pile of small, well-behaved SQL steps. Now someone has to run
+Article 5 left us with a pile of small, well-behaved SQL steps. Now someone has to run
 them - in the right order, at the right time, restarting the right pieces when something
 fails. That job is **orchestration**, and it's the difference between "a folder of scripts"
 and "a system."
@@ -89,7 +89,7 @@ day; pay it when the pain arrives, not before.
 
 Orchestration's real job description is "what happens at 3 a.m. when step 7 of 12 dies."
 
-- **Retries with backoff** (Chapter 4's logic, now applied per step): transient blips heal
+- **Retries with backoff** (article 4's logic, now applied per step): transient blips heal
   themselves before anyone wakes up. Cap the attempts; a source that's down all night
   should fail the step, not retry until sunrise.
 - **Skip downstream, finish the rest**: everything not depending on the failure completes
@@ -108,7 +108,7 @@ Orchestration's real job description is "what happens at 3 a.m. when step 7 of 1
 
 ## Backfills, revisited
 
-Chapter 3 said backfills should run as bounded slices. Orchestration is where that becomes
+Article 3 said backfills should run as bounded slices. Orchestration is where that becomes
 real: rebuilding 2024 means running the *same DAG* many times with different date windows -
 January, then February, then March. The orchestrator's contribution is pacing (one slice at
 a time, gently), retrying failed slices individually, and tracking which slices are done.
@@ -116,7 +116,7 @@ Same graph, different question.
 
 ## Sunrise Bakery, orchestrated
 
-Their complete setup: every file from Chapter 5 declares what it reads, the tool derives the
+Their complete setup: every file from article 5 declares what it reads, the tool derives the
 DAG, and one crontab line - `0 6 * * * pipeline run` - starts the night. Extractions run in
 parallel (capped at two against the shop database), a failed CRM pull retries twice with
 backoff, and the morning after a real failure, one *resume* command redoes only what's
@@ -134,4 +134,4 @@ missing. Nobody maintains an order. Nobody reruns the world.
 
 ---
 
-*Next: [Chapter 7 - Data validation and quality](../07-data-validation-and-quality/)*
+*Next: [7. Data validation and quality](../07-data-validation-and-quality/)*

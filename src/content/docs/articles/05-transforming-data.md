@@ -1,11 +1,11 @@
 ---
-title: "Chapter 5 - Transforming data"
+title: "5. Transforming data"
 sidebar:
   order: 5
 ---
 Extraction and loading move data; **transformation** is where the value is created. It's the
 step that turns "487,312 rows of raw records" into "revenue was up 4% last week, driven by
-the new sourdough line." This chapter is about doing that reliably - which turns out to be
+the new sourdough line." This article is about doing that reliably - which turns out to be
 less about clever SQL and more about *organizing* SQL.
 
 ## What transformation actually consists of
@@ -65,7 +65,7 @@ disagree about revenue, and nobody knows which is right.
 
 ## The layered fix
 
-Chapter 3 introduced the pattern; here it is doing its job. Break the one query into small
+Article 3 introduced the pattern; here it is doing its job. Break the one query into small
 steps, each materialized as its own table, each reading only the layer before:
 
 ```mermaid
@@ -113,7 +113,7 @@ The payoffs compound:
   revenue marts inherit it automatically. The two-dashboards-disagree failure becomes
   structurally impossible.
 - **Testability.** You can check `stg_orders` for duplicate IDs *before* anything joins to
-  it (Chapter 7 lives at these seams).
+  it (article 7 lives at these seams).
 - **Debuggability.** When a number looks off, you walk the chain - is it wrong in the mart?
   In `orders_enriched`? In staging? In raw? Each hop narrows the suspect list.
 - **Cheap change.** The by-region mart was a new 10-line file, not a copy-paste.
@@ -132,7 +132,7 @@ nothing reaching backward.
   changes by the second, reruns can't reproduce yesterday, and backfills become guesswork.
   Compute "as of when?" *once*, outside the SQL, and pass it in.
 - **Rebuild, don't patch.** Each run rebuilds tables from upstream data rather than editing
-  them in place. Combined with Chapter 4's idempotent loads, this is what makes rerunning a
+  them in place. Combined with article 4's idempotent loads, this is what makes rerunning a
   failed night a non-event instead of surgery.
 - **Comment the *why*.** `status <> 'test'` deserves a note about the day the staff seeded
   fake orders; the next reader can't guess that from the code.
@@ -156,4 +156,4 @@ written onward. Same layered pattern, no infrastructure. Hold that thought for P
 
 ---
 
-*Next: [Chapter 6 - Orchestrating pipelines](../06-orchestrating-pipelines/)*
+*Next: [6. Orchestrating pipelines](../06-orchestrating-pipelines/)*

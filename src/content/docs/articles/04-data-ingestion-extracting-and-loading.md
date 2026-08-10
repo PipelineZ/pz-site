@@ -1,5 +1,5 @@
 ---
-title: "Chapter 4 - Data ingestion: extracting and loading"
+title: "4. Data ingestion: extracting and loading"
 sidebar:
   order: 4
 ---
@@ -33,7 +33,7 @@ The straightforward part: databases speak SQL, so extraction is a query. The cra
 hurting the source:
 
 - **Extract off-peak** - the 06:00 batch slot exists because 06:00 is quiet.
-- **Extract incrementally** (Chapter 3): `WHERE updated_at > <watermark>` turns a
+- **Extract incrementally** (article 3): `WHERE updated_at > <watermark>` turns a
   million-row scan into a thousand-row read. The watermark must be stored durably between
   runs, and it should only advance **after** the data it covers is safely delivered - if you
   advance it and then crash before writing, those rows are simply gone. This
@@ -57,7 +57,7 @@ SaaS tools hand you HTTP endpoints instead of SQL, and three realities come with
   `customer.address.city` into columns.
 
 APIs fail more than databases - timeouts, 500s, maintenance windows. Which brings us to the
-most important behavior in this chapter.
+most important behavior in this article.
 
 ## Retries, and the difference between hiccups and bugs
 
@@ -98,7 +98,7 @@ drift**, and ingestion sits directly in the blast radius.
 The spectrum of responses, from strict to loose:
 
 - **Fail loudly** on any unexpected change. Safest default: wrong-but-obvious beats
-  wrong-but-silent, which is the villain of this whole book.
+  wrong-but-silent, which is the villain of this whole series.
 - **Tolerate additions** (new columns flow through or are ignored) but fail on removals and
   type changes - a pragmatic middle.
 - **Auto-adapt** to everything. Comfortable until the day a renamed column silently becomes
@@ -160,7 +160,7 @@ Nightly at 06:00: the Postgres connector pulls orders incrementally on `updated_
 page through their APIs with backoff-and-retry, everything lands as raw Parquet in dated
 folders, and the analytics tables are loaded with *replace* (small tables) and *merge on
 `order_id`* (orders). A retried run changes nothing but timestamps. That's the whole
-chapter in one paragraph.
+article in one paragraph.
 
 ## The takeaway
 
@@ -174,4 +174,4 @@ chapter in one paragraph.
 
 ---
 
-*Next: [Chapter 5 - Transforming data](../05-transforming-data/)*
+*Next: [5. Transforming data](../05-transforming-data/)*

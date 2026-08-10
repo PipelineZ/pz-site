@@ -298,7 +298,7 @@
 	padding: 0.25rem 0.75rem;
 }
 
-/* Closing CTA band around the book link */
+/* Closing CTA band around the series link */
 .pz-cta {
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background:

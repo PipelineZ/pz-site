@@ -1,10 +1,10 @@
 ---
-title: "Chapter 8 - Monitoring and observability"
+title: "8. Monitoring and observability"
 sidebar:
   order: 8
 ---
-A pipeline you can't see is a pipeline you find out about from your users. Chapter 7 made
-the *data* tell the truth; this chapter makes the *pipeline* tell the truth: did it run, did
+A pipeline you can't see is a pipeline you find out about from your users. Article 7 made
+the *data* tell the truth; this article makes the *pipeline* tell the truth: did it run, did
 it succeed, how long did it take, what exactly happened at 03:12 - and can you find out
 *before* the owner opens a stale dashboard?
 
@@ -37,7 +37,7 @@ depend on regexes over prose.
 From events, three derived layers:
 
 - **Run history** - a persisted record per run: what ran, node by node, with statuses, row
-  counts, and timings. This is the pipeline's *memory*; Chapter 6's resume-from-failure is
+  counts, and timings. This is the pipeline's *memory*; article 6's resume-from-failure is
   literally a query against it.
 - **Metrics** - numbers over time (runs succeeded, rows moved, duration). Feed them to
   whatever your ops world already watches; the emerging lingua franca is **OpenTelemetry
@@ -60,7 +60,7 @@ four questions, in order of importance:
    express this as exit codes; a scheduler can act on them without parsing anything.)
 3. **Is the data fresh?** The run succeeding is not the same as the data being current -
    a run can "succeed" while extracting zero rows against a silently broken source
-   (Chapter 7's freshness check, viewed from the ops side). Freshness is the metric your
+   (article 7's freshness check, viewed from the ops side). Freshness is the metric your
    *stakeholders* actually feel.
 4. **Is it drifting?** The 40-minute run that now takes 3 hours; row counts quietly
    doubling. Trends are the early-warning system for next month's incident.
@@ -69,7 +69,7 @@ four questions, in order of importance:
 
 The failure mode of alerting isn't too few alerts - it's too many. The team that receives
 forty emails a night has, functionally, no alerting: the real failure scrolls past with the
-noise. (Chapter 7's ignored-red-checks lesson, again, at system scale.)
+noise. (article 7's ignored-red-checks lesson, again, at system scale.)
 
 Principles that survive contact with reality:
 
@@ -78,15 +78,15 @@ Principles that survive contact with reality:
   Runtime trending up → a weekly digest. Everything else → a dashboard nobody is forced
   to look at.
 - **One incident, one alert.** The database being down is *one fact*, not fourteen node
-  failures' worth of email. Chapter 6's circuit breaker is monitoring's best friend here.
+  failures' worth of email. Article 6's circuit breaker is monitoring's best friend here.
 - **Route by audience.** Engineers get the stack trace; stakeholders get "data delayed,
   yesterday's numbers shown, fix underway" - *in the dashboard itself*. A visible "data
-  as of" timestamp is the cheapest, highest-value monitoring artifact in this chapter:
+  as of" timestamp is the cheapest, highest-value monitoring artifact in this article:
   it converts silent staleness into honest staleness.
 
 ## Lineage: the map for the unplanned question
 
-**Lineage** is the record of what feeds what - Chapter 6's DAG, kept queryable after the
+**Lineage** is the record of what feeds what - article 6's DAG, kept queryable after the
 run. It's how the unplanned questions get answered fast:
 
 - *Berlin's missing from Tuesday's revenue* → walk **upstream**: mart ← enriched ← staging
@@ -94,7 +94,7 @@ run. It's how the unplanned questions get answered fast:
 - *We're changing the CRM's region field* → walk **downstream**: which tables, checks, and
   dashboards will feel it? Now the change ships with a list instead of a surprise.
 
-Because the DAG was derived from the code (Chapter 6), lineage is free and always true -
+Because the DAG was derived from the code (article 6), lineage is free and always true -
 one more payoff of that decision.
 
 ```mermaid
@@ -115,8 +115,8 @@ flowchart LR
 ## The 3 a.m. test
 
 Judge an observability setup by replaying one bad night. At Sunrise Bakery: the CRM API
-starts timing out at 03:12. The pipeline retries with backoff (Chapter 4), fails the CRM
-extraction, skips its downstream cone, completes everything else (Chapter 6), and exits
+starts timing out at 03:12. The pipeline retries with backoff (article 4), fails the CRM
+extraction, skips its downstream cone, completes everything else (article 6), and exits
 "some steps failed." At 06:05, *one* alert reaches the on-call phone naming the failed
 node. The dashboard shows yesterday's data with "as of Sun 06:00." At 08:30 an engineer
 reads the run history, sees three timeouts and no data landed, reruns just the missing
@@ -125,7 +125,7 @@ the run's event stream, not archaeology.
 
 Count what had to exist for that story: structured events, run history, honest exit
 signals, retries, skip-downstream, single-alert routing, a freshness timestamp, resume.
-Every chapter of this book so far, visible in one night.
+Every article of this series so far, visible in one night.
 
 ## The takeaway
 
@@ -138,4 +138,4 @@ Every chapter of this book so far, visible in one night.
 
 ---
 
-*Next: [Chapter 9 - Best practices](../09-best-practices/)*
+*Next: [9. Best practices](../09-best-practices/)*

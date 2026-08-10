@@ -1,5 +1,5 @@
 ---
-title: "Chapter 7 - Data validation and quality"
+title: "7. Data validation and quality"
 sidebar:
   order: 7
 ---
@@ -20,7 +20,7 @@ Not, usually, from your code. The recurring culprits:
 - **Systems upstream.** An app deploy starts writing `NULL` customer IDs for guest
   checkouts. The API starts returning amounts in cents where it used to send euros.
 - **The pipeline's own seams.** An at-least-once retry delivers the same rows twice
-  (Chapter 4 warned you). A join you assumed was one-to-one is quietly one-to-many, and row
+  (article 4 warned you). A join you assumed was one-to-one is quietly one-to-many, and row
   counts double.
 - **Time.** Timezone drift, daylight saving, late-arriving records landing in last week's
   totals.
@@ -58,11 +58,11 @@ checks:
 ```
 
 One line. Compare that to the cost of the failure it prevents, and data validation becomes
-the best deal in this book.
+the best deal in this series.
 
 ## Where to put checks: the seams
 
-Checks belong at the **boundaries** - the same layer seams Chapter 5 built:
+Checks belong at the **boundaries** - the same layer seams article 5 built:
 
 ```mermaid
 flowchart LR
@@ -73,13 +73,13 @@ flowchart LR
 ```
 
 - **At ingestion** - validate what the *source* sent, before anything transforms it. This is
-  where schema expectations (Chapter 4's drift posture) live: is `amount` still a number?
+  where schema expectations (article 4's drift posture) live: is `amount` still a number?
 - **After each transformation layer** - validate what *you* made. `unique order_id` after
   staging's dedup proves the dedup worked; a row-count comparison across a join catches the
   one-to-many surprise on the night it appears.
 - **Before the final load** - the last gate before numbers become visible. The cardinal
   rule sits here: **a table that fails its checks should never reach the dashboard.** In
-  DAG terms (Chapter 6): checks are nodes, and the final write depends on them passing.
+  DAG terms (article 6): checks are nodes, and the final write depends on them passing.
 
 Checks-as-DAG-nodes is the elegant bit - no new machinery. A failed check behaves exactly
 like a failed step: its downstream cone is skipped, everything independent completes,
@@ -141,4 +141,4 @@ configured, instead of the silent lie you didn't.
 
 ---
 
-*Next: [Chapter 8 - Monitoring and observability](../08-monitoring-and-observability/)*
+*Next: [8. Monitoring and observability](../08-monitoring-and-observability/)*

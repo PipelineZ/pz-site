@@ -1,11 +1,11 @@
 ---
-title: "Chapter 11 - What pz doesn't do"
+title: "11. What pz doesn't do"
 sidebar:
   order: 11
 ---
 Every tool is a set of bets, and honest documentation tells you which bets were made
-*against* you. This closing chapter is that list for `pz`: its real limitations, the
-trade-offs behind them, and - following Chapter 9's "complexity on demand" rule in
+*against* you. This closing article is that list for `pz`: its real limitations, the
+trade-offs behind them, and - following article 9's "complexity on demand" rule in
 reverse - the signals that you've outgrown it and what to reach for next.
 
 ## It's batch, all the way down
@@ -16,7 +16,7 @@ whatever accumulated in the source's change log since the last run's position, t
 Freshness is therefore bounded by how often your scheduler invokes it; minutes-fresh via
 frequent runs is realistic, seconds-fresh is not.
 
-Chapter 3 argued most analytical needs are batch needs, and Sunrise Bakery's certainly are.
+Article 3 argued most analytical needs are batch needs, and Sunrise Bakery's certainly are.
 But if a real decision genuinely hangs on sub-minute data - fraud blocking, live inventory,
 operational alerting on events - that's a streaming problem, and the honest answer is a
 streaming system (Kafka plus a stream processor like Flink, or a managed equivalent), not a
@@ -25,7 +25,7 @@ batch tool run in a tight loop.
 ## It's one machine
 
 The engine is DuckDB inside a single process on a single machine. That's a bet *on* the
-Chapter 2 observation that modern single machines are shockingly capable - and a bet
+article 2 observation that modern single machines are shockingly capable - and a bet
 *against* distributed computation. There is no cluster mode, no way to spread one run
 across ten machines.
 
@@ -38,12 +38,12 @@ warehouse (Snowflake, BigQuery) with a warehouse-centric tool like dbt orchestra
 
 ## It doesn't schedule, and it has no UI
 
-`pz` is deliberately only the *what-order* half of Chapter 6. There is no built-in
+`pz` is deliberately only the *what-order* half of article 6. There is no built-in
 scheduler, no web console, no run-history browser, no alerting service, no catalog. You
 bring the *when* (cron, Windows Task Scheduler, a CI job) and point your existing
 observability at the NDJSON events and OTel metrics it emits.
 
-For one team and one project, Chapter 6 called that architecture honest. The limitation
+For one team and one project, article 6 called that architecture honest. The limitation
 bites when you have *many* pipelines with cross-project dependencies ("run marketing's DAG
 only after finance's lands"), event-driven triggers, or a non-engineering team that needs a
 UI to watch and rerun things. Those are exactly the problems orchestration platforms
@@ -57,7 +57,7 @@ agents that execute pz runs, live run monitoring with cancel/retry and crash det
 and run events and versioned watermarks kept in a central SQL store instead of one
 machine's `.pz/` directory. The division of labor is deliberate - pz stays the small,
 scriptable, run-to-completion CLI, and everything long-running or multi-user lives in px.
-The same honesty applies as everywhere in this chapter, though: today px is a
+The same honesty applies as everywhere in this article, though: today px is a
 development-time IDE and monitor. Authentication, platform-owned scheduling, and a real
 deployment story are on its roadmap but not shipped - until they land, production
 operation remains "scheduler + pz + your observability stack," with px alongside as the
@@ -81,7 +81,7 @@ release notes, pin versions.
 There are no Python/C# transformation steps in the DAG. If a transformation needs an ML
 model, fuzzy text matching, or a third-party library, it doesn't belong in a `pz` pipeline -
 you'd run it as a separate step in your scheduler, exchanging data through files or tables.
-Chapter 5 argued SQL covers the overwhelming majority of tabular transformation; the
+Article 5 argued SQL covers the overwhelming majority of tabular transformation; the
 remainder is a genuine boundary here, where tools like dbt (Python models) or Dagster
 (arbitrary code assets) draw it more loosely.
 
@@ -92,12 +92,12 @@ purpose:
 
 - **One pipeline reads each source dataset.** Two pipelines can't both call
   `source('shop', 'orders')`; one loads it, everyone else `ref()`s the result. That's
-  extract-once discipline (Chapter 4's be-gentle-with-sources) enforced structurally - but
+  extract-once discipline (article 4's be-gentle-with-sources) enforced structurally - but
   it is a rule you must arrange your files around.
-- **Effectively-once, not exactly-once.** Chapter 4's honesty applies here too: merge and
+- **Effectively-once, not exactly-once.** article 4's honesty applies here too: merge and
   replace give you effectively-once; append is at-least-once and demands written consent
   (`duplicates: accept`) when paired with incremental reads. Nothing offers you magic
-  exactly-once, because (as Chapter 4 explained) nothing honestly can.
+  exactly-once, because (as article 4 explained) nothing honestly can.
 - **State lives on local disk by default.** Watermarks and run history under `.pz/` are
   perfect for a VM with a disk, and wrong for a container that evaporates after each run -
   for that you must configure the SQL Server-backed remote state store. Forgetting this on
@@ -124,8 +124,8 @@ Reach past it, without guilt, when a signal fires:
 
 ## Closing: back to Monday morning
 
-We opened this book with Dana, two hours of copy-paste, and a number nobody could quite
-audit. Eleven chapters later, the same Monday looks like this: a crontab line fires at
+We opened this series with Dana, two hours of copy-paste, and a number nobody could quite
+audit. Eleven articles later, the same Monday looks like this: a crontab line fires at
 06:00; connectors extract incrementally and politely; SQL layers rebuild deterministic
 tables inside a workbench database; checks gate what the dashboard is allowed to see; a
 failed night is one `pz retry` from healed; and every run leaves a structured, queryable

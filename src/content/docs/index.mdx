@@ -14,9 +14,9 @@ hero:
         <pre><span class="ln"><span class="prompt">$</span> <span class="accent">pz</span> run --all</span><span class="ln"><span class="ok">ok</span> src_raw__customers <span class="dim">3 rows 65ms</span></span><span class="ln"><span class="ok">ok</span> src_raw__orders <span class="dim">5 rows 49ms</span></span><span class="ln"><span class="ok">ok</span> stg_orders <span class="dim">3 rows 6ms</span></span><span class="ln"><span class="ok">ok</span> orders_enriched <span class="dim">3 rows 23ms</span></span><span class="ln"><span class="ok">ok</span> check_orders_enriched_unique_id <span class="dim">0 rows 5ms</span></span><span class="ln"><span class="ok">ok</span> lake.orders_curated <span class="dim">3 rows 31ms</span></span><span class="ln"><span class="ok">ok</span> lake.order_totals <span class="dim">2 rows 45ms</span></span><span class="ln">run: <span class="ok">12 succeeded</span>, 0 failed, 0 skipped</span></pre>
       </div>
   actions:
-    - text: Read the book
-      link: book/
-      icon: open-book
+    - text: Read the articles
+      link: /pipelinez-site/articles/
+      icon: document
     - text: PipelineZ on GitHub
       link: https://github.com/coccor/pz
       icon: external
@@ -211,9 +211,9 @@ and free. pz follows the same path, for the whole pipeline.
 
 <div class="pz-cta">
 <LinkCard
-	title="The Little Book of Data Pipelines"
-	description="An 11-chapter, beginner-friendly book: nine vendor-neutral chapters on pipeline fundamentals built around one running example, then two chapters on how pz maps onto them — including what it deliberately doesn't do."
-	href="book/"
+	title="Data Pipelines: An Article Series"
+	description="An 11-part, beginner-friendly article series: nine vendor-neutral articles on pipeline fundamentals built around one running example, then two on how pz maps onto them — including what it deliberately doesn't do."
+	href={import.meta.env.BASE_URL + '/articles/'}
 />
 </div>
 </div>

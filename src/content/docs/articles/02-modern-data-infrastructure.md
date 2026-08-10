@@ -1,10 +1,10 @@
 ---
-title: "Chapter 2 - What modern data infrastructure looks like"
+title: "2. What modern data infrastructure looks like"
 sidebar:
   order: 2
 ---
-Chapter 1 drew the pipeline as one box between sources and a report. In a real company that
-box unpacks into a handful of standard pieces. This chapter is a tour of those pieces - what
+Article 1 drew the pipeline as one box between sources and a report. In a real company that
+box unpacks into a handful of standard pieces. This article is a tour of those pieces - what
 each one is for, in plain terms - so that when you hear "we load the lake, model in the
 warehouse, and orchestrate with a scheduler," you can translate it back to Dana's
 spreadsheet.
@@ -90,7 +90,7 @@ pipelines fill* - matters more than the brand.
 
 A **data lake** is much simpler than the name suggests: it's a big folder of files, usually
 in cloud object storage (Amazon S3, Azure Blob Storage), usually in an efficient columnar
-format called **Parquet** (more on formats in Chapter 4).
+format called **Parquet** (more on formats in article 4).
 
 Why keep files at all when you have a warehouse? Because raw data is evidence. When a number
 looks wrong in March, you want the *original* February extract, untouched, to check against.
@@ -104,7 +104,7 @@ starting point.
 
 ## Ingestion: the moving trucks
 
-**Ingestion** (Chapter 4 in depth) is the machinery that copies data from sources into the
+**Ingestion** (article 4 in depth) is the machinery that copies data from sources into the
 platform. The unit of reuse here is the **connector**: a component that knows how to talk to
 one kind of source - "Postgres connector," "S3 connector" - so that reading a new source is
 configuration, not a new program. Good ingestion handles pagination, retries, incremental
@@ -114,14 +114,14 @@ extraction, and schema changes so each pipeline doesn't reinvent them.
 
 Raw ingredients in the fridge (the lake / raw tables) become dishes on the menu (clean,
 modeled tables) in the **transformation layer**. In the modern stack this is dominated by
-SQL, organized into layers - raw, staging, marts - which is the whole of Chapter 5. Tools
+SQL, organized into layers - raw, staging, marts - which is the whole of article 5. Tools
 like dbt made this layer famous; `pz`, the tool in Part II, is of the same family.
 
 ## The orchestrator: the conductor
 
 Someone has to run all of this in the right order at the right time: extract customers
 *before* joining orders to them, run the report *after* both. The **orchestrator**
-(Chapter 6) holds the dependency map, the schedule, and the retry logic. It can be as small
+(article 6) holds the dependency map, the schedule, and the retry logic. It can be as small
 as cron plus a tool that understands ordering, or as large as a dedicated platform like
 Airflow.
 
@@ -129,7 +129,7 @@ Airflow.
 
 Two supporting pieces, both about *knowing*:
 
-- **Monitoring and observability** (Chapter 8): did last night's runs happen, did they
+- **Monitoring and observability** (article 8): did last night's runs happen, did they
   succeed, how long did they take, and is the data actually fresh?
 - **A catalog** answers "what does this table mean, where did it come from, who owns it?" At
   small scale this is honestly a README and good table names; dedicated catalog tools earn
@@ -172,4 +172,4 @@ vendor's reference architecture.
 
 ---
 
-*Next: [Chapter 3 - Common pipeline patterns](../03-common-pipeline-patterns/)*
+*Next: [3. Common pipeline patterns](../03-common-pipeline-patterns/)*

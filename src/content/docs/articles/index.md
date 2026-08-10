@@ -1,13 +1,13 @@
 ---
-title: "The Little Book of Data Pipelines"
+title: "Data Pipelines: An Article Series"
 sidebar:
   order: 0
-  label: "About this book"
+  label: "About this series"
 ---
-A beginner-friendly book about data pipelines: what they are, who builds them, how they are
+A beginner-friendly article series about data pipelines: what they are, who builds them, how they are
 built, and what a modern data platform looks like - explained in plain language, with one
-running example and simple diagrams throughout. The last two chapters introduce PipelineZ
-(`pz`), show how it addresses the problems from the earlier chapters, and are honest about
+running example and simple diagrams throughout. The last two articles introduce PipelineZ
+(`pz`), show how it addresses the problems from the earlier articles, and are honest about
 what it does *not* do.
 
 No prior data engineering experience is assumed. If you can read a spreadsheet and have seen
@@ -15,13 +15,13 @@ a SQL query before, you have everything you need.
 
 ## The running example
 
-Every chapter uses the same fictional company: **Sunrise Bakery**, a small chain of bakeries
+Every article uses the same fictional company: **Sunrise Bakery**, a small chain of bakeries
 with an online shop. They have orders in a database, customer signups in a CRM, and payments
 in a third-party service - and every Monday someone asks, "how did we do last week?"
 Following that one question from "someone copies numbers into a spreadsheet" to "a reliable,
-monitored, automated pipeline" is the arc of this book.
+monitored, automated pipeline" is the arc of this series.
 
-## Chapters
+## The articles
 
 ### Part I - Fundamentals
 
@@ -48,14 +48,14 @@ monitored, automated pipeline" is the arc of this book.
 
 10. [Meet pz](10-meet-pz/) - a small batch ETL tool for .NET: its core concepts, a complete
     working project, and how it answers each problem from Part I.
-11. [What pz doesn't do](11-pz-limitations/) - the honest chapter: limitations, trade-offs,
+11. [What pz doesn't do](11-pz-limitations/) - the honest article: limitations, trade-offs,
     when you should reach for something else, and where the companion platform PipelineX
     (`px`) fits in.
 
-## How to read this book
+## How to read this series
 
-Front to back if you're new - each chapter builds on the previous one. If you already run
+Front to back if you're new - each article builds on the previous one. If you already run
 pipelines for a living, Part I will read as a refresher and you can skim to
-[Chapter 10](10-meet-pz/). The diagrams use [Mermaid](https://mermaid.js.org/), which
+[Meet pz](10-meet-pz/). The diagrams use [Mermaid](https://mermaid.js.org/), which
 GitHub renders inline; if you're reading the raw files, the diagram code is short enough to
 read as text.

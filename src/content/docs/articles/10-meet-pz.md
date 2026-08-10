@@ -1,12 +1,12 @@
 ---
-title: "Chapter 10 - Meet pz"
+title: "10. Meet pz"
 sidebar:
   order: 10
 ---
-Nine chapters of concepts deserve a payoff. This chapter introduces **PipelineZ** (`pz`) - a
+Nine articles of concepts deserve a payoff. This article introduces **PipelineZ** (`pz`) - a
 small, dbt-inspired batch ETL tool for .NET, powered by DuckDB - and rebuilds Sunrise
 Bakery's pipeline with it, for real. As we go, watch how each idea from Part I shows up as a
-concrete feature: this chapter is deliberately a reunion tour.
+concrete feature: this article is deliberately a reunion tour.
 
 One framing sentence to hold onto: **a pz project is one `connections.yml` (the places your
 data lives, with credentials) plus SQL files (the transformations, and the reads and writes
@@ -23,7 +23,7 @@ $ pz init sunrise
 $ cd sunrise && pz run --all
 ```
 
-The scaffold runs offline against bundled CSVs in seconds - Chapter 9's "tiny sample
+The scaffold runs offline against bundled CSVs in seconds - article 9's "tiny sample
 project" habit, built into the first command you learn.
 
 ## The core concepts
@@ -38,8 +38,8 @@ project" habit, built into the first command you learn.
   *function calls* against the same connection: `source()` reads an entity, `sink()` writes
   one. One connection can be both read and written.
 - **Pipeline** - one SQL file under `pipelines/`, producing one table named after the file.
-- **Check** - a data-quality assertion attached to a pipeline (Chapter 7's one-liners).
-- **DAG, nodes, runs** - exactly Chapter 6's objects, made executable. There are four node
+- **Check** - a data-quality assertion attached to a pipeline (article 7's one-liners).
+- **DAG, nodes, runs** - exactly article 6's objects, made executable. There are four node
   kinds: **SourceLoad** (land a dataset), **Pipeline** (run one SQL step), **Check** (run
   one assertion), **SinkWrite** (write one output).
 
@@ -51,7 +51,7 @@ Here's the bakery's pipeline, complete. First, the places:
 # connections.yml - every place pz talks to, declared once
 shop:
   connector: postgres
-  host: ${SHOP_DB_HOST}          # secrets come from the environment (Chapter 9)
+  host: ${SHOP_DB_HOST}          # secrets come from the environment (article 9)
   database: shop
   entities:
     orders:
@@ -68,7 +68,7 @@ lake:
   root: out
 ```
 
-Then the transformations - Chapter 5's layers, as SQL files:
+Then the transformations - article 5's layers, as SQL files:
 
 ```sql
 -- pipelines/stg_orders.sql  (staging: clean, no business logic)
@@ -112,7 +112,7 @@ Three things worth noticing before we run it:
   load (`INSERT INTO {{ sink(...) }}`) - one file names all three. A file with no
   `INSERT INTO` (like `stg_orders`) is an intermediate step that others consume via
   `ref()`.
-- **The DAG comes from those calls.** Chapter 6 argued dependencies should be *derived from
+- **The DAG comes from those calls.** article 6 argued dependencies should be *derived from
   the code, not declared beside it* - `pz` builds the graph from the `ref()`/`source()`/
   `sink()` calls at template-render time. It never guesses by parsing your SQL.
 - **Every read option has two homes, never both.** `orders`' columns live in
@@ -137,7 +137,7 @@ run <runId>: 9 succeeded, 0 failed, 0 skipped
 ```
 
 Every line is one DAG node finishing. Under the hood, `pz` is a **hub-and-spoke** machine
-with DuckDB as the hub - the "warehouse-in-a-file as workbench" idea from Chapters 2 and 5:
+with DuckDB as the hub - the "warehouse-in-a-file as workbench" idea from articles 2 and 5:
 
 ```mermaid
 flowchart LR
@@ -163,7 +163,7 @@ Sources land data into a disk-backed DuckDB database (`.pz/runs/<id>/staging.duc
 pipelines transform *inside* DuckDB at columnar speed, and sinks drain results out.
 Independent nodes run in parallel; execution is always *materialize, then drain* - even the
 `INSERT INTO` form stages the table first and writes atomically, so a half-failed run never
-leaves a half-written destination (Chapter 4's replace-safely rule).
+leaves a half-written destination (article 4's replace-safely rule).
 
 `pz run <name>` runs one *flow* - that node plus everything upstream and downstream. On a
 project with several independent flows, bare `pz run` refuses (so you never run the world
@@ -171,7 +171,7 @@ by accident) and `--all` is the explicit everything.
 
 ## The reunion tour: Part I, feature by feature
 
-**Ingestion (Chapter 4).** Talking to a new source is a *connector* - first-party ones
+**Ingestion (article 4).** Talking to a new source is a *connector* - first-party ones
 cover local files, Postgres, SQL Server, S3, Azure Blob, and HTTP APIs, and there's a
 documented ABI for writing your own. `pz` pushes work down to capable sources: it uses
 DuckDB's own SQL parser to extract which columns and filters your pipeline actually needs
@@ -180,7 +180,7 @@ becomes a narrow query at the source, not a full-table drag. Failures are classi
 transient-or-permanent, and transient ones retry with backoff - tunable per call:
 `source('shop', 'orders', retry: { max_attempts: 3 })`.
 
-**Incremental and CDC (Chapters 3–4).** Going incremental is one line *in the SQL*:
+**Incremental and CDC (articles 3–4).** Going incremental is one line *in the SQL*:
 
 ```sql
 from {{ source('shop', 'orders') }}
@@ -190,49 +190,49 @@ where updated_at > {{ watermark('shop', 'orders') }}
 That comparison *is* the declaration - `pz` reads it (again via DuckDB's parser, not
 regex), types the cursor from the stored watermark, and has the connector fold the
 condition into extraction. The watermark advances **only after every downstream sink write
-commits** - Chapter 4's deliver-first-then-advance rule, enforced by the engine rather than
-by your discipline. `pz state show/rollback/set/clear` gives you Chapter 8-style visibility
-and Chapter 3-style rebuild-from-scratch control over that memory. For deletes and
+commits** - article 4's deliver-first-then-advance rule, enforced by the engine rather than
+by your discipline. `pz state show/rollback/set/clear` gives you article 8-style visibility
+and article 3-style rebuild-from-scratch control over that memory. For deletes and
 cursor-less tables, `sync: { mode: cdc }` reads Postgres or SQL Server change logs - each
 run drains what changed since the last run's position, with `on_delete: delete|soft|ignore`
 deciding what a source delete does downstream. Backfill safety is first-class too: bounded
-windows (`initial` / `max_window` / `until`) slice big history into Chapter 3's gentle
+windows (`initial` / `max_window` / `until`) slice big history into article 3's gentle
 pieces, with per-source concurrency caps and a circuit breaker for the truly bad night.
 
-**Delivery guarantees (Chapter 4).** Sink strategies are exactly the three you know -
+**Delivery guarantees (article 4).** Sink strategies are exactly the three you know -
 `replace`, `append`, `merge` (with `keys:`) - and the guarantee matrix is a stability
 contract: merge and replace are effectively-once; append is at-least-once. Here's the
 detail that shows the philosophy: pairing an incremental read with a plain append is a
 *compile error* (`PZ0214`) unless you explicitly write `duplicates: accept`. The tool makes
-you sign for the double-counting risk in code review, where Chapter 9 said such decisions
+you sign for the double-counting risk in code review, where article 9 said such decisions
 belong.
 
-**Transformation (Chapter 5).** Layers are just `ref()` chains; the engine is DuckDB, so
+**Transformation (article 5).** Layers are just `ref()` chains; the engine is DuckDB, so
 the SQL is real analytical SQL over columnar data. Determinism is a project-wide rule -
-run artifacts are byte-stable, which makes Chapter 9's diff-before-deploy an actual diff.
+run artifacts are byte-stable, which makes article 9's diff-before-deploy an actual diff.
 
-**Orchestration (Chapter 6).** Recall that chapter's split: orchestration is two separate
+**Orchestration (article 6).** Recall that article's split: orchestration is two separate
 jobs - deciding *in what order* the steps run, and deciding *when* a run starts. `pz`
 builds in the first job completely: it sorts the DAG into dependency order, runs
 independent branches in parallel, and skips exactly the downstream cone of a failed node.
 The second job is deliberately *not* built in - you start `pz run` from whatever time-based
 scheduler you already have (cron, Windows Task Scheduler, a CI job on a timer). In
-Chapter 6's terms, `pz` is the one-command-that-runs-the-DAG half of the honest small-team
+article 6's terms, `pz` is the one-command-that-runs-the-DAG half of the honest small-team
 architecture, and your existing scheduler is the other half. The morning-after story is `pz retry`: it re-executes only what didn't
 succeed, *reuses the failed run's already-landed source data* where it's provably safe
 (falling back to re-extraction with a note when not), and carries already-committed sink
 writes forward - the 4-minute rerun instead of the 40-minute one.
 
-**Validation (Chapter 7).** Checks are DAG nodes; a failed check blocks its downstream
+**Validation (article 7).** Checks are DAG nodes; a failed check blocks its downstream
 sink write, so unvalidated data structurally can't reach the dashboard. Beyond runtime
 checks, `pz validate` runs tiers of *pre-run* validation - config, templates, DAG shape,
 and your rendered SQL against DuckDB's own parser - and reports **all** errors at once,
 each with a `PZ####` code naming the file, the cause, and a next step. `pz validate
---connect` adds live connectivity and schema-drift probes: Chapter 4's drift, caught at 3
+--connect` adds live connectivity and schema-drift probes: article 4's drift, caught at 3
 p.m. instead of 3 a.m.
 
-**Monitoring (Chapter 8).** Every run emits one event stream, rendered as console lines or
-as NDJSON (`--log-format json`) under a documented, append-only contract - Chapter 8's
+**Monitoring (article 8).** Every run emits one event stream, rendered as console lines or
+as NDJSON (`--log-format json`) under a documented, append-only contract - article 8's
 structured events, ready for whatever watches your ops world. Run history persists as
 `run_results.json` per run; metrics flow through OpenTelemetry (including a
 `pz.run.completed` metric for the did-it-even-run heartbeat); exit codes are the honest
@@ -241,7 +241,7 @@ staging databases are swept automatically by a retention policy, and for ephemer
 (containers that vanish after each run) the state and run history can live in a SQL
 Server-backed store instead of local disk.
 
-**Best practices (Chapter 9).** Mostly, `pz` makes the checklist the path of least
+**Best practices (article 9).** Mostly, `pz` makes the checklist the path of least
 resistance: everything is files in git; loads are staged and atomic; secrets are `${ENV}`
 references that never appear in logs or artifacts; the scaffold ships a runnable sample;
 `pz plan` and `pz compile` let you inspect the graph and strategies without touching data.
@@ -265,8 +265,8 @@ references that never appear in logs or artifacts; the scaffold ships a runnable
 whose own `source()`/`ref()`/`sink()` calls *are* the DAG, checks as one-liners that gate
 the outputs, watermarks and delivery guarantees enforced by the engine, and a run that
 tells its story as structured events. What it deliberately *doesn't* try to be is the
-subject of the final chapter - and knowing that boundary is part of using it well.
+subject of the final article - and knowing that boundary is part of using it well.
 
 ---
 
-*Next: [Chapter 11 - What pz doesn't do](../11-pz-limitations/)*
+*Next: [11. What pz doesn't do](../11-pz-limitations/)*
