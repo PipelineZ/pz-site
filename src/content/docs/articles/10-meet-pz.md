@@ -18,7 +18,7 @@ it. No server, no database to administer, nothing that isn't checked into git.
 `pz` installs as a standard .NET global tool and scaffolds a complete, runnable project:
 
 ```console
-$ dotnet tool install --global pz --prerelease
+$ dotnet tool install --global pz
 $ pz init sunrise --template sample
 $ cd sunrise && pz run --all
 ```

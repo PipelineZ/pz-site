@@ -29,7 +29,7 @@ pass `pz restore --feeds <dir>`, so `pz restore` also stays offline. To roll bac
 uninstall pz --tool-path C:\pz\tool`) — `dotnet tool update` refuses downgrades.
 
 > [!NOTE]
-> The package id was `Pz.Cli` up to and including `0.2.x`, and is `pz` from the rename on.
+> The package id was `Pz.Cli` through `0.2.1`, and is `pz` from `0.2.2` on.
 > `install.ps1` handles the transition: it removes any `Pz.Cli` a pre-rename bundle left at
 > the tool path before installing `pz`, because both packages claim the same `pz.exe` shim
 > and the install would otherwise fail on that collision. Rolling back to a pre-rename

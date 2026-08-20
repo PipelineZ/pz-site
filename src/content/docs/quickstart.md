@@ -20,8 +20,8 @@ $ dotnet tool install --global pz
 ```
 
 > [!IMPORTANT]
-> **Installed `Pz.Cli` before?** That was the package id for every release up to and
-> including `0.2.x`; the id is now `pz`. Both packages install a command named `pz`, so run
+> **Installed `Pz.Cli` before?** That was the package id through `0.2.1`; the id is `pz`
+> from `0.2.2` on. Both packages install a command named `pz`, so run
 > `dotnet tool uninstall --global Pz.Cli` first — the install above fails on the shim
 > collision otherwise, and `dotnet tool update --global Pz.Cli` would keep you pinned to the
 > last `Pz.Cli` release forever. `Pz.Cli` stays listed on nuget.org (deprecated, pointing at
@@ -31,17 +31,17 @@ $ dotnet tool install --global pz
 > To run an unreleased commit instead of the latest release, build from a clone.
 > `scripts/verify-tool-install.sh` automates the full recipe: pack every project to a local folder
 > feed, then install from that feed. Such a build reports a height-based prerelease version (MinVer
-> increments the patch, so a commit after `v0.1.0` builds as `0.1.1-alpha.0.<height>+<sha>`), which
+> increments the patch, so a commit after `v0.2.2` builds as `0.2.3-alpha.0.<height>+<sha>`), which
 > is why installing one from a feed needs `--prerelease`.
 
 Verify the install:
 
 ```console
 $ pz --version
-0.1.0+27f3e06a08e6ae223f9c87e04ed7a2c5d6ec68c7
+0.2.2+ca90edb9e15bc75829fee43b9e2a733366898ee7
 ```
 
-The version is MinVer-computed from git tags: the `0.1.0` is the tag this build was cut from, and
+The version is MinVer-computed from git tags: the `0.2.2` is the tag this build was cut from, and
 what follows `+` is build metadata naming the exact commit.
 
 ## 2. Create a project
