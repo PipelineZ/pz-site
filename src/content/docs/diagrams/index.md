@@ -9,13 +9,13 @@ contracts (`docs/concepts/`, `docs/events.md`).
 
 Suggested reading order:
 
-| # | File | Tells the story of |
+| # | Diagram | Tells the story of |
 |---|---|---|
-| 1 | `01-overview.excalidraw` | The whole machine: YAML+SQL project → compiled DAG → DuckDB hub executes → sinks + `run_results.json`, plus the 8-phase lifecycle every verb shares |
-| 2 | `02-compile-dag.excalidraw` | Zoom 1: how `ref()`/`source()`/`sink()` calls in the `sample` template's files declare the DAG edges — no SQL parsing — so each pipeline `.sql` reads as the whole E→T→L (`source()`/`ref()` in the `FROM`, the `SELECT`, load via an inline `INSERT INTO {{ sink() }}`, scalar or array for fan-out) — and what `.pz/target/` contains |
-| 3 | `03-data-plane.excalidraw` | Zoom 2: the two-tier data plane — native scan/copy (bytes never enter .NET) vs the universal Arrow batch stream with bounded channels, backpressure, and stall-based bottleneck diagnostics — plus how much data each run claims (full / watermark / bounded windows) and the backfill-safety guardrails |
-| 4 | `04-run-lifecycle.excalidraw` | Zoom 3: the topological dispatcher (`engine.threads`), the single typed event stream (TTY tree vs NDJSON), and failure/retry semantics (`pz retry`, exit codes) |
-| 5 | `05-resilience-and-resume.excalidraw` | Zoom 4: what happens when things fail — the four resilience tiers by blast radius (operation gate → node retry → circuit breaker → `pz retry`), the progress records that survive a failure (watermark, sync state, partition + delivery ledgers, carried-forward sinks), the commit gate they all share, and the delivery-guarantee matrix |
+| 1 | [01 — Overview](/diagrams/01-overview/) — [PNG](/diagrams/01-overview.png) · [`.excalidraw`](/diagrams/01-overview.excalidraw) | The whole machine: YAML+SQL project → compiled DAG → DuckDB hub executes → sinks + `run_results.json`, plus the 8-phase lifecycle every verb shares |
+| 2 | [02 — Compile](/diagrams/02-compile-dag/) — [PNG](/diagrams/02-compile-dag.png) · [`.excalidraw`](/diagrams/02-compile-dag.excalidraw) | Zoom 1: how `ref()`/`source()`/`sink()` calls in the `sample` template's files declare the DAG edges — no SQL parsing — so each pipeline `.sql` reads as the whole E→T→L (`source()`/`ref()` in the `FROM`, the `SELECT`, load via an inline `INSERT INTO {{ sink() }}`, scalar or array for fan-out) — and what `.pz/target/` contains |
+| 3 | [03 — Data plane](/diagrams/03-data-plane/) — [PNG](/diagrams/03-data-plane.png) · [`.excalidraw`](/diagrams/03-data-plane.excalidraw) | Zoom 2: the two-tier data plane — native scan/copy (bytes never enter .NET) vs the universal Arrow batch stream with bounded channels, backpressure, and stall-based bottleneck diagnostics — plus how much data each run claims (full / watermark / bounded windows) and the backfill-safety guardrails |
+| 4 | [04 — Run lifecycle](/diagrams/04-run-lifecycle/) — [PNG](/diagrams/04-run-lifecycle.png) · [`.excalidraw`](/diagrams/04-run-lifecycle.excalidraw) | Zoom 3: the topological dispatcher (`engine.threads`), the single typed event stream (TTY tree vs NDJSON), and failure/retry semantics (`pz retry`, exit codes) |
+| 5 | [05 — Resilience & resume](/diagrams/05-resilience-and-resume/) — [PNG](/diagrams/05-resilience-and-resume.png) · [`.excalidraw`](/diagrams/05-resilience-and-resume.excalidraw) | Zoom 4: what happens when things fail — the four resilience tiers by blast radius (operation gate → node retry → circuit breaker → `pz retry`), the progress records that survive a failure (watermark, sync state, partition + delivery ledgers, carried-forward sinks), the commit gate they all share, and the delivery-guarantee matrix |
 
 Each diagram has three companion files:
 
@@ -40,8 +40,9 @@ checkpointed reads and writes). The planner picks per edge and `pz plan` records
 builtin connectors today are LocalFiles, Postgres, S3, SqlServer, AzureBlob, MySql, and Http — all
 shipping inside the `pz` tool itself, not as external NuGet installs a project has to restore.
 
-To edit: open the `.excalidraw` file at <https://excalidraw.com> (File → Open) or with the
-VS Code Excalidraw extension, then re-export the PNG.
+To edit: download the `.excalidraw` source from the table above, open it at
+<https://excalidraw.com> (File → Open) or with the VS Code Excalidraw extension, then
+re-export the PNG.
 
 Colors mean the same thing on every slide:
 
