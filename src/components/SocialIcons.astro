@@ -1,0 +1,61 @@
+---
+/**
+ * Overrides Starlight's bare social icons so GitHub reads as a button rather than a stray
+ * glyph next to the theme picker. The label collapses below 72rem, where the header grid
+ * has no room to spare, leaving the mark alone inside the same pill.
+ */
+import { Icon } from '@astrojs/starlight/components';
+import config from 'virtual:starlight/user-config';
+
+const links = config.social ?? [];
+---
+
+{
+	links.map(({ label, href, icon }) => (
+		<a {href} rel="me" class="pz-social">
+			<Icon name={icon} />
+			<span class="pz-social-label">{label}</span>
+		</a>
+	))
+}
+
+<style>
+	.pz-social {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.35rem 0.7rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		line-height: 1;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		white-space: nowrap;
+		transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+	}
+	.pz-social:hover {
+		color: var(--sl-color-white);
+		border-color: var(--sl-color-text-accent);
+		background: var(--sl-color-gray-6);
+	}
+
+	@media (max-width: 72rem) {
+		.pz-social-label {
+			/* Same effect as Starlight's .sr-only, kept local so the pill can shrink to the mark. */
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			margin: -1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+		.pz-social {
+			padding: 0.35rem 0.45rem;
+		}
+	}
+</style>

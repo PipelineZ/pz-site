@@ -19,7 +19,7 @@ const GROUPS: Array<{ label: string; match: (id: string) => boolean }> = [
 	{ label: 'How-to guides', match: (id) => id.startsWith('how-to/') },
 	{ label: 'Reference', match: (id) => id.startsWith('reference/') || ['events', 'performance', 'versioning'].includes(id) },
 	{ label: 'Diagrams', match: (id) => id.startsWith('diagrams/') },
-	{ label: 'Articles', match: (id) => id.startsWith('articles/') },
+	{ label: 'Book', match: (id) => id === 'book' || id.startsWith('book/') },
 ];
 
 const urlFor = (id: string) => (id === 'docs' ? `${SITE}/docs/` : `${SITE}/${id}/`);
