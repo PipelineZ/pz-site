@@ -7,6 +7,8 @@ This diagram shows the whole machine on one page: a project of YAML and SQL file
 dependency graph, one command executes that graph with DuckDB doing the heavy lifting, and data
 plus a machine-readable receipt come out the other side.
 
+[![Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt](/diagrams/01-overview.png)](/diagrams/01-overview.png)
+
 **The main idea:** PipelineZ takes dbt's authoring model and applies it to data *movement*,
 running in a single process — no warehouse, no cluster, no service to operate.
 

@@ -6,6 +6,8 @@ description: "This diagram is the failure story end to end: how damage is contai
 This diagram is the failure story end to end: how damage is contained, what a failure cannot
 destroy, and what the destination is promised.
 
+[![Resilience: four containment tiers, the progress records that survive a failure, and the delivery-guarantee matrix](/diagrams/05-resilience-and-resume.png)](/diagrams/05-resilience-and-resume.png)
+
 **The main idea:** when something breaks, pz contains the damage at the narrowest tier that can
 absorb it, keeps only progress that was *proven* durable, and resumes from that proof — so the
 delivery guarantees hold even through failures.
