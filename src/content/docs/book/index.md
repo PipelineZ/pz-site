@@ -6,9 +6,8 @@ sidebar:
 ---
 A beginner-friendly article series about data pipelines: what they are, who builds them, how they are
 built, and what a modern data platform looks like - explained in plain language, with one
-running example and simple diagrams throughout. The last two articles introduce PipelineZ
-(`pz`), show how it addresses the problems from the earlier articles, and are honest about
-what it does *not* do.
+running example and simple diagrams throughout. The final article introduces PipelineZ
+(`pz`) and shows how it addresses each problem the earlier articles raise.
 
 No prior data engineering experience is assumed. If you can read a spreadsheet and have seen
 a SQL query before, you have everything you need.
@@ -47,10 +46,8 @@ monitored, automated pipeline" is the arc of this series.
 ### Part II - PipelineZ
 
 10. [Meet pz](10-meet-pz/) - a small batch ETL tool for .NET: its core concepts, a complete
-    working project, and how it answers each problem from Part I.
-11. [What pz doesn't do](11-pz-limitations/) - the honest article: limitations, trade-offs,
-    when you should reach for something else, and where the companion platform PipelineX
-    (`px`) fits in.
+    working project, how it answers each problem from Part I, and where its deliberate
+    boundaries are.
 
 ## How to read this series
 
