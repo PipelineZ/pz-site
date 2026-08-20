@@ -7,8 +7,13 @@ This diagram shows `pz run` actually executing — the sample project with `engi
 real row counts (five orders, three survive the filter). Tiny on purpose: the mechanics are the
 point.
 
-[![Run lifecycle: topological dispatch, one typed event stream, and retry semantics](/diagrams/04-run-lifecycle.png)](/diagrams/04-run-lifecycle.png)
-
+<figure class="dgm">
+  <a href="/diagrams/04-run-lifecycle.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: topological dispatch, one typed event stream, and retry semantics">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 **The main idea:** execution is transparent and resumable. One typed event stream feeds every
 renderer, progress is checkpointed to disk after every node, and `pz retry` resumes exactly
 where a run failed.
