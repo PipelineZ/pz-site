@@ -168,6 +168,13 @@ write one in as plaintext.
   resolved — the secret itself never transits the tool result, only the offending
   key name does. See [Secure connection config](/how-to/secure-connection-config/) for
   how to get the variable into the process environment in the first place.
+- **A newly exported variable does not reach a running server.** `pz mcp` resolves
+  `${VAR}` against the environment of the process it was launched in, which it
+  inherited from the client at launch — so exporting the variable in some other
+  shell changes nothing until the MCP server is restarted. `PZ0103`'s `next_step`
+  says so explicitly under `pz mcp`, because an agent that cannot see the operator's
+  terminal has no other way to learn it: set the variable where the client will pick
+  it up, then restart the server.
 
 ## Paths stay inside the project
 

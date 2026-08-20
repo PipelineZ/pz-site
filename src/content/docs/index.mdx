@@ -193,8 +193,11 @@ and free. pz follows the same path, for the whole pipeline.
 2. Scaffold a small, complete, runnable project:
 
    ```console
-   $ pz init demo && cd demo
+   $ pz init demo --sample && cd demo
    ```
+
+   (Bare `pz init` writes the minimal two-file project instead — the right start for your
+   own data. `--sample` is what ships the bundled CSVs this walkthrough runs.)
 
 3. Run both flows — sources, pipelines, checks, and sinks in one command:
 

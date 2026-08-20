@@ -12,7 +12,7 @@ the same eight phases (`load → restore-check → compile → validate → plan
 
 | Verb | Does |
 |---|---|
-| `pz init <name>` | Scaffold a new runnable project from the builtin starter template |
+| `pz init <name> [--sample]` | Scaffold a new project: `project.yml` + `connections.yml`, ready to author against. `--sample` writes the runnable four-pipeline demo instead |
 | `pz restore` | Resolve declared non-builtin connector packages, fetch them, write `pz.lock.json` |
 | `pz validate [--connect]` | Validate config/SQL (tiers 1–4); with `--connect`, also probe live connectivity and schema drift (tier 5). Sink output options are not schema-validated in v0 — the connectors themselves validate them at plan/probe time |
 | `pz compile` | Render pipelines, build the DAG, write `.pz/target` artifacts (no execution) |
@@ -33,6 +33,7 @@ the same eight phases (`load → restore-check → compile → validate → plan
 
 | Option | On | Does |
 |---|---|---|
+| `--sample` | `init` | Scaffold the runnable four-pipeline sample project (bundled CSVs, two independent flows) instead of the minimal two-file one. The sample's pipelines compile and run, so it is opt-in: a bare `pz init` never leaves you demo files to delete before authoring your own |
 | `--select <selector>` | `plan`, `run`, `test` | Limit to matching nodes; selection syntax is dbt's: `orders_enriched+` (node and descendants), `+node`, `tag:daily`, `source:crm.*`, unions/intersections |
 | `[names...]` (positional) | `plan`, `run` | Flow names: each selects that node plus every ancestor and descendant (the whole flow through it); exact node names only (wildcards/tags are `--select`'s job) |
 | `--all` | `plan`, `run` | Select the whole project explicitly; required for `run` when the project has 2+ independent flows. Names, `--select`, and `--all` are mutually exclusive (`PZ0216`) |

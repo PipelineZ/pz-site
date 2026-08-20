@@ -39,14 +39,17 @@ what follows `+` is build metadata naming the exact commit.
 ## 2. Create a project
 
 ```console
-$ pz init demo
+$ pz init demo --sample
 scaffolded a new pz project 'demo' at /home/you/demo
 next steps:
   cd demo && pz run orders_enriched
   (this template ships two independent flows; `pz run --all` runs both)
 ```
 
-`pz init <name>` writes a small, complete, runnable project into `./<name>`:
+`--sample` is what makes this quickstart runnable. A bare `pz init <name>` writes the
+**minimal** project — `project.yml` and `connections.yml`, both commented, and nothing
+else — which is the right starting point once you're authoring against your own data,
+because there is nothing to delete first. `--sample` writes the worked example instead:
 
 ```
 demo/

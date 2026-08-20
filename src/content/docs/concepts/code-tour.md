@@ -5,7 +5,7 @@ description: "This page is for someone who understands what PipelineZ does but g
 
 This page is for someone who understands *what* PipelineZ does but gets lost in the *code*.
 It follows one `pz run` from the keystroke to the output files, step by step, naming the
-actual classes and files at every stop, using the starter project that `pz init` creates as
+actual classes and files at every stop, using the sample project that `pz init --sample` creates as
 the running example. No prior knowledge of the internals is assumed.
 
 If you haven't used `pz` yet, do the [quickstart](/quickstart/) first — this tour is much
@@ -46,7 +46,7 @@ flowchart LR
 
 ## 2. The example project
 
-Running `pz init my-project` scaffolds this:
+Running `pz init my-project --sample` scaffolds this:
 
 ```text
 my-project/

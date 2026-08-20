@@ -41,9 +41,13 @@ instead of `errors`:
 {"ok":true,"applied":true,"result":{"file":"connections.yml"}}
 ```
 
-`errors` and `result` appear together in exactly one place: `pz_project_overview`,
-which reports a compile failure over an otherwise-loadable project as `ok: true`
-with both (see its row below). No other tool emits both.
+`errors` and `result` appear together in two places. `pz_project_overview` reports a
+compile failure over an otherwise-loadable project as `ok: true` with both (see its row
+below). The three **connection** mutation tools carry their `result` on the failure path
+too (`ok: false`, `applied: true`), because a dropped entity is usually the very reason
+self-verify now fails — a pipeline still `source()`s it — and reporting the drop only on
+the success path would withhold the explanation exactly when it is needed. The entity and
+pipeline mutation tools do not: on self-verify failure they emit `errors` alone.
 
 | Field | Type | Description |
 |---|---|---|
@@ -55,7 +59,7 @@ with both (see its row below). No other tool emits both.
 | `errors[].file` | string, optional | Omitted (never `null`) when the error has no associated file. |
 | `errors[].line` | number, optional | Omitted (never `null`) when the error has no associated line. |
 | `errors[].next_step` | string \| null | The error's hint text. Present as a key even when the underlying error carries no hint (some `PZ0201` forms) — in that case the value is JSON `null`, not an omitted key. |
-| `result` | object, optional | Per-tool payload; shapes are listed in the tool table below. Present on success; `pz_project_overview` can also carry both `errors` and a best-effort `result` together on a compile failure over an otherwise-loadable project (see that tool's row). |
+| `result` | object, optional | Per-tool payload; shapes are listed in the tool table below. Present on success, and on the two failure paths described above: `pz_project_overview` carries a best-effort `result` alongside `errors` on a compile failure over an otherwise-loadable project (see that tool's row), and the connection mutation tools carry theirs so a `dropped_entities[]` explanation survives a failed self-verify. |
 
 **Stability promise: fields are append-only; renaming or removing a field, a tool
 name, or an error code, is a breaking change.** New fields may be added to any
@@ -72,6 +76,13 @@ offending argument and the expected
 type — `invalid params for 'pz_validate': argument 'connect' expects boolean,
 got string` — instead of the protocol SDK's generic "An error occurred invoking
 '<tool>'." text an agent cannot self-correct from.
+
+The same guarantee holds one layer further in. A tool handler that throws an exception no
+handler-level catch classified comes back as a normal `PZ0609` envelope carrying the
+exception's type and message, rather than that SDK text with the exception discarded. It
+is a backstop, never a diagnosis: a `PZ0609` in the wild means a `pz` handler is missing a
+typed catch, and the message names which. Callers should treat it as a bug report to file,
+not an argument to fix.
 
 ## Tool table
 
@@ -133,11 +144,19 @@ is always `true` from there on — a mutation that broke the wider project (e.g.
 removing a connection a pipeline still reads from) **stays applied** and reports
 the resulting errors, matching how a hand edit behaves.
 
+Inputs written as `(object)` below — `connection`, `read`, `write` — are **option maps**:
+YAML keys and values for that block, nested exactly as they appear in `connections.yml`.
+They publish as `{"type": "object"}` with a description in the tool's input schema, not as
+an untyped "anything" schema, so a client that generates arguments from the schema knows to
+send an object. Key names are the connector's own YAML key names at every nesting level
+(`pz_connector_reference` returns each connector's published schema), which is what makes
+moving an option between `connections.yml` and a `source()`/`sink()` kwarg cut-and-paste.
+
 | Tool | Inputs | Result fields (success) |
 |---|---|---|
-| `pz_init_project` | — | `created: true`, `dir`. Scaffolds into the server's own project directory (the same builtin starter template as `pz init`); `PZ0603` when that directory exists and is not empty. |
+| `pz_init_project` | `minimal?` (bool, default true) | `created: true`, `dir`, `template` (`"minimal"` or `"sample"`), `files[]` — every file the scaffold wrote, project-relative, forward-slashed and ordinal-sorted, read back off disk rather than predicted from the template. Scaffolds into the server's own project directory; the tool takes no target-directory argument. The default `minimal: true` matches a bare `pz init`: `project.yml` + `connections.yml`, both commented, and nothing else — an agent authoring against real data has nothing to delete first. `minimal: false` writes the runnable four-pipeline sample (`pz init --sample`), whose demo pipelines compile and would run under `pz_run(all: true)`; ask for it only when the user wants a worked example. `PZ0603` when the directory exists and is not empty. |
 | `pz_add_connection` | `name`, `connector`, `connection` (object) | `file`, `dropped_comment?`. `PZ0601` (refused, `applied: false`) when `connection` carries what looks like a literal credential — see [Secrets](/how-to/use-with-an-ai-agent/#secrets). `PZ0602` when `name` already exists (hint points at `pz_update_connection`). |
-| `pz_update_connection` | `name`, `connector`, `connection` (object) | Same shape as `pz_add_connection`. Replaces the connection block **wholesale** — anything else that lived under the old block (an `entities:` block, `retry:`, ...) is not carried forward. `PZ0602` when `name` does not exist (hint points at `pz_add_connection`). |
+| `pz_update_connection` | `name`, `connector`, `connection` (object) | `file`, `dropped_comment?`, plus `dropped_entities[]` and `warnings[]` when the replaced block declared entities. Replaces the connection block **wholesale** — anything else that lived under the old block (an `entities:` block, `retry:`, ...) is not carried forward, so pass every option the connection should keep, not just the changed one. `dropped_entities[]` names each entity that went with the old block, ordinal-sorted; `warnings[]` says so in prose and points at `pz_add_entity` to re-add them. Both are omitted when nothing was dropped, and both ride the failure envelope too (see [The envelope](#the-envelope)). `PZ0602` when `name` does not exist (hint points at `pz_add_connection`). |
 | `pz_remove_connection` | `name` | `file`. `PZ0602` when `name` does not exist. Removing a connection a pipeline still reads from stays `applied: true` and reports the resulting compile/validate errors. |
 | `pz_add_entity` | `connection`, `entity`, `read?` (object), `write?` (object) | `file`, `connection`, `entity`, `dropped_comment?`. `PZ0602` (`McpMutationTarget`) when `connection` doesn't exist yet, or `entity` already exists under it (hint points at `pz_set_entity_options`). |
 | `pz_set_entity_options` | `connection`, `entity`, `read?` (object), `write?` (object) | Same shape as `pz_add_entity`. Replaces the entity's `read:`/`write:` block wholesale. `PZ0602` when `entity` does not exist under `connection` (hint points at `pz_add_entity`). |
@@ -195,3 +214,4 @@ are the project's existing codes (`PZ01xx`–`PZ05xx`), unchanged.
 | `PZ0606` | A localfiles `path:`/`root:`/`base_dir:` — in the existing config or in a proposed authoring block — resolves outside the project directory. `pz mcp` operates only on files inside the project (the same posture PZ0602 takes for `../` in mutation targets), so every tool that touches the project refuses uniformly; the plain CLI remains paths-are-trusted. The containment check is lexical, a guard for steering agents, not a symlink-proof security boundary. |
 | `PZ0607` | The documentation tools could not reach the documentation site. The message names the URL that failed; the `next_step` points at `PZ_DOCS_URL` for a mirror. Only `pz_docs_*` can raise this — every other tool works offline. |
 | `PZ0608` | A documentation request the catalog cannot answer as asked: `pz_docs_get` with a slug no published page carries, or `pz_docs_search` with an empty query. Distinct from `PZ0607` on purpose — "the site is unreachable" and "that page does not exist" need different fixes. |
+| `PZ0609` | A tool handler failed with an exception no handler-level catch classified. The backstop that keeps "no silent failures" true across the MCP boundary: without it the SDK answers its own "An error occurred invoking '<tool>'." with the exception text discarded, leaving an agent nothing to act on and `pz mcp` — which wires no logger — no server-side trace either. The message carries the exception's type and text; the `next_step` says to report it. **A `PZ0609` is a `pz` defect, not a bad argument.** |
