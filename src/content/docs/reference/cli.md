@@ -12,7 +12,7 @@ the same eight phases (`load → restore-check → compile → validate → plan
 
 | Verb | Does |
 |---|---|
-| `pz init <name> [--sample]` | Scaffold a new project: `project.yml` + `connections.yml`, ready to author against. `--sample` writes the runnable four-pipeline demo instead |
+| `pz init <name> [--template <id>]` | Scaffold a new project from a built-in template. The default `minimal` writes `project.yml` + `connections.yml` (plus a README and `.gitignore`), ready to author against; `--template` picks one of five instead. `pz init --list-templates` prints the catalog and scaffolds nothing |
 | `pz restore` | Resolve declared non-builtin connector packages, fetch them, write `pz.lock.json` |
 | `pz validate [--connect]` | Validate config/SQL (tiers 1–4); with `--connect`, also probe live connectivity and schema drift (tier 5). Sink output options are not schema-validated in v0 — the connectors themselves validate them at plan/probe time |
 | `pz compile` | Render pipelines, build the DAG, write `.pz/target` artifacts (no execution) |
@@ -33,7 +33,8 @@ the same eight phases (`load → restore-check → compile → validate → plan
 
 | Option | On | Does |
 |---|---|---|
-| `--sample` | `init` | Scaffold the runnable four-pipeline sample project (bundled CSVs, two independent flows) instead of the minimal two-file one. The sample's pipelines compile and run, so it is opt-in: a bare `pz init` never leaves you demo files to delete before authoring your own |
+| `--template <id>`, `-t` | `init` | Which built-in template to scaffold (default `minimal`): `minimal`, `sample`, `incremental`, `http`, `sqlserver` — see [the template catalog](#the-template-catalog). Every non-`minimal` template's pipelines compile and run, so they are opt-in: a bare `pz init` never leaves you demo files to delete before authoring your own. Unknown id is `PZ0131` |
+| `--list-templates` | `init` | Print every built-in template — id, one-line summary, and what it needs to run — then exit without scaffolding. Passing a project name alongside it is `PZ0132` |
 | `--select <selector>` | `plan`, `run`, `test` | Limit to matching nodes; selection syntax is dbt's: `orders_enriched+` (node and descendants), `+node`, `tag:daily`, `source:crm.*`, unions/intersections |
 | `[names...]` (positional) | `plan`, `run` | Flow names: each selects that node plus every ancestor and descendant (the whole flow through it); exact node names only (wildcards/tags are `--select`'s job) |
 | `--all` | `plan`, `run` | Select the whole project explicitly; required for `run` when the project has 2+ independent flows. Names, `--select`, and `--all` are mutually exclusive (`PZ0216`) |
@@ -59,6 +60,25 @@ the same eight phases (`load → restore-check → compile → validate → plan
 Console output during `run` is a live tree on a TTY (per-node status, rows moved, throughput,
 elapsed) and plain sequential lines when piped. CI is auto-detected: no ANSI, no live
 rendering.
+
+## The template catalog
+
+`pz init` scaffolds from a fixed set of built-in templates. Each one is a real, in-place-runnable
+pz project — the same directories the pz repository keeps under `templates/`, embedded into the
+tool, so an installed `pz` scaffolds them with no source tree and no network.
+`pz init --list-templates` prints this table without scaffolding anything.
+
+| Id | What it scaffolds | Runnability |
+|---|---|---|
+| `minimal` *(default)* | `project.yml` + `connections.yml`, commented and ready to author against | nothing to run yet — it loads and compiles, but declares no pipelines |
+| `sample` | runnable four-pipeline demo over local CSVs: staging, a checked join, an aggregate; two independent flows | runs offline |
+| `incremental` | watermark-bounded reads over local CSVs: run it twice, see the second run land nothing | runs offline |
+| `http` | GitHub REST API to a parquet delta log: pagination, a crawl guard, a typed contract | needs internet, no credentials |
+| `sqlserver` | SQL Server to SQL Server: incremental merge, six kinds of check, optional remote state | needs a reachable SQL Server (`ERP_DB_*`/`MART_DB_*` env vars) |
+
+`minimal` is the default deliberately: every other template's pipelines compile, so until you
+delete them `pz run --all` moves data you did not ask for. After scaffolding, `pz init` prints the
+next command for the template you picked.
 
 ## Exit codes
 

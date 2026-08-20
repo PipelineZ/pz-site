@@ -18,15 +18,17 @@ it. No server, no database to administer, nothing that isn't checked into git.
 `pz` installs as a standard .NET global tool and scaffolds a complete, runnable project:
 
 ```console
-$ dotnet tool install --global Pz.Cli --prerelease
-$ pz init sunrise --sample
+$ dotnet tool install --global pz
+$ pz init sunrise --template sample
 $ cd sunrise && pz run --all
 ```
 
 The scaffold runs offline against bundled CSVs in seconds - article 9's "tiny sample
-project" habit, built into the first command you learn. `--sample` is what asks for it;
-a bare `pz init` writes just `project.yml` and `connections.yml`, which is what you want
-once you are pointing at your own data rather than reading someone else's demo.
+project" habit, built into the first command you learn. `--template sample` is what asks
+for it; a bare `pz init` scaffolds the minimal template - `project.yml` and
+`connections.yml` - which is what you want once you are pointing at your own data rather
+than reading someone else's demo. There are five built-in templates in all (`minimal`,
+`sample`, `incremental`, `http`, `sqlserver`); `pz init --list-templates` shows them.
 
 ## The core concepts
 
@@ -252,7 +254,7 @@ references that never appear in logs or artifacts; the scaffold ships a runnable
 
 | Verb | What it does |
 |---|---|
-| `pz init [--sample]` / `pz restore` | Scaffold a project, minimal by default / fetch declared connector packages |
+| `pz init [--template <id>]` / `pz restore` | Scaffold a project from a built-in template, `minimal` by default / fetch declared connector packages |
 | `pz validate [--connect]` | All pre-run validation, aggregated; optionally probe sources live |
 | `pz compile` / `pz plan` | Build the DAG / print per-node execution strategy - no execution |
 | `pz run [name \| --all]` | Execute a flow, or everything |

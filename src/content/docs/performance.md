@@ -67,14 +67,14 @@ Implementation: `src/Pz.Engine/Planning/MemoryBudget.cs` (`MemoryBudget.Compute`
 `ExecutionPlanner.PlanAsync` (an optional `EngineConfig?` parameter, additive — every existing call site
 compiles unchanged) and rendered by both `PlanCommand` (the console line) and `PlanWriter` (plan.json).
 
-### Worked example (`samples/hello-pz`: `threads: 2`, `duckdb.memory_limit: 1GiB`, default `batch_bytes`)
+### Worked example (`templates/sample`: `threads: 2`, `duckdb.memory_limit: 1GiB`, default `batch_bytes`)
 
 ```
 memory budget: ~1.63 GB (duckdb 1.00 GB + channels 0.38 GB + overhead 256MB)
 note: engine.duckdb.threads is not set (it is a different key from engine.threads, ...)
 ```
 
-The `note:` line is present because `hello-pz` does not set `engine.duckdb.threads`; setting that key
+The `note:` line is present because the `sample` template does not set `engine.duckdb.threads`; setting that key
 drops the line and nulls the field below.
 
 ```json

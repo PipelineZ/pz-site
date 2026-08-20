@@ -574,4 +574,4 @@ Scriban is the balance point: mature, fast, MIT-licensed, and restrictable.
 
 - [Key concepts](/concepts/key-concepts/) — the vocabulary these files use.
 - [The execution model](/concepts/execution-model/) — what happens when this project runs.
-- [Quickstart](/quickstart/) — scaffold a working example of all of this with `pz init --sample`.
+- [Quickstart](/quickstart/) — scaffold a working example of all of this with `pz init --template sample`.

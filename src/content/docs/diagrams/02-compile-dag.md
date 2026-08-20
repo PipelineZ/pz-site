@@ -1,10 +1,10 @@
 ---
 title: "02 — Compile: YAML + SQL become a DAG"
-description: "This diagram zooms into the first arrow of the overview: how pz compile turns project files into a dependency graph, using the real samples/hello-pz project..."
+description: "This diagram zooms into the first arrow of the overview: how pz compile turns project files into a dependency graph, using the real templates/sample project..."
 ---
 
 This diagram zooms into the first arrow of the overview: how `pz compile` turns project files
-into a dependency graph, using the real `samples/hello-pz` project verbatim — three tiny
+into a dependency graph, using the real `templates/sample` project verbatim — three tiny
 CSV-backed pipelines, but the mechanism is identical at any scale.
 
 **The main idea:** dependencies are *declared* by template calls (`ref()`, `source()`, `sink()`)

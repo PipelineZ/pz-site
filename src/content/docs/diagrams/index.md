@@ -4,7 +4,7 @@ description: "Five Excalidraw diagrams that walk from overview to detail, explai
 ---
 
 Five Excalidraw diagrams that walk from overview to detail, explaining how `pz` works. Every
-code/YAML/SQL snippet in them is real content from `samples/hello-pz` or the documented
+code/YAML/SQL snippet in them is real content from `templates/sample` or the documented
 contracts (`docs/concepts/`, `docs/events.md`).
 
 Suggested reading order:
@@ -12,7 +12,7 @@ Suggested reading order:
 | # | File | Tells the story of |
 |---|---|---|
 | 1 | `01-overview.excalidraw` | The whole machine: YAML+SQL project → compiled DAG → DuckDB hub executes → sinks + `run_results.json`, plus the 8-phase lifecycle every verb shares |
-| 2 | `02-compile-dag.excalidraw` | Zoom 1: how `ref()`/`source()`/`sink()` calls in hello-pz's files declare the DAG edges — no SQL parsing — so each pipeline `.sql` reads as the whole E→T→L (`source()`/`ref()` in the `FROM`, the `SELECT`, load via an inline `INSERT INTO {{ sink() }}`, scalar or array for fan-out) — and what `.pz/target/` contains |
+| 2 | `02-compile-dag.excalidraw` | Zoom 1: how `ref()`/`source()`/`sink()` calls in the `sample` template's files declare the DAG edges — no SQL parsing — so each pipeline `.sql` reads as the whole E→T→L (`source()`/`ref()` in the `FROM`, the `SELECT`, load via an inline `INSERT INTO {{ sink() }}`, scalar or array for fan-out) — and what `.pz/target/` contains |
 | 3 | `03-data-plane.excalidraw` | Zoom 2: the two-tier data plane — native scan/copy (bytes never enter .NET) vs the universal Arrow batch stream with bounded channels, backpressure, and stall-based bottleneck diagnostics — plus how much data each run claims (full / watermark / bounded windows) and the backfill-safety guardrails |
 | 4 | `04-run-lifecycle.excalidraw` | Zoom 3: the topological dispatcher (`engine.threads`), the single typed event stream (TTY tree vs NDJSON), and failure/retry semantics (`pz retry`, exit codes) |
 | 5 | `05-resilience-and-resume.excalidraw` | Zoom 4: what happens when things fail — the four resilience tiers by blast radius (operation gate → node retry → circuit breaker → `pz retry`), the progress records that survive a failure (watermark, sync state, partition + delivery ledgers, carried-forward sinks), the commit gate they all share, and the delivery-guarantee matrix |
