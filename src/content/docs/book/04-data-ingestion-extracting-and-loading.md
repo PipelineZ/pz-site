@@ -122,19 +122,13 @@ Then the **load strategy** decides whether you're fine or double-counted:
   existing row with the same **key** (`order_id`) or inserts a fresh one. Run it twice and
   the second pass overwrites rows with identical values - harmless.
 
-```mermaid
-flowchart TB
-    subgraph Replace
-        R1[old table] -->|discard| R2[new table<br/>built fresh]
-    end
-    subgraph Append
-        A1[existing rows] --> A2[existing rows<br/>+ new rows]
-    end
-    subgraph Merge["Merge (by key)"]
-        M1[key exists?] -->|yes| M2[update row]
-        M1 -->|no| M3[insert row]
-    end
-```
+<figure class="dgm">
+  <a href="/diagrams/book/04-write-modes.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes.png" alt="Replace, append and merge applied to the same starting table and the same incoming rows, showing the exact resulting rows in each case: replace drops the row that was not in the batch, append duplicates a key, merge updates and inserts.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## Delivery guarantees: the honest vocabulary
 

@@ -22,16 +22,13 @@ The analogy: batch is the postal service (letters accumulate, a truck comes once
 streaming is a phone call (every word arrives as it's spoken). Phone calls are more
 immediate - and much more expensive to keep open, staff, and debug.
 
-```mermaid
-flowchart TB
-    subgraph Batch["Batch - runs at 06:00"]
-        B1[All of yesterday's orders] --> B2[One processing run] --> B3[Updated tables]
-    end
-    subgraph Streaming["Streaming - runs always"]
-        S1[order #8231] --> S2[process] --> S3[update]
-        S4[order #8232] --> S2
-    end
-```
+<figure class="dgm">
+  <a href="/diagrams/book/03-batch-vs-streaming.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming.png" alt="Batch and streaming on the same time axis: batch is three large blocks at 06:00 each day with nothing in between, streaming is a continuous line of individual events with visible lunchtime bursts.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 The honest guidance: **most analytical needs are batch needs.** "Real-time" in a stakeholder
 request usually means "not a week old." Ask what decision would change if the number were
@@ -66,12 +63,13 @@ for rows beyond it:
 SELECT * FROM orders WHERE updated_at > '2026-07-30 06:00:00'  -- last watermark
 ```
 
-```mermaid
-flowchart LR
-    W[Stored watermark:<br/>2026-07-30 06:00] --> Q[Extract rows<br/>updated after it]
-    Q --> M[Fold into<br/>existing table]
-    M --> W2[New watermark:<br/>2026-07-31 06:00]
-```
+<figure class="dgm">
+  <a href="/diagrams/book/03-watermark.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-watermark.png" alt="The watermark loop: read the stored watermark, ask the source only for rows changed after it, fold them into the existing table, then store the newest timestamp seen - with the warning that advancing the watermark before the write commits loses rows for good.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-watermark-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 Incremental's price is state. The watermark is a little piece of memory between runs, and
 everything that can go wrong with pipelines-with-memory - missed rows when a clock skews,
@@ -90,15 +88,13 @@ the order of the last two:
 - **ELT**: load the *raw* data into the warehouse first, then transform it there, with SQL,
   as a separate step.
 
-```mermaid
-flowchart LR
-    subgraph ETL
-        A1[Extract] --> A2[Transform<br/>in the pipeline tool] --> A3[Load results]
-    end
-    subgraph ELT
-        B1[Extract] --> B2[Load raw] --> B3[Transform<br/>inside the warehouse]
-    end
-```
+<figure class="dgm">
+  <a href="/diagrams/book/03-etl-vs-elt.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt.png" alt="ETL and ELT compared by where the transform sits relative to the warehouse boundary: in ETL the transform happens outside and only results land, in ELT raw data lands first and the warehouse's own engine transforms it.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ELT won the last decade, for two reasons. First, warehouses became cheap and fast, and SQL is
 the most widely shared data skill - transforming *in* the warehouse means analysts can read

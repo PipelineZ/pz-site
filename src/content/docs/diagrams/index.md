@@ -17,10 +17,10 @@ Suggested reading order:
 | 4 | [04 — Run lifecycle](/diagrams/04-run-lifecycle/) — [PNG](/diagrams/04-run-lifecycle.png) · [`.excalidraw`](/diagrams/04-run-lifecycle.excalidraw) | Zoom 3: the topological dispatcher (`engine.threads`), the single typed event stream (TTY tree vs NDJSON), and failure/retry semantics (`pz retry`, exit codes) |
 | 5 | [05 — Resilience & resume](/diagrams/05-resilience-and-resume/) — [PNG](/diagrams/05-resilience-and-resume.png) · [`.excalidraw`](/diagrams/05-resilience-and-resume.excalidraw) | Zoom 4: what happens when things fail — the four resilience tiers by blast radius (operation gate → node retry → circuit breaker → `pz retry`), the progress records that survive a failure (watermark, sync state, partition + delivery ledgers, carried-forward sinks), the commit gate they all share, and the delivery-guarantee matrix |
 
-Each diagram has three companion files:
+Each diagram has these companion files:
 
-- `NN-*.png` — pre-rendered export of the same content, ready to drop into slides or view
-  directly.
+- `NN-*.png` and `NN-*-dark.png` — pre-rendered exports of the same content, one per theme.
+  The page above shows whichever matches your theme; either is ready to drop into slides.
 - `NN-*.md` — **companion explainer**: what the diagram shows, the main idea, a plain-language
   guide through each section in the order the eye should travel, the key points to remember,
   and answers to common questions. Every concept is defined in place (what a DAG, watermark,
@@ -41,8 +41,9 @@ builtin connectors today are LocalFiles, Postgres, S3, SqlServer, AzureBlob, MyS
 shipping inside the `pz` tool itself, not as external NuGet installs a project has to restore.
 
 To edit: download the `.excalidraw` source from the table above, open it at
-<https://excalidraw.com> (File → Open) or with the VS Code Excalidraw extension, then
-re-export the PNG.
+<https://excalidraw.com> (File → Open) or with the VS Code Excalidraw extension, then re-export
+**both** PNGs — the light one as-is, and the dark one with *Export image → Dark mode* — so the
+page keeps matching the reader's theme.
 
 Colors mean the same thing on every slide:
 

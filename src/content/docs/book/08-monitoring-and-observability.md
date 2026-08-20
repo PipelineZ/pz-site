@@ -97,20 +97,13 @@ run. It's how the unplanned questions get answered fast:
 Because the DAG was derived from the code (article 6), lineage is free and always true -
 one more payoff of that decision.
 
-```mermaid
-flowchart LR
-    subgraph "The observable pipeline"
-        R[Run] --> E[Structured events]
-        E --> H[Run history]
-        E --> M[Metrics / OTel]
-        E --> L[Logs]
-    end
-    H --> RES[Resume & audit]
-    M --> A[Alerts & trends]
-    D[DAG] --> LIN[Lineage]
-    LIN --> WHY["Why is this number wrong?"]
-    A --> HUM((On-call human))
-```
+<figure class="dgm">
+  <a href="/diagrams/book/08-observability.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/08-observability.png" alt="One run emitting a stream of NDJSON events that feeds run history, metrics and logs, with lineage coming from the DAG instead - and the distinction between a pipeline that broke loudly and one that silently lied.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/08-observability-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## The 3 a.m. test
 

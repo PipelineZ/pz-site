@@ -53,6 +53,6 @@ monitored, automated pipeline" is the arc of this series.
 
 Front to back if you're new - each article builds on the previous one. If you already run
 pipelines for a living, Part I will read as a refresher and you can skim to
-[Meet pz](10-meet-pz/). The diagrams use [Mermaid](https://mermaid.js.org/), which
-GitHub renders inline; if you're reading the raw files, the diagram code is short enough to
-read as text.
+[Meet pz](10-meet-pz/). Every diagram is an Excalidraw drawing that follows the site's light
+and dark themes; click one to open it full size, and the editable `.excalidraw` source sits
+next to it under `/diagrams/`.

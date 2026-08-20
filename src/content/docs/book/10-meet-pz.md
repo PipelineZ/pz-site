@@ -143,25 +143,13 @@ run <runId>: 9 succeeded, 0 failed, 0 skipped
 Every line is one DAG node finishing. Under the hood, `pz` is a **hub-and-spoke** machine
 with DuckDB as the hub - the "warehouse-in-a-file as workbench" idea from articles 2 and 5:
 
-```mermaid
-flowchart LR
-    subgraph Sources
-        P[(shop Postgres)]
-        C[/crm CSVs/]
-    end
-    subgraph Hub["DuckDB staging DB (one per run, on disk)"]
-        T1[stg_orders] --> T2[orders_enriched] --> K{checks}
-        T1 --> T3[revenue_by_store]
-    end
-    subgraph Sinks
-        L1[/lake: parquet/]
-        L2[/lake: csv/]
-    end
-    P -->|SourceLoad| Hub
-    C -->|SourceLoad| Hub
-    K -->|SinkWrite| L1
-    T3 -->|SinkWrite| L2
-```
+<figure class="dgm">
+  <a href="/diagrams/book/10-meet-pz.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/10-meet-pz.png" alt="pz drawn as hub and spoke: sources land into a DuckDB staging file on disk, SQL transforms run inside it, and sinks drain results out - with the four node kinds SourceLoad, Pipeline, Check and SinkWrite named underneath.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/10-meet-pz-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 Sources land data into a disk-backed DuckDB database (`.pz/runs/<id>/staging.duckdb`),
 pipelines transform *inside* DuckDB at columnar speed, and sinks drain results out.
