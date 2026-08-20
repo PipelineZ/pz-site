@@ -187,17 +187,18 @@ and free. pz follows the same path, for the whole pipeline.
 1. Install the CLI as a .NET global tool:
 
    ```console
-   $ dotnet tool install --global Pz.Cli --prerelease
+   $ dotnet tool install --global pz --prerelease
    ```
 
 2. Scaffold a small, complete, runnable project:
 
    ```console
-   $ pz init demo --sample && cd demo
+   $ pz init demo --template sample && cd demo
    ```
 
-   (Bare `pz init` writes the minimal two-file project instead — the right start for your
-   own data. `--sample` is what ships the bundled CSVs this walkthrough runs.)
+   (Bare `pz init` scaffolds the minimal template instead — the right start for your own
+   data. `--template sample` is what ships the bundled CSVs this walkthrough runs;
+   `pz init --list-templates` shows all five.)
 
 3. Run both flows — sources, pipelines, checks, and sinks in one command:
 

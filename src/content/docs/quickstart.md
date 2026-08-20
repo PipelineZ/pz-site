@@ -16,8 +16,16 @@ database, no network after the install.
 `pz` installs as a standard .NET global tool:
 
 ```console
-$ dotnet tool install --global Pz.Cli
+$ dotnet tool install --global pz
 ```
+
+> [!IMPORTANT]
+> **Installed `Pz.Cli` before?** That was the package id for every release up to and
+> including `0.2.x`; the id is now `pz`. Both packages install a command named `pz`, so run
+> `dotnet tool uninstall --global Pz.Cli` first — the install above fails on the shim
+> collision otherwise, and `dotnet tool update --global Pz.Cli` would keep you pinned to the
+> last `Pz.Cli` release forever. `Pz.Cli` stays listed on nuget.org (deprecated, pointing at
+> `pz`) so existing lock files still restore.
 
 > [!NOTE]
 > To run an unreleased commit instead of the latest release, build from a clone.
@@ -39,17 +47,18 @@ what follows `+` is build metadata naming the exact commit.
 ## 2. Create a project
 
 ```console
-$ pz init demo --sample
+$ pz init demo --template sample
 scaffolded a new pz project 'demo' at /home/you/demo
 next steps:
   cd demo && pz run orders_enriched
   (this template ships two independent flows; `pz run --all` runs both)
 ```
 
-`--sample` is what makes this quickstart runnable. A bare `pz init <name>` writes the
-**minimal** project — `project.yml` and `connections.yml`, both commented, and nothing
-else — which is the right starting point once you're authoring against your own data,
-because there is nothing to delete first. `--sample` writes the worked example instead:
+`--template sample` is what makes this quickstart runnable. A bare `pz init <name>` scaffolds
+the **minimal** template — `project.yml` and `connections.yml`, both commented, plus a README
+and a `.gitignore`, and nothing else — which is the right starting point once you're authoring
+against your own data, because there is nothing to delete first. `sample` writes the worked
+example instead:
 
 ```
 demo/
@@ -64,14 +73,35 @@ demo/
 ├── data/customers.csv
 ├── data/orders.csv
 ├── data/products.csv
+├── .gitignore
 └── README.md
 ```
 
+### The other templates
+
+`sample` is one of five built-in starting points. `pz init --list-templates` prints the
+catalog without scaffolding anything:
+
+| Template | What it is | To run it |
+|---|---|---|
+| `minimal` *(default)* | `project.yml` + `connections.yml`, commented and ready to author against | nothing to run yet |
+| `sample` | runnable four-pipeline demo over local CSVs: staging, a checked join, an aggregate | runs offline |
+| `incremental` | watermark-bounded reads over local CSVs: run it twice, see the second run land nothing | runs offline |
+| `http` | GitHub REST API to a parquet delta log: pagination, a crawl guard, a typed contract | needs internet, no credentials |
+| `sqlserver` | SQL Server to SQL Server: incremental merge, six kinds of check, optional remote state | needs a reachable SQL Server |
+
+Every template is a real, in-place-runnable pz project — the same directories the pz
+repository keeps under `templates/`, embedded into the tool, so an installed `pz` scaffolds
+them with no source tree and no network. After scaffolding, `pz init` prints the next command
+for the template you picked.
+
 > [!NOTE]
 > `pz init` refuses to touch a target directory that already exists and isn't empty — you get
-> a `PZ0130` error instead of silent overwrites. The name becomes the project's `name:` in
-> `project.yml`, sanitized to lowercase `[a-z0-9_]` with a leading letter: `pz init "My Demo!"`
-> warns and writes `name: my_demo`.
+> a `PZ0130` error instead of silent overwrites. An unknown `--template` id is `PZ0131` (the
+> message lists the known ids); combining `--list-templates` with a project name, or giving no
+> name at all, is `PZ0132`. The name becomes the project's `name:` in `project.yml`, sanitized
+> to lowercase `[a-z0-9_]` with a leading letter: `pz init "My Demo!"` warns and writes
+> `name: my_demo`.
 
 ## 3. Run it
 

@@ -26,7 +26,14 @@ egress; pass `-ToolPath` to change the location). Upgrades use the same command 
 newer bundle. Keep the extracted bundle directory: for projects that declare non-builtin
 `connectors:`, set `PZ_FEEDS` (machine or user scope) to the bundle's `feed` directory, or
 pass `pz restore --feeds <dir>`, so `pz restore` also stays offline. To roll back to an older bundle, uninstall first (`dotnet tool
-uninstall Pz.Cli --tool-path C:\pz\tool`) — `dotnet tool update` refuses downgrades.
+uninstall pz --tool-path C:\pz\tool`) — `dotnet tool update` refuses downgrades.
+
+> [!NOTE]
+> The package id was `Pz.Cli` up to and including `0.2.x`, and is `pz` from the rename on.
+> `install.ps1` handles the transition: it removes any `Pz.Cli` a pre-rename bundle left at
+> the tool path before installing `pz`, because both packages claim the same `pz.exe` shim
+> and the install would otherwise fail on that collision. Rolling back to a pre-rename
+> bundle works the same way in reverse — uninstall `pz` first.
 
 > [!NOTE]
 > **Air-gapped azure reads:** azure datasets read through DuckDB's `azure` extension, which

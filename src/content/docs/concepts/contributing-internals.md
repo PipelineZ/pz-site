@@ -94,6 +94,9 @@ pz/
 │   ├── Pz.EndToEnd.Tests/            # Testcontainers
 │   ├── Pz.TestSupport/               # shared test utilities
 │   └── Pz.Benchmarks/
+├── templates/                           # `pz init`'s five built-in starting points; real,
+│                                     #   in-place-runnable projects, embedded into Pz.Cli
+│                                     #   and bound to TemplateCatalog by set-equality tests
 ├── samples/                             # golden-file projects; double as docs
 └── docs/
 ```

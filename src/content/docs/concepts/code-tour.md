@@ -5,7 +5,7 @@ description: "This page is for someone who understands what PipelineZ does but g
 
 This page is for someone who understands *what* PipelineZ does but gets lost in the *code*.
 It follows one `pz run` from the keystroke to the output files, step by step, naming the
-actual classes and files at every stop, using the sample project that `pz init --sample` creates as
+actual classes and files at every stop, using the sample project that `pz init --template sample` creates as
 the running example. No prior knowledge of the internals is assumed.
 
 If you haven't used `pz` yet, do the [quickstart](/quickstart/) first — this tour is much
@@ -46,7 +46,7 @@ flowchart LR
 
 ## 2. The example project
 
-Running `pz init my-project --sample` scaffolds this:
+Running `pz init my-project --template sample` scaffolds this:
 
 ```text
 my-project/
@@ -59,7 +59,9 @@ my-project/
 │   ├── product_catalog.sql          # transform: passthrough → sink
 │   └── configs/
 │       └── orders_enriched.yml      # per-pipeline options: materialization, checks
-└── data/                            # CSVs so the example runs offline
+├── data/                            # CSVs so the example runs offline
+├── .gitignore                       # keeps .pz/ and out/ out of version control
+└── README.md                        # what this template is and what to run next
 ```
 
 Walk through each file:
@@ -511,12 +513,13 @@ renderer can never corrupt the run record.
 If you want to internalize the codebase, read in this order — each file is self-contained
 enough to read top to bottom, and heavily commented with the *why*:
 
-1. `src/Pz.Cli/Templates/init/` — the example project itself (you now know what each file means).
+1. `templates/sample/` — the example project itself (you now know what each file means). Every
+   template under `templates/` is a real, loadable pz project, embedded into `Pz.Cli` at build time.
 2. `src/Pz.Cli/Commands/RunCommand.cs` — `ExecuteRun` is the spine of this whole tour.
 3. `src/Pz.Core/Dag/DagCompiler.cs` — files → nodes → sorted DAG.
 4. `src/Pz.Engine/Dispatch/RunOrchestrator.cs` — the dispatcher from §6.
 5. `src/Pz.Engine/Execution/SourceLoadExecutor.cs` and `SinkWriteExecutor.cs` — the data plane in practice.
-6. `docs/concepts/architecture-overview.md` — the decision log: *why* it's built this way.
+6. [Architecture overview](/concepts/architecture-overview/) — the decision log: *why* it's built this way.
 
 And keep [`docs/diagrams/`](/diagrams/) open — four presentation-grade diagrams of
 exactly the mechanisms this page walked through.
