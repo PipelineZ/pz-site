@@ -53,5 +53,4 @@ understanding, reference for exact contracts.
 - [Run events (NDJSON contract)](/events/)
 - [Versioning and breaking changes](/versioning/)
 - [Performance and memory](/performance/)
-- [Architecture decision records](/decisions/)
 - [Diagram set](/diagrams/)

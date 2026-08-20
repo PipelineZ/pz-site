@@ -100,9 +100,9 @@ connector or tier; an extension tuning knob is *mechanism* specific to your exte
 belongs inside your connector's own config surface.
 
 > [!WARNING]
-> `pz` runs exactly **one serialized DuckDB connection per run**, gated by a single semaphore
-> (ADR 0005) — there is no per-node or per-connection isolation. `SET` is **session-scoped**,
-> so a `SET` your `SetupStatements` emits for one node is still in effect for every later node
+> `pz` runs exactly **one serialized DuckDB connection per run**, gated by a single semaphore —
+> there is no per-node or per-connection isolation. `SET` is **session-scoped**, so a `SET` your
+> `SetupStatements` emits for one node is still in effect for every later node
 > in the same run that touches the same extension. If two outputs (or a source and a sink)
 > want different values for the same setting, they silently share whichever one ran last —
 > no error, just quietly wrong tuning on whichever node lost the race.

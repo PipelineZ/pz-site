@@ -95,6 +95,20 @@ and their required-ness are part of the stability promise above.
 | `pz_entity_schema` | `connection` (string), `entity` (string) | `columns[]` of `{name, type}`, `source`: `"fetched"` when the columns came from a live connectivity probe (a contract-less dataset), or `"declared_contract"` when they came from the entity's own YAML `columns:` contract (`ConnectivityValidator` never populates a live fetch for a dataset that already declares one). Type vocabularies differ between the two: `"fetched"` types are Arrow-derived (`ContractTypes.Describe` strings, e.g. `Decimal128(10,2)`); `"declared_contract"` types are the literal YAML contract strings (e.g. `bigint`, `double`). Unknown connection/entity, or a csv/json entity with neither a live fetch nor a declared contract (PZ0330 in v0 — see [Detect schema drift at run time](/how-to/schema-drift/) and the csv/json inference notes in the project's `CLAUDE.md`), comes back as `PZ0330`. Opens a real connection; still read-only — never writes `.pz/target/schemas.json`. |
 | `pz_state` | — | `watermarks`/`sync_state`/`schema_baselines`, each `{corrupt: bool, entries[]}` (a corrupt state file reports `corrupt: true` with empty `entries` rather than failing the tool). `watermarks.entries[]`: `{key, cursor, type, value, run_id}`. `sync_state.entries[]`: `{key, token, run_id}`. `schema_baselines.entries[]`: `{key, hints_hash, run_id, columns[]}` of `{name, type}`. `latest_run`: `{run_id, status, node_counts}` or JSON `null` when no run exists yet. `node_counts` is `{"<status>": <count>, ...}`, grouped from the latest run's nodes. **Deliberately has no `started_at`** on `latest_run` — the underlying run-artifact read model (`PriorRun`) carries no such field; omitted rather than fabricated. |
 
+### Documentation (read-only, always registered, network-backed)
+
+The only tools that reach the network, and the only ones that take no project —
+documentation is worth consulting before a project exists. They read the published
+site (`https://pipelinez.dev` by default; set `PZ_DOCS_URL` to a mirror) via its
+`/llms.txt` index and `/llms-full.txt` corpus. Unreachable is `PZ0607`, a real
+error naming the URL, never an empty result.
+
+| Tool | Inputs | Result fields |
+|---|---|---|
+| `pz_docs_list` | — | `docs[]` of `{slug, title, description?, group?, url}`. `slug` is the stable identifier `pz_docs_get` takes (e.g. `concepts/data-plane`); `description` and `group` are omitted when the page has none. Index order is the site's own grouping. |
+| `pz_docs_search` | `query` (string), `limit` (int, default 10, clamped to 1..50) | `query` echoed, plus `hits[]` of `{slug, title, url, score, excerpts[]}`, best first. Lexical, not semantic — an exact token like `PZ0214` or `force_universal` is the case it is built for. Fields are weighted title > description > headings > code > prose; `score` is that weighted count and is comparable only within one response. Ties break by `slug`, so a repeated query returns a stable order. `excerpts[]` holds at most three matching lines, each truncated at 200 characters. An empty `query` is `PZ0608`. |
+| `pz_docs_get` | `slug` (string) | `doc`: `{slug, title, description?, group?, url, markdown}` — the page's full markdown. Leading/trailing slashes on `slug` are tolerated. An unknown slug is `PZ0608`. |
+
 ### Verify (read-only, always registered)
 
 | Tool | Inputs | Result fields |
@@ -152,13 +166,19 @@ in progress (CLI or another MCP call) is refused with `PZ0604`, never blocked on
 
 ## Resources
 
-Alongside tools, the server publishes a curated set of docs as MCP **resources**
-(URI `pz://docs/<path relative to docs/>`, MIME type `text/markdown`), embedded at
-build time: `docs/reference/authoring-for-agents.md` plus every
-`docs/concepts/*.md` and `docs/how-to/*.md` file. These are convenience only,
-never load-bearing — a resource-blind client loses nothing correctness-critical,
-since every rule documented here is also surfaced through tool `next_step` texts
-and `pz_project_overview`.
+The server publishes no MCP resources.
+
+It previously embedded a curated doc set (`pz://docs/<path>`), built into the
+binary. Those were replaced by the `pz_docs_*` tools above, which read the
+published documentation from the site: an embedded copy answers from whatever was
+true when that build of `pz` was cut, which is quietly wrong for anyone not on the
+latest release. **This is a breaking change** to an otherwise append-only
+contract, taken deliberately while the surface is pre-1.0. A client that read
+those resources should call `pz_docs_list`/`pz_docs_search`/`pz_docs_get`.
+
+The documentation was never load-bearing and still isn't: every rule it states is
+also surfaced through tool `next_step` texts and `pz_project_overview`, so a
+client that cannot reach the site loses nothing correctness-critical.
 
 ## PZ06xx error codes
 
@@ -173,3 +193,5 @@ are the project's existing codes (`PZ01xx`–`PZ05xx`), unchanged.
 | `PZ0604` | A gated execution tool was called while another run already holds `RunDirLock`. |
 | `PZ0605` | The MCP client-setup surface (`pz mcp init`) is invalid: an existing client config file (`.vscode/mcp.json`, `.mcp.json`, `~/.copilot/mcp-config.json`, `opencode.json`) failed to parse as JSON (left byte-untouched), or the invocation named no client and no `--all`, or named a client outside `vscode`/`claude-code`/`copilot-cli`/`opencode`, or `--skill-locations` named a token outside `standard`/`claudecode`/`github`/`opencode`/`all`/`none`. |
 | `PZ0606` | A localfiles `path:`/`root:`/`base_dir:` — in the existing config or in a proposed authoring block — resolves outside the project directory. `pz mcp` operates only on files inside the project (the same posture PZ0602 takes for `../` in mutation targets), so every tool that touches the project refuses uniformly; the plain CLI remains paths-are-trusted. The containment check is lexical, a guard for steering agents, not a symlink-proof security boundary. |
+| `PZ0607` | The documentation tools could not reach the documentation site. The message names the URL that failed; the `next_step` points at `PZ_DOCS_URL` for a mirror. Only `pz_docs_*` can raise this — every other tool works offline. |
+| `PZ0608` | A documentation request the catalog cannot answer as asked: `pz_docs_get` with a slug no published page carries, or `pz_docs_search` with an empty query. Distinct from `PZ0607` on purpose — "the site is unreachable" and "that page does not exist" need different fixes. |

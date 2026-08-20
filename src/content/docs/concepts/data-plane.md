@@ -61,8 +61,9 @@ as batches, proprietary databases — and is the path the engine's internals opt
 
 The alternatives (`DataTable`, `IDataRecord` rows, the DuckDB Appender API, memory-mapped
 files) were each rejected as the canonical format — per-value copies, GC pressure, or no
-ecosystem leverage. See [ADR 0001](/decisions/0001-arrow-ingest-path/) and
-[ADR 0002](/decisions/0002-arrow-egress-path/) for the measured comparisons.
+ecosystem leverage. Ingest is a genuine columnar transfer — one native call converts a whole
+batch across the Arrow C Data Interface, one more appends it, and no managed cost scales with
+row count — and egress rides DuckDB's own Arrow export the same way.
 
 **Row-based edges are embraced, not denied.** Most OLTP wire protocols are row-oriented
 anyway, so the Abstractions package ships batteries:
@@ -82,7 +83,7 @@ pipeline latency, memory bounds, and progress reporting granular.
 
 > [!IMPORTANT]
 > A batch handed to `WriteBatchAsync` is **engine-owned until the call returns**. Buffers are
-> pooled native memory ([ADR 0004](/decisions/0004-batch-memory-pooling/)) — a connector
+> pooled native memory, recycled the instant the engine disposes the batch — a connector
 > that holds a reference past the call observes recycled memory. Ownership bugs are the worst
 > bugs in this system, and `Pz.Connectors.TestKit` enforces the lifetime protocol against
 > every connector.
@@ -94,7 +95,7 @@ larger than RAM is the *default* case, not a special mode. DuckDB's `memory_limi
 spill; the engine's own memory use stays bounded by the channel formula above. How the static
 budget is computed — and the measured baselines — are in [Performance](/performance/),
 which documents the 0.94–1.04 concurrent/sequential gate ratio behind the single-connection
-decision ([ADR 0005](/decisions/0005-duckdb-connection-strategy/)).
+decision.
 
 ## Next steps
 

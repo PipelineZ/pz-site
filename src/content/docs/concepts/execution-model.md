@@ -204,9 +204,10 @@ Three concurrency domains, each with one owner:
    treats DuckDB queries as opaque async operations and never micro-manages them.
 
 DuckDB gets **one process-wide database with one serialized connection per run**, gated by a
-`SemaphoreSlim` to ensure safe statement execution
-([ADR 0005](/decisions/0005-duckdb-connection-strategy/)). Concurrent pipeline queries are
-dispatched by the topological dispatcher, not run over parallel connections. This is a
+`SemaphoreSlim` to ensure safe statement execution — a single `DuckDBConnection` is not safe for
+concurrent statement execution, and unguarded dispatch raced on DuckDB's native pending-query
+state. Concurrent pipeline queries are dispatched by the topological dispatcher, not run over
+parallel connections. This is a
 correctness constraint, not a performance problem: the measured concurrent/sequential ratio is
 0.94–1.04 (see [Performance](/performance/)) — the gate serializes real DuckDB work with
 minimal overhead. As-built limitation: connection-per-operation is a later

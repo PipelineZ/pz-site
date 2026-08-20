@@ -314,10 +314,9 @@ hint reconstructs the equivalent `connections.yml` block for you to paste.
 
 ## Loading: INSERT INTO sink()
 
-A pipeline loads its result by leading with `INSERT INTO {{ sink(...) }}`
-([ADR 0003](/decisions/0003-inline-sink-binding/)) — this is the **only** way to load; there
-is no YAML equivalent. `sink('<sink>', '<output>')` must be the pipeline's leading statement.
-Comments and whitespace before it are fine; CTEs go *inside* the query, after the marker.
+A pipeline loads its result by leading with `INSERT INTO {{ sink(...) }}` — this is the **only**
+way to load; there is no YAML equivalent. `sink('<sink>', '<output>')` must be the pipeline's
+leading statement. Comments and whitespace before it are fine; CTEs go *inside* the query, after the marker.
 
 The common case is 1:1 — a scalar marker, carrying this write's options:
 
@@ -423,8 +422,7 @@ on the value side, or a `watermark()` outside a comparison. Equality is rejected
 advancement (`MAX(cursor)` after sinks commit) is only coherent against an ordered cut;
 cursor-side functions are rejected because the bound must run inside the *source* database before
 data moves, and inverting an arbitrary function to recover a raw-column bound isn't generally
-possible. The full reasoning is in
-[ADR 0006](/decisions/0006-watermark-expressions-in-pipeline-sql/).
+possible.
 
 ### Value-side expressions: lookback
 
@@ -553,7 +551,7 @@ PipelineZ uses **Scriban in sandboxed mode** with a small whitelisted function s
 | Function | Does |
 |---|---|
 | `source('src','dataset')`, `ref('pipeline')` | Resolve to staging table names *and* declare DAG edges |
-| `sink('sink','output')` | Records the pipeline's load binding (ADR 0003) and renders a placeholder the compiler recognizes as the pipeline's leading `INSERT INTO` marker (or one entry in an array of markers, for fan-out) |
+| `sink('sink','output')` | Records the pipeline's load binding and renders a placeholder the compiler recognizes as the pipeline's leading `INSERT INTO` marker (or one entry in an array of markers, for fan-out) |
 | `watermark('src','dataset')` | Renders the dataset's stored incremental watermark for a cursor comparison, declaring the dataset incremental *in the SQL* — see [Incremental reads](#incremental-reads-watermark). Creates **no** DAG edge (the `source()` call does that) |
 | `var('name')`, `env('NAME')` | Project variables; `env` only for variables declared in `project.yml` |
 | `this`, `run_id`, `run_started_at` | Injected constants (one timestamp per run, so renders are stable within a run) |

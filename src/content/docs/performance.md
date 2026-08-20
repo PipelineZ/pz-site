@@ -9,8 +9,8 @@ static memory budget the planner prints and persists.
 
 **Every number on this page is a baseline from one specific development machine, not a gate.** Numbers
 recorded here are labeled with that machine's specs; re-run the harnesses on your own hardware before
-comparing. See `docs/decisions/0004-batch-memory-pooling.md` for the pooling design these numbers
-exercise, and phase 8's plan (decision 7) for why benchmarks are excluded from `dotnet test`.
+comparing. Benchmarks are excluded from `dotnet test` deliberately: they measure a machine, not a
+contract, and a slow runner must never fail the suite.
 
 ## Memory budget formula
 
@@ -318,7 +318,7 @@ sink alone ran ~5× slower than the same rows into sized columns; now created ta
 sizes (e.g. this dataset's `status` lands as `nvarchar(32)`, verified via `sys.columns`), and the
 append node reports sink-bound with the writer idle ~60% — the write is no longer the bottleneck.
 On the read side alone the extension remains ~3× faster than pz's universal Arrow path (both are
-single-stream TDS; pz's read is ingest-bound behind the serialized DuckDB connection, ADR 0005), which
+single-stream TDS; pz's read is ingest-bound behind the run's one serialized DuckDB connection), which
 is why ×4 read partitions no longer help once the write is fast: the whole pipeline's remaining cost is
 read-side ingest, not extraction.
 
@@ -506,14 +506,15 @@ tightly around 1.0). Requesting concurrency bought effectively nothing: the gate
 work almost perfectly regardless of how many independent tasks ask for it at once, confirming the doc
 comment's claim directly rather than by inspection.
 
-**Follow-up, probed (see [ADR 0005](/decisions/0005-duckdb-connection-strategy/)):**
+**Follow-up, probed:**
 connection-per-operation was probed and benchmarked directly against real `DuckSession` code. The naive
 shape (each operation independently opens `:memory:` + `ATTACH`) is unsafe — a reproducible
 catalog-staleness bug, not just a performance question. The safe shape (`DuckDBConnection.Duplicate()`
 from one already-attached root, sharing one `duckdb_database` instance) is correct but measured the same
 0.85–0.94 ratio as the gate — no real speedup, because DuckDB's own concurrency model (not the C#
-`SemaphoreSlim`) is the actual limiter for this workload. The gate ships unchanged; see the ADR for the
-full probe and benchmark record.
+`SemaphoreSlim`) is the actual limiter for this workload. The gate ships unchanged. Only the
+per-*operation* shape was measured — a persistent per-node connection, reused across that node's
+several operations, has a different overhead profile and is not ruled out by this number.
 
 ## Many small files
 
