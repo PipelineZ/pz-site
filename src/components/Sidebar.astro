@@ -1,0 +1,27 @@
+---
+/**
+ * Starlight's Sidebar, preceded on mobile by the section switcher.
+ *
+ * Below 50rem the header's nav is hidden and the sidebar lists only the section you are
+ * already in, so the switcher has to live here — at the top, before the page list, because
+ * a reader deep in the book should not scroll eleven articles to find the documentation.
+ */
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+import SidebarPersister from '@astrojs/starlight/components/SidebarPersister.astro';
+import SidebarSublist from '@astrojs/starlight/components/SidebarSublist.astro';
+import TopNav from './TopNav.astro';
+
+const { sidebar } = Astro.locals.starlightRoute;
+---
+
+<div class="md:sl-hidden">
+	<TopNav variant="mobile" />
+</div>
+
+<SidebarPersister>
+	<SidebarSublist sublist={sidebar} />
+</SidebarPersister>
+
+<div class="md:sl-hidden">
+	<MobileMenuFooter />
+</div>

@@ -3,9 +3,28 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import catppuccin from '@catppuccin/starlight';
 
+// The series moved from /articles/ to /book/; these keep every published link alive.
+const bookPages = [
+	'',
+	'01-what-is-a-data-pipeline',
+	'02-modern-data-infrastructure',
+	'03-common-pipeline-patterns',
+	'04-data-ingestion-extracting-and-loading',
+	'05-transforming-data',
+	'06-orchestrating-pipelines',
+	'07-data-validation-and-quality',
+	'08-monitoring-and-observability',
+	'09-best-practices',
+	'10-meet-pz',
+	'11-pz-limitations',
+];
+
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://pipelinez.dev',
+	redirects: Object.fromEntries(
+		bookPages.map((page) => [`/articles/${page}`, `/book/${page}`])
+	),
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
@@ -35,9 +54,16 @@ export default defineConfig({
 				{ label: 'Diagrams', items: [{ autogenerate: { directory: 'diagrams' } }] },
 				{
 					label: 'Data Pipelines: An Article Series',
-					items: [{ autogenerate: { directory: 'articles' } }],
+					items: [{ autogenerate: { directory: 'book' } }],
 				},
 			],
+			components: {
+				Header: './src/components/Header.astro',
+				Sidebar: './src/components/Sidebar.astro',
+				SocialIcons: './src/components/SocialIcons.astro',
+			},
+			// Splits the sidebar: /book/* shows only the series, everywhere else only the docs.
+			routeMiddleware: './src/starlightRouteData.ts',
 			plugins: [
 				catppuccin({
 					dark: { flavor: 'mocha', accent: 'teal' },
