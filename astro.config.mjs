@@ -5,8 +5,7 @@ import catppuccin from '@catppuccin/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://coccor.github.io',
-	base: '/pipelinez-site',
+	site: 'https://pipelinez.dev',
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
@@ -15,6 +14,25 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/coccor/pz' },
 			],
 			sidebar: [
+				{
+					label: 'Start here',
+					items: [
+						{ label: 'Documentation', link: '/docs/' },
+						{ label: 'Quickstart', link: '/quickstart/' },
+					],
+				},
+				{ label: 'Concepts', items: [{ autogenerate: { directory: 'concepts' } }] },
+				{ label: 'How-to', items: [{ autogenerate: { directory: 'how-to' } }] },
+				{
+					label: 'Reference',
+					items: [
+						{ autogenerate: { directory: 'reference' } },
+						{ label: 'Event stream', link: '/events/' },
+						{ label: 'Performance', link: '/performance/' },
+						{ label: 'Versioning', link: '/versioning/' },
+					],
+				},
+				{ label: 'Diagrams', items: [{ autogenerate: { directory: 'diagrams' } }] },
 				{
 					label: 'Data Pipelines: An Article Series',
 					items: [{ autogenerate: { directory: 'articles' } }],

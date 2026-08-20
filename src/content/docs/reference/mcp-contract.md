@@ -1,0 +1,175 @@
+---
+title: "MCP contract reference"
+description: "See Use pz with an AI agent for how to configure a client."
+---
+
+`pz mcp` serves the current project to AI agents over the Model Context Protocol
+(stdio only). This page is the stability contract for that surface: the result
+envelope every tool returns, the full tool table, and the PZ06xx error codes the
+MCP surface adds.
+
+See [Use pz with an AI agent](/how-to/use-with-an-ai-agent/) for how to configure a
+client.
+
+## The envelope
+
+Every tool returns one JSON object, serialized with the repo's byte-stable
+`Utf8JsonWriter` discipline (fixed field order, no indentation — the example below
+is pretty-printed for reading; the wire form is compact):
+
+```json
+{
+  "ok": false,
+  "applied": true,
+  "errors": [
+    {
+      "code": "PZ0341",
+      "message": "read option 'columns' is declared both in connections.yml and as a source() argument",
+      "file": "pipelines/stg_orders.sql",
+      "line": 12,
+      "next_step": "declare the option on exactly one surface; remove one of the two declarations"
+    }
+  ]
+}
+```
+
+That is a mutation whose edit was written (`applied: true`) but which left the
+wider project broken, so self-verify reported errors. A success carries `result`
+instead of `errors`:
+
+```json
+{"ok":true,"applied":true,"result":{"file":"connections.yml"}}
+```
+
+`errors` and `result` appear together in exactly one place: `pz_project_overview`,
+which reports a compile failure over an otherwise-loadable project as `ok: true`
+with both (see its row below). No other tool emits both.
+
+| Field | Type | Description |
+|---|---|---|
+| `ok` | bool | Whether the tool call itself succeeded. For a gated execution tool this reflects whether the run *started cleanly* — a run that starts and later ends `completed_with_failures` or `fatal` is still `ok: true`, with that outcome inside `result.status`/`result.exit_code`, exactly like `pz run`'s own exit code is orthogonal to whether the invocation was well-formed. |
+| `applied` | bool, optional | Present only on §3.3 "Author"-group results — the eight mutation tools plus `pz_init_project`. `true` once the file edit has been written — including when the edit itself was fine but broke the wider project (self-verify errors ride `errors[]` while `applied` stays `true`). `false` means nothing was written. Omitted on introspect/verify/execute results, which have nothing to "apply". |
+| `errors` | array, optional | Omitted when empty. Each entry is the JSON projection of the existing `PzError` aggregate — the same shape console and JSON renderers already use, now with all of `code`/`message`/`next_step` always present and `file`/`line` present only when known. |
+| `errors[].code` | string | A `PZ####` code. |
+| `errors[].message` | string | Human-readable cause. |
+| `errors[].file` | string, optional | Omitted (never `null`) when the error has no associated file. |
+| `errors[].line` | number, optional | Omitted (never `null`) when the error has no associated line. |
+| `errors[].next_step` | string \| null | The error's hint text. Present as a key even when the underlying error carries no hint (some `PZ0201` forms) — in that case the value is JSON `null`, not an omitted key. |
+| `result` | object, optional | Per-tool payload; shapes are listed in the tool table below. Present on success; `pz_project_overview` can also carry both `errors` and a best-effort `result` together on a compile failure over an otherwise-loadable project (see that tool's row). |
+
+**Stability promise: fields are append-only; renaming or removing a field, a tool
+name, or an error code, is a breaking change.** New fields may be added to any
+result without notice; consumers must ignore fields they don't recognize. (Same
+promise `docs/events.md` makes for the run-event stream — this is the equivalent
+contract for the MCP surface.)
+
+Input-shape violations (a missing argument, the wrong JSON type, an unknown
+argument name) are MCP-level invalid-params (-32602) errors, not part of this
+envelope — PZ codes are for project-level outcomes, mirroring how the CLI itself
+splits argument parsing from validation. The server pre-validates every call
+against the tool's own published input schema, so the error message names the
+offending argument and the expected
+type — `invalid params for 'pz_validate': argument 'connect' expects boolean,
+got string` — instead of the protocol SDK's generic "An error occurred invoking
+'<tool>'." text an agent cannot self-correct from.
+
+## Tool table
+
+Every tool is prefixed `pz_`. "Gated" tools exist in the listing **only** when the
+server was started with `pz mcp --allow-run` — absent, not present-but-refusing, so
+an agent connected without that flag never plans around a tool it cannot call.
+
+**Input names are snake_case**, exactly as spelled in the tables below and in each
+tool's published JSON input schema (`flow_names`, `full_refresh`, `checks_yaml`,
+`run_id`, ...) — the same style the envelope's own `next_step`/`run_id` fields use.
+An input marked `?` (or given a default) is optional: it is absent from the schema's
+`required` list and may be omitted entirely. Everything else is required. Input names
+and their required-ness are part of the stability promise above.
+
+### Introspect (read-only, always registered)
+
+| Tool | Inputs | Result fields |
+|---|---|---|
+| `pz_project_overview` | — | `name`, `flows[]` (flow labels), `connections[]` (`name`, `connector`, `entities[]` of `{name, has_read, has_write}` — never a connection's config values), `pipelines[]` (`name`, `refs[]`, `sources[]` of `"<connection>.<entity>"`, `sinks[]` of `"<connection>.<entity>"`), `dag.nodes[]` (`id`, `name`, `kind`, `dependsOn[]`). On a compile failure over an otherwise-loadable project: `ok: true` with both a top-level `errors[]` and a best-effort `result` (flows/dag empty, connections/pipelines still list names). Only a load failure (e.g. malformed `project.yml`) falls back to a plain `ok: false` envelope. |
+| `pz_connector_reference` | — | `connectors[]` of `{name, source, sink, capabilities, dataset_schema, connection_schema}`. `capabilities` is the `ConnectorCapabilities` flags enum's own `.ToString()` (e.g. `"ColumnPruning, PredicatePushdown, NativeScan, NativeCopy"`) — verbatim, not a machine vocabulary. `dataset_schema`/`connection_schema` are the connector's own published JSON Schemas, re-emitted verbatim. |
+| `pz_entity_schema` | `connection` (string), `entity` (string) | `columns[]` of `{name, type}`, `source`: `"fetched"` when the columns came from a live connectivity probe (a contract-less dataset), or `"declared_contract"` when they came from the entity's own YAML `columns:` contract (`ConnectivityValidator` never populates a live fetch for a dataset that already declares one). Type vocabularies differ between the two: `"fetched"` types are Arrow-derived (`ContractTypes.Describe` strings, e.g. `Decimal128(10,2)`); `"declared_contract"` types are the literal YAML contract strings (e.g. `bigint`, `double`). Unknown connection/entity, or a csv/json entity with neither a live fetch nor a declared contract (PZ0330 in v0 — see [Detect schema drift at run time](/how-to/schema-drift/) and the csv/json inference notes in the project's `CLAUDE.md`), comes back as `PZ0330`. Opens a real connection; still read-only — never writes `.pz/target/schemas.json`. |
+| `pz_state` | — | `watermarks`/`sync_state`/`schema_baselines`, each `{corrupt: bool, entries[]}` (a corrupt state file reports `corrupt: true` with empty `entries` rather than failing the tool). `watermarks.entries[]`: `{key, cursor, type, value, run_id}`. `sync_state.entries[]`: `{key, token, run_id}`. `schema_baselines.entries[]`: `{key, hints_hash, run_id, columns[]}` of `{name, type}`. `latest_run`: `{run_id, status, node_counts}` or JSON `null` when no run exists yet. `node_counts` is `{"<status>": <count>, ...}`, grouped from the latest run's nodes. **Deliberately has no `started_at`** on `latest_run` — the underlying run-artifact read model (`PriorRun`) carries no such field; omitted rather than fabricated. |
+
+### Verify (read-only, always registered)
+
+| Tool | Inputs | Result fields |
+|---|---|---|
+| `pz_compile` | — | `nodes[]` of `{id, name, kind, dependsOn[]}`, `notices[]` (strings), `warnings[]` of `{code, message, file?, line?, hint?}`. Never writes `.pz/target/manifest.json`. |
+| `pz_validate` | `connect?` (bool, default false) | `pipelines` (count), `connections_checked` (count), `undeclared_datasets[]` (`"<connection>.<entity>"` strings — contract-less datasets `SqlDryCompiler` skipped). Tiers run cheapest-first (3 → 4 → 5) and stop at the first non-empty error list, exactly like `pz validate`; `connect: true` adds tier 5 (live connectivity + schema drift) but — unlike `pz validate --connect` — never writes `.pz/target/schemas.json`. |
+| `pz_plan` | — | `nodes[]` of `{node, strategy, reason, pushdown?}`, `memory_budget_bytes`. `strategy` is one of `native_scan`, `native_copy`, `arrow_stream`, `duck_sql` — the same names `plan.json` and `pz plan`'s console table use. `pushdown` (when present): `{columns_pushed?, predicate_pushed}`. `reason` is the planner's own template-only text — never SQL or connection config. Never writes `.pz/target/plan.json`. |
+
+All three verify tools are **policy-documented read-only**: they never write a
+`.pz/target` artifact, unlike their CLI counterparts. A caller that wants an
+artifact written (e.g. to warm the schema-drift cache) runs the actual `pz` CLI
+verb.
+
+### Author (mutating, always registered)
+
+Every mutation tool shares one contract: (1) validate the proposed
+input before writing anything — invalid input leaves the project untouched,
+`applied: false`; (2) apply the edit as a surgical, comment-preserving text splice
+— untouched regions of the file stay byte-identical; (3) self-verify
+(compile + offline validate) and report the result. Once step 2 has run, `applied`
+is always `true` from there on — a mutation that broke the wider project (e.g.
+removing a connection a pipeline still reads from) **stays applied** and reports
+the resulting errors, matching how a hand edit behaves.
+
+| Tool | Inputs | Result fields (success) |
+|---|---|---|
+| `pz_init_project` | — | `created: true`, `dir`. Scaffolds into the server's own project directory (the same builtin starter template as `pz init`); `PZ0603` when that directory exists and is not empty. |
+| `pz_add_connection` | `name`, `connector`, `connection` (object) | `file`, `dropped_comment?`. `PZ0601` (refused, `applied: false`) when `connection` carries what looks like a literal credential — see [Secrets](/how-to/use-with-an-ai-agent/#secrets). `PZ0602` when `name` already exists (hint points at `pz_update_connection`). |
+| `pz_update_connection` | `name`, `connector`, `connection` (object) | Same shape as `pz_add_connection`. Replaces the connection block **wholesale** — anything else that lived under the old block (an `entities:` block, `retry:`, ...) is not carried forward. `PZ0602` when `name` does not exist (hint points at `pz_add_connection`). |
+| `pz_remove_connection` | `name` | `file`. `PZ0602` when `name` does not exist. Removing a connection a pipeline still reads from stays `applied: true` and reports the resulting compile/validate errors. |
+| `pz_add_entity` | `connection`, `entity`, `read?` (object), `write?` (object) | `file`, `connection`, `entity`, `dropped_comment?`. `PZ0602` (`McpMutationTarget`) when `connection` doesn't exist yet, or `entity` already exists under it (hint points at `pz_set_entity_options`). |
+| `pz_set_entity_options` | `connection`, `entity`, `read?` (object), `write?` (object) | Same shape as `pz_add_entity`. Replaces the entity's `read:`/`write:` block wholesale. `PZ0602` when `entity` does not exist under `connection` (hint points at `pz_add_entity`). |
+| `pz_remove_entity` | `connection`, `entity` | `file`, `connection`, `entity`. `PZ0602` when `entity` doesn't exist under `connection`. Removing an entity a pipeline still reads/writes stays `applied: true` and reports the resulting errors. |
+| `pz_write_pipeline` | `name`, `sql`, `checks_yaml?` | `sql_file`, `checks_file?`. Creates or replaces `pipelines/<name>.sql` (normalized to LF + trailing newline) and, when `checks_yaml` is given, `pipelines/configs/<name>.yml` verbatim. `name` must be a safe file stem (no path separators, no `..`) or `PZ0602`. |
+| `pz_remove_pipeline` | `name` | `sql_file`, `checks_file_removed` (bool). `PZ0602` when no `.sql` file exists for `name`. Removing a pipeline another pipeline still `ref()`s stays `applied: true` and reports the resulting compile errors. |
+
+Every add/update/set/write result above also carries `errors[]` with `applied:
+true` when self-verify (step 3) found something — a well-formed edit that still
+leaves the project broken is not itself a tool failure.
+
+### Execute (registered only under `pz mcp --allow-run`)
+
+| Tool | Inputs | Result fields (success) |
+|---|---|---|
+| `pz_run` | `flow_names?[]` (strings), `all?` (bool, default false), `full_refresh?` (bool, default false) | `run_id`, `status`, `nodes[]` of `{id, name, status, kind, rows, error?}`, `exit_code`, `notices[]`, `warnings[]` (same shapes as `pz_compile`'s). `nodes[].error` (additive, 2026-08-15) is `{code, message}` from `run_results.json`, present only on a failed node — an MCP caller learns WHY a node failed without shell access to the artifact file. `warnings[]` carries run-TIME warnings too (additive, 2026-08-15): schema drift under `on_source_drift: warn` (`PZ0331`), duplicate merge keys collapsing in a staged batch (`PZ0522`), an auto-detected DOUBLE column holding only whole numbers beyond 2^53 — a >int64 integer column whose digits may have been silently lost (`PZ0523`), and a csv date column parsed with an assumed day/month order because every value was ambiguous (`PZ0524`) — the same facts the CLI prints as `warning:` lines. `notices[]` likewise carries compile notices **and** notices the run itself raised (additive, 2026-08-15) — a corrupt watermark file (which silently re-extracts the whole source), a watermark or sync-state write that failed, a retention sweep that could not reclaim disk, the resolved state backend — which the CLI prints as `note:` lines. `pz mcp` has no console, so before that change both were dropped and a silently-degraded run enveloped identically to a clean one: **check `notices[]` and `warnings[]` even when `status` is `success` and `exit_code` is `0`.** Neither `flow_names` nor `all` (in a 2+-flow project) is `PZ0215` — name a flow or pass `all: true`, exactly like the CLI. A broken pipeline is refused by the same `SqlDryCompiler` pre-flight `pz run` itself runs, before any run directory or staging DB is created. |
+| `pz_retry` | `full_refresh?` (bool, default false) | Same shape as `pz_run`, plus `note` when there was nothing to retry (the prior run already succeeded, or the project changed) — that case is `ok: true`, `exit_code: 0`, with no new run. |
+| `pz_run_results` | `run_id?` (string) | `run_id`, `status`, `nodes[]` (same shape as above, no `exit_code` — there is no fresh exit code for a historical read), `note?`. Defaults to the latest run. An explicit `run_id` not found under a **local** state backend is `PZ0502` (`NoPriorRun`); under a **remote** state backend (no by-id read in v1) it silently is not substituted — instead the latest run is returned with `note` explicitly saying the requested id was ignored. |
+
+`nodes[].rows` comes straight off the run-artifact read model, which carries no
+duration field either — no `duration_ms` is emitted anywhere in this tool group.
+
+All three execute tools acquire the same `RunDirLock` the CLI does; a run already
+in progress (CLI or another MCP call) is refused with `PZ0604`, never blocked on
+— an agent-driven caller has no interactive operator to arbitrate a lock conflict.
+
+## Resources
+
+Alongside tools, the server publishes a curated set of docs as MCP **resources**
+(URI `pz://docs/<path relative to docs/>`, MIME type `text/markdown`), embedded at
+build time: `docs/reference/authoring-for-agents.md` plus every
+`docs/concepts/*.md` and `docs/how-to/*.md` file. These are convenience only,
+never load-bearing — a resource-blind client loses nothing correctness-critical,
+since every rule documented here is also surfaced through tool `next_step` texts
+and `pz_project_overview`.
+
+## PZ06xx error codes
+
+The MCP/authoring surface's own code block. All other errors an MCP tool returns
+are the project's existing codes (`PZ01xx`–`PZ05xx`), unchanged.
+
+| Code | Meaning |
+|---|---|
+| `PZ0601` | A connection mutation's proposed value looks like a literal credential — a key whose name contains `password`/`secret`/`token`/`key`/`connection_string` — typed directly into YAML rather than a `${VAR}` env reference. Refused before any file is touched. (The check is that key-name heuristic alone; a connector schema marking a property `writeOnly`/`format: password` is not consulted in v1.) |
+| `PZ0602` | A mutation's target is inconsistent with the requested operation: `pz_add_*`'s name already exists, or `pz_update_connection`/`pz_set_entity_options`/`pz_remove_*`'s name does not. Every such error's `next_step` names the correct sibling tool. |
+| `PZ0603` | `pz_init_project`'s target directory exists and is not empty. |
+| `PZ0604` | A gated execution tool was called while another run already holds `RunDirLock`. |
+| `PZ0605` | The MCP client-setup surface (`pz mcp init`) is invalid: an existing client config file (`.vscode/mcp.json`, `.mcp.json`, `~/.copilot/mcp-config.json`, `opencode.json`) failed to parse as JSON (left byte-untouched), or the invocation named no client and no `--all`, or named a client outside `vscode`/`claude-code`/`copilot-cli`/`opencode`, or `--skill-locations` named a token outside `standard`/`claudecode`/`github`/`opencode`/`all`/`none`. |
+| `PZ0606` | A localfiles `path:`/`root:`/`base_dir:` — in the existing config or in a proposed authoring block — resolves outside the project directory. `pz mcp` operates only on files inside the project (the same posture PZ0602 takes for `../` in mutation targets), so every tool that touches the project refuses uniformly; the plain CLI remains paths-are-trusted. The containment check is lexical, a guard for steering agents, not a symlink-proof security boundary. |
