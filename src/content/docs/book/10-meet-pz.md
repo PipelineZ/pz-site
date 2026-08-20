@@ -169,15 +169,22 @@ Independent nodes run in parallel; execution is always *materialize, then drain*
 `INSERT INTO` form stages the table first and writes atomically, so a half-failed run never
 leaves a half-written destination (article 4's replace-safely rule).
 
+Where both ends of an edge speak SQL, `pz` hands DuckDB a fragment and steps out of the way -
+the data never enters .NET at all; where they don't, it streams as Arrow batches rather than
+row by row. That is measured, not asserted: a million rows SQL Server to SQL Server, end to
+end, takes 10.5 s on a laptop, and `pz plan` prints the memory budget before you run. The
+[performance page](/performance/) has every number and the scripts to re-run them on your own
+hardware.
+
 `pz run <name>` runs one *flow* - that node plus everything upstream and downstream. On a
 project with several independent flows, bare `pz run` refuses (so you never run the world
 by accident) and `--all` is the explicit everything.
 
 ## The reunion tour: Part I, feature by feature
 
-**Ingestion (article 4).** Talking to a new source is a *connector* - first-party ones
-cover local files, Postgres, SQL Server, S3, Azure Blob, and HTTP APIs, and there's a
-documented ABI for writing your own. `pz` pushes work down to capable sources: it uses
+**Ingestion (article 4).** Talking to a new source is a *connector*. Eight ship
+first-party - local files, Postgres, SQL Server, MySQL, SQLite, S3, Azure Blob, and HTTP
+APIs - and there's a documented ABI for writing your own. `pz` pushes work down to capable sources: it uses
 DuckDB's own SQL parser to extract which columns and filters your pipeline actually needs
 and hands them to the connector (*ReadHints*), so `select id, amount ... where updated_at >`
 becomes a narrow query at the source, not a full-table drag. Failures are classified
@@ -233,7 +240,10 @@ checks, `pz validate` runs tiers of *pre-run* validation - config, templates, DA
 and your rendered SQL against DuckDB's own parser - and reports **all** errors at once,
 each with a `PZ####` code naming the file, the cause, and a next step. `pz validate
 --connect` adds live connectivity and schema-drift probes: article 4's drift, caught at 3
-p.m. instead of 3 a.m.
+p.m. instead of 3 a.m. Drift that changes between probes is caught again at run time -
+`on_source_drift: ignore | warn | fail` decides whether a source that grew a column is
+noted or stops the run, and `pz schema accept` blesses the new shape as the baseline once
+you've looked at it.
 
 **Monitoring (article 8).** Every run emits one event stream, rendered as console lines or
 as NDJSON (`--log-format json`) under a documented, append-only contract - article 8's
@@ -242,13 +252,21 @@ structured events, ready for whatever watches your ops world. Run history persis
 `pz.run.completed` metric for the did-it-even-run heartbeat); exit codes are the honest
 machine-readable signal (0 ok, 1 node failures, 2 config error, 3 fatal). Old runs'
 staging databases are swept automatically by a retention policy, and for ephemeral hosts
-(containers that vanish after each run) the state and run history can live in a SQL
-Server-backed store instead of local disk.
+(containers that vanish after each run) state need not live on local disk at all: a SQL
+Server backend moves watermarks, run history, and events into a database, and an HTTP
+backend hands watermarks and sync state to a server over a run-scoped endpoint.
 
 **Best practices (article 9).** Mostly, `pz` makes the checklist the path of least
 resistance: everything is files in git; loads are staged and atomic; secrets are `${ENV}`
 references that never appear in logs or artifacts; the scaffold ships a runnable sample;
 `pz plan` and `pz compile` let you inspect the graph and strategies without touching data.
+
+**Agents (article 9's reviewability, extended).** `pz mcp` serves the current project to
+an AI coding agent over the Model Context Protocol: 22 typed tools for introspecting the
+DAG, validating, authoring connections and pipelines, and reading the docs. Execution is
+opt-in - `pz_run`, `pz_retry`, and `pz_run_results` are registered only when the server is
+started with `--allow-run`, so an agent pointed at a project can read and edit it without
+being able to touch data by accident.
 
 ## The CLI at a glance
 
@@ -262,15 +280,42 @@ references that never appear in logs or artifacts; the scaffold ships a runnable
 | `pz retry` | Re-run only what failed, reusing safe staged data |
 | `pz ls` / `pz connectors` | List nodes in topological order / list connectors |
 | `pz state …` / `pz cdc …` / `pz clean` | Inspect and manage watermarks, CDC positions, and old runs |
+| `pz schema accept` | Accept a drifted source's observed schema as the new baseline |
+| `pz mcp [--allow-run]` | Serve the project to an AI agent over MCP |
 
 ## The takeaway
 
 `pz` is Part I with the boilerplate removed: connections declared once, ETL written as SQL
 whose own `source()`/`ref()`/`sink()` calls *are* the DAG, checks as one-liners that gate
 the outputs, watermarks and delivery guarantees enforced by the engine, and a run that
-tells its story as structured events. What it deliberately *doesn't* try to be is the
-subject of the final article - and knowing that boundary is part of using it well.
+tells its story as structured events.
+
+Its boundaries are as deliberate as its features, and worth stating plainly: `pz` is batch
+(it runs to completion and exits), it is one machine (DuckDB in one process - no cluster
+mode), it brings no scheduler and no UI, its transformations are SQL and nothing else, and
+it is pre-release (v0.x, so pin versions and read release notes). Inside that profile -
+scheduled batch ETL, volumes a single machine handles, sources within its connector set, a
+team that thinks in SQL - it packs an outsized amount of Part I into one dependency-light
+CLI. Outside it, the tools to reach for are the ones Part I already named: streaming
+systems for seconds-fresh decisions, Spark or a distributed warehouse when a run outgrows
+one machine, an orchestration platform when many teams' pipelines depend on each other.
+
+## Closing: back to Monday morning
+
+We opened this series with Dana, two hours of copy-paste, and a number nobody could quite
+audit. Ten articles later, the same Monday looks like this: a crontab line fires at 06:00;
+connectors extract incrementally and politely; SQL layers rebuild deterministic tables
+inside a workbench database; checks gate what the dashboard is allowed to see; a failed
+night is one `pz retry` from healed; and every run leaves a structured, queryable account
+of itself. The owner asks "how did we do last week?" and the answer is on a screen before
+the question is finished - with a timestamp that says exactly how fresh it is.
+
+No single tool made that true, and that's the real lesson. Pipelines earn trust through a
+stack of small, boring decisions - idempotent loads, derived DAGs, checks at the seams,
+honest failure - applied consistently. `pz` is one compact way to get those decisions made
+for you; whatever tool you use, you now know which decisions they are, and why each one is
+there. That knowledge transfers. Tools change; Monday morning always comes.
 
 ---
 
-*Next: [11. What pz doesn't do](../11-pz-limitations/)*
+*Back to the [table of contents](../).*
