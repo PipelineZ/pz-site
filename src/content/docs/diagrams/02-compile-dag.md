@@ -7,6 +7,8 @@ This diagram zooms into the first arrow of the overview: how `pz compile` turns 
 into a dependency graph, using the real `templates/sample` project verbatim — three tiny
 CSV-backed pipelines, but the mechanism is identical at any scale.
 
+[![Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges](/diagrams/02-compile-dag.png)](/diagrams/02-compile-dag.png)
+
 **The main idea:** dependencies are *declared* by template calls (`ref()`, `source()`, `sink()`)
 observed during rendering — the compiler never parses your SQL to discover edges. That makes the
 DAG exact, cheap, and deterministic. (It's the same trick dbt uses.)

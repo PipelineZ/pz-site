@@ -6,6 +6,8 @@ description: "This diagram zooms into how bytes physically move. The DAG (diagra
 This diagram zooms into how bytes physically move. The DAG (diagram 02) is the control plane —
 it decides what runs when; the data plane is the part that moves the data itself.
 
+[![The data plane: native scan versus streamed Arrow batches, chosen per edge](/diagrams/03-data-plane.png)](/diagrams/03-data-plane.png)
+
 **The main idea:** the fastest way to move bytes through .NET is to not move them through .NET.
 For every edge, the planner picks one of two tiers: hand DuckDB a native scan (tier 1), or
 stream Arrow batches (tier 2). Zero-copy either way.
