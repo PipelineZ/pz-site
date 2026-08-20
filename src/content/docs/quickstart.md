@@ -19,14 +19,6 @@ database, no network after the install.
 $ dotnet tool install --global pz
 ```
 
-> [!IMPORTANT]
-> **Installed `Pz.Cli` before?** That was the package id through `0.2.1`; the id is `pz`
-> from `0.2.2` on. Both packages install a command named `pz`, so run
-> `dotnet tool uninstall --global Pz.Cli` first — the install above fails on the shim
-> collision otherwise, and `dotnet tool update --global Pz.Cli` would keep you pinned to the
-> last `Pz.Cli` release forever. `Pz.Cli` stays listed on nuget.org (deprecated, pointing at
-> `pz`) so existing lock files still restore.
-
 > [!NOTE]
 > To run an unreleased commit instead of the latest release, build from a clone.
 > `scripts/verify-tool-install.sh` automates the full recipe: pack every project to a local folder
