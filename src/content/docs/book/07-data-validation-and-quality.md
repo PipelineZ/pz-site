@@ -64,13 +64,13 @@ the best deal in this series.
 
 Checks belong at the **boundaries** - the same layer seams article 5 built:
 
-```mermaid
-flowchart LR
-    R[raw_orders] -->|"gate: not_null id<br/>freshness, volume"| S[stg_orders]
-    S -->|"gate: unique order_id<br/>accepted statuses"| J[orders_enriched]
-    J -->|"gate: row count sane<br/>totals non-negative"| M[revenue marts]
-    M -->|only validated data<br/>reaches the dashboard| D[Dashboard]
-```
+<figure class="dgm">
+  <a href="/diagrams/book/07-checks-as-gates.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/07-checks-as-gates.png" alt="Checks drawn as gates on the edges between stages, with the assertions each gate enforces, plus what happens when one fails: the run stops and the dashboard keeps yesterday's correct number.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/07-checks-as-gates-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 - **At ingestion** - validate what the *source* sent, before anything transforms it. This is
   where schema expectations (article 4's drift posture) live: is `amount` still a number?

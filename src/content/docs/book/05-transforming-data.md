@@ -68,29 +68,13 @@ disagree about revenue, and nobody knows which is right.
 Article 3 introduced the pattern; here it is doing its job. Break the one query into small
 steps, each materialized as its own table, each reading only the layer before:
 
-```mermaid
-flowchart LR
-    subgraph Raw
-        RO[raw_orders]
-        RS[raw_stores]
-        RC[raw_crm_contacts]
-    end
-    subgraph Staging["Staging - clean, one per source table"]
-        SO[stg_orders<br/>dedup, types, status fixed]
-        SS[stg_stores]
-        SC[stg_customers<br/>renamed from CRM]
-    end
-    subgraph Marts["Marts - business answers"]
-        F[orders_enriched<br/>orders ⋈ stores ⋈ customers]
-        M1[revenue_by_store_by_day]
-        M2[revenue_by_region_by_day]
-    end
-    RO --> SO --> F
-    RS --> SS --> F
-    RC --> SC --> F
-    F --> M1
-    F --> M2
-```
+<figure class="dgm">
+  <a href="/diagrams/book/05-layers.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/05-layers.png" alt="Raw, staging and mart layers side by side with the real table names, showing one staging table per raw table and joins and aggregates confined to the mart layer.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/05-layers-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 Each staging file is short and boring - and boring is the compliment:
 

@@ -41,13 +41,13 @@ Every pipeline, no matter how fancy, does some combination of three things:
 3. **Load** - put the result somewhere people and tools can use it (a report, a dashboard, a
    database, another file).
 
-```mermaid
-flowchart LR
-    A[(Shop database)] --> P
-    B[CRM] --> P
-    C[Payments API] --> P
-    P[Pipeline<br/>clean · join · total] --> D[Weekly revenue<br/>report]
-```
+<figure class="dgm">
+  <a href="/diagrams/book/01-what-a-pipeline-is.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is.png" alt="Three systems that never talk to each other - a shop database, a CRM API and a payments file - all feeding one pipeline that cleans, joins and totals them into a single weekly revenue report.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 The word *pipeline* is a plumbing metaphor, and it's a good one: data flows in one direction,
 through a series of connected stages, and each stage does one job. Like real plumbing, you
@@ -120,25 +120,13 @@ Pipeline tools exist because these problems are universal. Whether you use a hea
 platform or a small CLI tool, you are buying the same things: structure for the steps,
 a scheduler-friendly way to run them, checks for the data, and a record of what happened.
 
-```mermaid
-flowchart LR
-    subgraph Extract
-        E1[Read orders]
-        E2[Read customers]
-        E3[Read payments]
-    end
-    subgraph Transform
-        T1[Clean & standardize]
-        T2[Join]
-        T3[Aggregate]
-    end
-    subgraph Load
-        L1[Write report tables]
-    end
-    E1 --> T1 --> T2 --> T3 --> L1
-    E2 --> T1
-    E3 --> T1
-```
+<figure class="dgm">
+  <a href="/diagrams/book/01-etl.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-etl.png" alt="Extract, transform and load shown as three stages, with one order followed all the way through: three mismatched raw shapes become one joined row, then a single aggregated revenue figure.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-etl-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## What a pipeline is *not*
 

@@ -30,15 +30,13 @@ central object of orchestration: a **directed acyclic graph**, or **DAG**.
   pipeline definition is always a bug, and good tools refuse it outright.
 - **Graph**: dots and arrows.
 
-```mermaid
-flowchart LR
-    E1[extract orders] --> S1[stg_orders]
-    E2[extract stores] --> S2[stg_stores]
-    E3[extract CRM] --> S3[stg_customers]
-    S1 & S2 & S3 --> J[orders_enriched]
-    J --> M1[revenue_by_store] --> W1[write dashboard tables]
-    J --> M2[revenue_by_region] --> W2[write region report]
-```
+<figure class="dgm">
+  <a href="/diagrams/book/06-dag.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/06-dag.png" alt="An eleven-node dependency graph resolved into five waves, showing which extracts, staging tables, joins, marts and writes can run at the same time and which must wait.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/06-dag-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 The DAG earns its keep three ways:
 

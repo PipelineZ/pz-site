@@ -323,3 +323,42 @@
 	.pz-arch .flow { animation: none; }
 	.pz-tile { transition: none; }
 }
+
+/* Excalidraw diagrams: one PNG per theme, swapped with the site theme.
+   Three states to cover - explicit dark, explicit light, and no attribute
+   at all (Starlight's "auto"), where only prefers-color-scheme decides. */
+.dgm {
+	margin: 1.75rem 0;
+}
+.dgm a {
+	display: block;
+}
+.dgm img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+}
+.dgm .dgm-dark {
+	display: none;
+}
+[data-theme='dark'] .dgm .dgm-light {
+	display: none;
+}
+[data-theme='dark'] .dgm .dgm-dark {
+	display: block;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) .dgm .dgm-light {
+		display: none;
+	}
+	:root:not([data-theme='light']) .dgm .dgm-dark {
+		display: block;
+	}
+}
+
+.dgm figcaption {
+	margin-top: 0.5rem;
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-3);
+}

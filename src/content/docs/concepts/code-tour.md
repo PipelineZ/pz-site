@@ -28,21 +28,13 @@ PipelineZ is a build tool for data, the way `make` or dbt are build tools for co
 That's the whole machine. Everything else in the codebase is making those three steps safe,
 fast, observable, and resumable.
 
-```mermaid
-flowchart LR
-    subgraph project["Your project (YAML + SQL)"]
-        Y1[connections.yml]
-        Y2[pipelines/*.sql]
-    end
-    C["pz compiles a dependency graph (DAG)"]
-    subgraph run["pz executes the graph"]
-        S[Sources extract] --> D[(DuckDB staging file)]
-        D --> T[SQL transforms run inside DuckDB]
-        T --> D
-        D --> K[Sinks drain results out]
-    end
-    project --> C --> run
-```
+<figure class="dgm">
+  <a href="/diagrams/concepts/01-project-to-run.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run.png" alt="The three phases of a pz run: a project of connections.yml and pipeline SQL, then pz compile rendering templates and recording DAG edges from source, ref and sink calls, then pz run executing through a DuckDB staging file.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## 2. The example project
 
@@ -148,29 +140,13 @@ or an `entities: <e>: write:` block here — never both (PZ0341).
 The solution is layered, and the layering is strict: each project may only reference the ones
 below it. If you remember one rule about where code lives, remember this diagram:
 
-```mermaid
-flowchart TD
-    CLI["Pz.Cli — the verbs you type: run, compile, plan, validate, retry…<br/>console output, exit codes"]
-    ENGINE["Pz.Engine — makes it happen: dispatcher, node executors,<br/>retries, run artifacts, watermark state"]
-    CORE["Pz.Core — understands your project: YAML parsing, SQL templating,<br/>DAG compilation, validation"]
-    DUCK["Pz.DuckDb — the only code that talks to DuckDB<br/>(Arrow ingest/export, queries, EXPLAIN)"]
-    PKG["Pz.PackageManagement — downloads and hosts connector plugins"]
-    ABS["Pz.Connectors.Abstractions — the connector contract (interfaces)"]
-    TOOL["Pz.Connectors.Toolkit — optional author helpers:<br/>codecs, auth, paging, transient classification"]
-    DIAG["Pz.Diagnostics — typed run events, tracing, metrics"]
-    CONN["connectors/ — LocalFiles, Postgres, S3, SqlServer, AzureBlob, Http, MySql"]
-
-    CLI --> ENGINE
-    CLI --> CORE
-    ENGINE --> CORE
-    ENGINE --> DUCK
-    ENGINE --> DIAG
-    CLI --> PKG
-    PKG --> ABS
-    CONN --> ABS
-    CONN --> TOOL
-    TOOL --> ABS
-```
+<figure class="dgm">
+  <a href="/diagrams/concepts/02-layering.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the eight in-repo connectors compile against.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 In plain terms:
 
@@ -269,36 +245,13 @@ example project it:
 The compiled DAG for the example project looks like this (this is what `pz compile` +
 `.pz/target/manifest.json` describe):
 
-```mermaid
-flowchart LR
-    subgraph SourceLoads
-        SO["raw.orders"]
-        SC["raw.customers"]
-        SP["raw.products"]
-    end
-    subgraph Pipelines
-        STG["stg_orders"]
-        OE["orders_enriched"]
-        OT["order_totals"]
-        PC["product_catalog"]
-    end
-    CHK{{"checks: not_null, unique"}}
-    subgraph SinkWrites
-        W1["lake.orders_curated"]
-        W2["lake.order_totals"]
-        W3["lake.product_catalog"]
-    end
-
-    SO --> STG
-    STG --> OE
-    SC --> OE
-    STG --> OT
-    SP --> PC
-    OE --> CHK
-    OE --> W1
-    OT --> W2
-    PC --> W3
-```
+<figure class="dgm">
+  <a href="/diagrams/concepts/03-sample-dag.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag.png" alt="The dependency graph the sample template compiles to, coloured by node kind, with a table showing which SQL file declared each node.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 Note what created every arrow: a `source()`, `ref()`, or `sink()` call in a `.sql` file, or a
 `checks:` entry in a config file. Nothing else.
@@ -410,27 +363,13 @@ switch on the node kind that hands off to the right executor — plus the shared
 every node gets: engine-level **retries** for transient connector errors, and error
 wrapping so an executor exception becomes a `Failed` result instead of killing the run.
 
-```mermaid
-sequenceDiagram
-    participant O as RunOrchestrator
-    participant K as KindDispatchingExecutor
-    participant S as SourceLoadExecutor
-    participant D as DuckDB (staging)
-    participant P as PipelineExecutor
-    participant W as SinkWriteExecutor
-    participant Sink as sink connector
-
-    O->>K: raw.orders (SourceLoad)
-    K->>S: execute
-    S->>D: land rows into staging.src_raw__orders
-    O->>K: stg_orders (Pipeline) — now ready
-    K->>P: execute
-    P->>D: CREATE TABLE staging.stg_orders AS select…
-    O->>K: lake.order_totals (SinkWrite) — now ready
-    K->>W: execute
-    W->>D: read staging.order_totals
-    W->>Sink: write batches, then Commit
-```
+<figure class="dgm">
+  <a href="/diagrams/concepts/04-execution-sequence.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence.png" alt="A sequence diagram of one run: the orchestrator hands each ready node to the kind-dispatching executor, which routes it to the SourceLoad, Pipeline or SinkWrite executor, all of which talk to the same DuckDB staging database.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ### What each executor actually does
 

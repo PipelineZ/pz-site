@@ -15,31 +15,13 @@ shopping list.
 
 ## The map
 
-```mermaid
-flowchart LR
-    subgraph Sources
-        S1[(App databases)]
-        S2[SaaS tools & APIs]
-        S3[Files & exports]
-        S4[Event streams]
-    end
-    subgraph Platform["The data platform"]
-        I[Ingestion] --> L[(Data lake /<br/>landing zone)]
-        L --> W[(Warehouse)]
-        W --> T[Transformation]
-        T --> W
-    end
-    subgraph Consumers
-        C1[Dashboards & BI]
-        C2[Analysts / SQL]
-        C3[ML models]
-        C4[Other systems]
-    end
-    S1 & S2 & S3 & S4 --> I
-    W --> C1 & C2 & C3 & C4
-    O[Orchestrator] -.controls.-> I & T
-    M[Monitoring & catalog] -.observes.-> I & L & W & T
-```
+<figure class="dgm">
+  <a href="/diagrams/book/02-data-platform.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform.png" alt="A full-size data platform: sources feed ingestion, which lands in a data lake and then a warehouse that transformation reads and writes back into, before consumers read it - with orchestration and monitoring cutting across everything.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 Let's walk it left to right.
 
@@ -146,16 +128,13 @@ consumer's needs set the requirements: how fresh, how clean, how fast.
 
 Here's the honest version for a three-bakery chain:
 
-```mermaid
-flowchart LR
-    P[(Shop Postgres)] --> pz
-    CRM[CRM API] --> pz
-    PAY[Payments API] --> pz
-    pz[Pipeline tool<br/>runs nightly] --> W[(analytics tables)]
-    pz --> RAW[/dated raw files/]
-    W --> D[Dashboard]
-    CRON[Scheduler] -.06:00 daily.-> pz
-```
+<figure class="dgm">
+  <a href="/diagrams/book/02-small-version.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-small-version.png" alt="The same platform collapsed into one pipeline tool triggered by cron, writing analytics tables and dated raw files, with a table mapping each big-platform layer to what plays its part in the small version.">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-small-version-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 One pipeline tool, one scheduler entry, one set of analytics tables, one folder of raw
 extracts. Every box from the big diagram is present in miniature - which is exactly the
