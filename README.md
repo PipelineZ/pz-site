@@ -1,7 +1,6 @@
 # pipelinez-site
 
-Presentation site for [PipelineZ (`pz`)](https://github.com/coccor/pz) — a
-dbt-inspired batch ETL CLI for .NET powered by DuckDB.
+Presentation site for [PipelineZ (`pz`)](https://github.com/coccor/pz) — a lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform.
 
 Built with [Astro](https://astro.build) + [Starlight](https://starlight.astro.build)
 using the [Catppuccin theme](https://github.com/catppuccin/starlight). Hosts

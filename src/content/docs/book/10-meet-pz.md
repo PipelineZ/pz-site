@@ -4,8 +4,9 @@ sidebar:
   order: 10
 ---
 Nine articles of concepts deserve a payoff. This article introduces **PipelineZ** (`pz`) - a
-small, dbt-inspired batch ETL tool for .NET, powered by DuckDB - and rebuilds Sunrise
-Bakery's pipeline with it, for real. As we go, watch how each idea from Part I shows up as a
+lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by
+DuckDB, that runs anywhere without requiring a data platform - and rebuilds Sunrise Bakery's
+pipeline with it, for real. As we go, watch how each idea from Part I shows up as a
 concrete feature: this article is deliberately a reunion tour.
 
 One framing sentence to hold onto: **a pz project is one `connections.yml` (the places your

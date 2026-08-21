@@ -1,10 +1,11 @@
 ---
 title: "PipelineZ documentation"
-description: "PipelineZ (pz) is a dbt-inspired batch ETL CLI for .NET, powered by DuckDB. Start with the quickstart, then pick the page type you need: how-to guides for..."
+description: "PipelineZ (pz) is a lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform."
 ---
 
-PipelineZ (`pz`) is a dbt-inspired batch ETL CLI for .NET, powered by DuckDB. Start with the
-quickstart, then pick the page type you need: how-to guides for tasks, concepts for
+PipelineZ (`pz`) is a lightweight, developer-first batch data pipeline engine for SQL-based
+ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform. Start with
+the quickstart, then pick the page type you need: how-to guides for tasks, concepts for
 understanding, reference for exact contracts.
 
 ## Get started
