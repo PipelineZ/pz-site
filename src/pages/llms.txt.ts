@@ -32,9 +32,10 @@ export const GET: APIRoute = async () => {
 	const lines: string[] = [
 		'# PipelineZ (pz)',
 		'',
-		'> A lightweight, developer-first CLI for batch ETL/ELT, powered by DuckDB. Describe a',
-		'> pipeline as plain SQL files plus one connections.yml; pz compiles them into a',
-		'> dependency-ordered DAG and runs it in-process, moving data as zero-copy Arrow.',
+		'> A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT,',
+		'> powered by DuckDB, that can run anywhere without requiring a data platform.',
+		'> Describe a pipeline as plain SQL files plus one connections.yml; pz compiles them',
+		'> into a dependency-ordered DAG and runs it in-process, moving data as zero-copy Arrow.',
 		'',
 	];
 

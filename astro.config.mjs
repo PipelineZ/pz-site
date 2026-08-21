@@ -28,7 +28,8 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
-			description: 'A dbt-inspired batch ETL CLI for .NET powered by DuckDB.',
+			description:
+				'A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform.',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/coccor/pz' },
 			],

@@ -45,7 +45,8 @@ monitored, automated pipeline" is the arc of this series.
 
 ### Part II - PipelineZ
 
-10. [Meet pz](10-meet-pz/) - a small batch ETL tool for .NET: its core concepts, a complete
+10. [Meet pz](10-meet-pz/) - a lightweight batch data pipeline engine for SQL-based ETL/ELT:
+    its core concepts, a complete
     working project, how it answers each problem from Part I, and where its deliberate
     boundaries are.
 
