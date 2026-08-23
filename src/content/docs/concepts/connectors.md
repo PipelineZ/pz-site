@@ -524,12 +524,35 @@ manifest states and error codes are in
 1. Reads `connectors:` from `project.yml`.
 2. Resolves each package plus its transitive closure **using NuGet client libraries
    in-process** (`NuGet.Protocol`/`NuGet.Resolver`) against configured feeds — no .NET SDK or
-   MSBuild required, only the runtime the CLI already needs. RID-specific native assets are
-   selected for the current platform.
-3. Writes `pz.lock.json`: exact versions, per-package content hashes (SHA-512), resolved
-   asset lists per RID. **Committed to the repo.**
+   MSBuild required, only the runtime the CLI already needs. Managed assemblies are picked by
+   nearest target framework; native assets by **RID compatibility**, not exact match, so a package
+   shipping only `linux-x64` is reachable from `linux-musl-x64` and a `win-x64` package from
+   `win10-x64`. Only the most specific matching RID is taken — never a union of several. A
+   `runtimes/` tree that matches nothing this host can use is reported, naming the RIDs the package
+   *does* ship.
+3. Writes `pz.lock.json` (**schema version 2**): exact versions, per-package content hashes
+   (SHA-512), and each asset as a **pair** — the file name it materializes under, and the exact
+   **archive path** it came from. **Committed to the repo.**
 4. Materializes assemblies into a **global content-addressed cache** (`~/.pz/cache`) with
-   per-project links under `.pz/packages`.
+   per-project links under `.pz/packages`, extracting each asset **by the archive path the lock
+   records**. A transitive package's `native/` assets are flattened into the connector package's
+   own `native/` directory, alongside its `lib/` — that directory is the only place
+   `ConnectorLoadContext` probes for an unmanaged library.
+
+> [!IMPORTANT]
+> **The archive path is the load-bearing half.** A lock recording only file names forces extraction
+> to re-find each name in the archive by prefix, which discards the target framework and the RID the
+> resolver already chose — on a multi-targeted, multi-RID package that silently installs whichever
+> build happens to come first in the zip: a `net472` assembly on a .NET 10 host, an `arm64` native
+> library on x86-64. Both are files of the right name, so neither the restore nor the lock looks
+> wrong; the failure surfaces much later as a `MissingMethodException` or a `dlopen` of the wrong
+> architecture.
+>
+> A **version 1 lock is not upgraded in place** — it records no archive paths to upgrade *from*. `pz`
+> reports it as `PZ0321` naming the version it found, and `pz restore` regenerates it.
+>
+> Two packages in one closure that provide the same `lib/` or `native/` file name are refused with
+> **`PZ0325`** rather than one silently overwriting the other by enumeration order.
 
 `pz run` and `pz validate` verify the lock file against `project.yml` and refuse to run on
 drift (`--no-lock-check` exists for emergencies, loudly). CI is therefore byte-for-byte
@@ -684,23 +707,54 @@ scan:
 | `PZ0218` | the path's tokens are malformed — out of order, gapped, or an unknown token (source or sink) |
 | `PZ0221` | the cursor is a valid date/timestamp but the dataset declares no bounded window (`initial` + `max_window`) |
 
-**Write partitioning (`partition_by`).** An output fans rows out into per-day folders by
-pairing a date-templated `path` with `partition_by: <column>`, naming the timestamp/date column
-that drives the tokens:
+**Write partitioning (`partition_by`).** `partition_by` names the columns an output is
+partitioned by — a single name, or a list:
+
+```yaml
+partition_by: event_time        # one column
+partition_by: [region, dt]      # several
+```
+
+**`path` decides who owns the layout.** That is the whole rule, and it is what keeps one option
+from meaning two things:
+
+| `path:` | Who lays the partitions out | Capability the connector must declare |
+|---|---|---|
+| carries calendar tokens (`{yyyy}/{MM}/{dd}`) | **pz** renders one folder per distinct value | `PathTemplating` |
+| carries no tokens (or is absent) | **the destination** records its own partitioning | `ColumnPartitionedWrites` |
+
+*pz-rendered* is the object-store case — one timestamp/date column fanned out into per-day
+folders, one object written per distinct folder:
 
 ```sql
 INSERT INTO {{ sink('lake', 'curated', strategy: 'replace', container: 'lake', path: 'curated/{yyyy}/{MM}/{dd}/', format: 'parquet', partition_by: 'event_time') }}
 ```
 
-At write time the session groups rows by rendering `path` from each row's `partition_by` value
-and writes one object per distinct folder. `path` and `partition_by` must agree — one without
-the other is `PZ0219` (a date-templated path with no `partition_by` has no column to substitute
-from; a `partition_by` with no date tokens in `path` has nowhere to route partitions). Whether
-`partition_by` names a real, timestamp/date-typed column can't be checked until the upstream
-pipeline's schema is known, so that check is a runtime failure (naming the output and column),
-not a compile error. Native `COPY` is declined once `partition_by` is set — partitioned write is
-universal-tier only, since fanning out by a per-row value isn't expressible in one `COPY`
-statement. See [Delivery guarantees](/concepts/delivery-guarantees/#partitioned-output-per-partition-atomic)
+*Destination-owned* is the table-format case — Delta, Iceberg, Hive-layout parquet — where the
+store holds the partition columns in its own metadata and there is no path to route into:
+
+```sql
+INSERT INTO {{ sink('lake', 'orders', strategy: 'merge', keys: 'id', partition_by: ['region', 'dt']) }}
+```
+
+**What is refused, and where.** `PZ0219` at compile time covers the declaration alone, because
+the compiler has no connector instance: a malformed `partition_by` (blank, empty list, a
+non-string entry, a repeated column), calendar tokens with no `partition_by` to substitute from,
+and calendar tokens with more than one column — pz renders from exactly one timestamp column and
+several leave it no way to choose. `partition_by` *without* tokens is **not** refused there; it
+is correct as written for a store that partitions itself.
+
+Whether the target connector can honour what was declared is a capability question, so it is the
+planner's `PZ0314`, raised before the run rather than mid-write, naming whichever of the two
+capabilities is missing. Whether `partition_by` names a real column can't be checked until the
+upstream pipeline's schema is known, so that stays a runtime failure naming the output and
+column.
+
+Native `COPY` is declined once pz owns the fan-out — writing one object per distinct per-row
+value isn't expressible in one `COPY` statement. A destination that partitions itself is under
+no such constraint; its connector decides.
+
+See [Delivery guarantees](/concepts/delivery-guarantees/#partitioned-output-per-partition-atomic)
 for what guarantee a partitioned write provides on commit/crash.
 
 ### Many small files: streaming and `files_per_partition`

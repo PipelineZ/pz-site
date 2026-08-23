@@ -134,9 +134,13 @@ abort does or doesn't clean up.
 
 ## Partitioned output: per-partition atomic
 
-An output combining a date-templated `path` with `partition_by: <column>` (see
-[Date-partitioned paths](/concepts/connectors/#date-partitioned-paths)) fans rows out into one blob per
-partition folder instead of the single temp-blob promote a plain output uses. Each partition
+An output combining a date-templated `path` with `partition_by` (see
+[Write partitioning](/concepts/connectors/#date-partitioned-paths)) fans rows out into one blob per
+partition folder instead of the single temp-blob promote a plain output uses. This section is about
+that shape only — the one **pz** lays out. An output that declares `partition_by` with no calendar
+tokens in `path` is partitioned by its *destination* (`ColumnPartitionedWrites`), and what a commit
+there is atomic over is that store's business, not pz's: for a table format like Delta or Iceberg it
+is normally the whole commit, which is a stronger guarantee than anything below. Each partition
 folder promotes atomically and independently, so the write as a whole is **not** all-or-nothing
 across the partition set: a run that fails partway through a partitioned write can leave a
 *subset* of partitions committed and others not yet written; a re-run or `pz retry` reconciles
@@ -405,6 +409,35 @@ next attempt. What checkpointing buys is a *smaller* duplicate window (the last 
 or two, instead of the whole relation from scratch), not a different row in the table at the top
 of this page.
 
+## Write attempt identity
+
+Every `SinkWrite` reaching a connector through the universal tier carries `OutputSpec.Attempt`, so a
+sink can tell *which* attempt at *which* write it is executing rather than inferring it:
+
+| Field | What it identifies |
+|---|---|
+| `Node` | the output being written — the content-addressed node id |
+| `Run` | the run the attempt belongs to |
+| `Ordinal` | which attempt within that run, counting from 1 |
+
+**What it promises.** `Node` and `Run` are stable across every attempt *within one run*, and
+`Ordinal` increments. A sink whose destination can record a durable progress marker — a commit
+property, an application id, a row in a ledger table it writes transactionally with the data — can
+therefore stamp one on commit, read it back at the start of the next attempt, and skip work a
+previous attempt already committed. That closes the duplicate window `append` actually suffers from
+in practice: a commit that reached the destination and then failed to be reported back to pz.
+
+**What it does not promise.** Nothing here spans runs. A second `pz run` is a new `Run`, and a
+marker written under the old one will not match — so do not build a cross-run dedupe on it. Bounding
+it this way is deliberate: cross-run identity would have to be threaded through `run_results.json`
+and every run-artifact backend, and a primitive that is silently unreliable in one backend is worse
+than one whose limit is stated.
+
+**Where it is stamped.** Only past the native-copy decision. A native `COPY` has no write session to
+carry a marker, and the spec a connector is probed with by `TryGetNativeCopy` has to be the spec the
+planner probed with — so `Attempt` is absent on that path rather than misleading. It is additive: a
+connector that ignores it behaves exactly as before.
+
 ## What's still deferred: connector-side exactly-once `append`
 
 Staging reuse and carried-forward sinks close the specific duplicate window where a fully
@@ -412,7 +445,9 @@ successful `pz retry` couldn't advance the watermark, and the delivery checkpoin
 narrow the re-delivery window for connectors that opt in. Neither makes `append` effectively-once
 in general — the other duplicate windows in the pairing matrix above (a `pz run` instead of a
 `pz retry`, a failed watermark persist, a partial `--select`, or a reuse fallback mid-retry) still
-apply, and even a checkpointed sink can re-deliver its last unconfirmed batch on a crash. Closing
+apply, and even a checkpointed sink can re-deliver its last unconfirmed batch on a crash.
+[Attempt identity](#write-attempt-identity) hands a capable sink what it needs to close the
+*within-run* case itself, which is the common one; it deliberately stops there. Closing
 those for good needs a **connector-side** idempotency mechanism — a slice ledger (`_pz_slices`)
 written in the same transaction as the data itself, for every sink connector — and that half of
 the design stays deferred: it touches the connector ABI and every sink connector, so it's scoped
