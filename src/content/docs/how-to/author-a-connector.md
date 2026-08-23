@@ -369,8 +369,16 @@ public ConnectorCapabilities Capabilities =>
     ConnectorCapabilities.Merge |            // BeginWriteAsync accepts mode: merge
     ConnectorCapabilities.ReplaceWrites |    // BeginWriteAsync accepts mode: replace
     ConnectorCapabilities.Transactional |    // commit is atomic (temp-swap or equivalent)
-    ConnectorCapabilities.CheckpointableWrites; // write sessions implement ICheckpointingSinkSession
+    ConnectorCapabilities.CheckpointableWrites | // write sessions implement ICheckpointingSinkSession
+    ConnectorCapabilities.ColumnPartitionedWrites; // the DESTINATION records its own partitioning
 ```
+
+`ColumnPartitionedWrites` is what a table format declares — Delta, Iceberg, Hive-layout parquet —
+when `partition_by:` names the columns and the store, not pz, lays the partitions out. It is the
+counterpart to `PathTemplating`, which says the connector renders pz's calendar tokens into a path
+instead. `path:` decides which of the two an output needs, and the planner refuses a connector
+missing the one it needs with `PZ0314`; see
+[Write partitioning](/concepts/connectors/#date-partitioned-paths).
 
 `append` needs no capability flag — every sink supports it. Declaring `Merge`/`ReplaceWrites`
 without actually handling `spec.Mode == "merge"`/`"replace"` in `BeginWriteAsync` is a connector
@@ -477,6 +485,20 @@ A connector package may ship a `pz.connector.json` file at the root of its packa
 - `protocolMajorMin` / `protocolMajorMax` declare the inclusive range of
   `Pz.Connectors.Abstractions` protocol majors (`ProtocolVersion.Major`) the connector
   supports.
+- `projectDirectoryAnchor` (optional, default `false`) asks pz to resolve this connector's
+  relative paths against the **project directory**:
+
+  ```json
+  { "name": "deltalake", "protocolMajorMin": 1, "protocolMajorMax": 1,
+    "capabilities": ["source", "sink"], "projectDirectoryAnchor": true }
+  ```
+
+  Without it, a connector receives relative paths with no anchor and its only correct options are
+  to refuse them or to demand absolute ones. It is **opt-in** rather than universal because every
+  connection's config is validated against that connector's `ConnectionConfigSchema` with
+  `additionalProperties: false` — injecting the option into a connector that does not expect it
+  would fail its own validation. The manifest is read straight off disk, before any ALC exists,
+  because the anchor has to be applied before the connector registry is built.
 
 > [!NOTE]
 > The manifest exists so `ConnectorHost.LoadFromDirectory` can read a small, untrusted JSON
@@ -504,6 +526,54 @@ package-in-place and test fixtures also see it:
 
 `tests/fixtures/connector-host/FakeSourceConnector` (see its `.csproj` and
 `pz.connector.json`) is the reference packaging example used by the restore/host test suites.
+
+## Two host facts you cannot discover from the ABI
+
+Both are deliberate engine behaviour with good reasons, and neither is visible from the interfaces
+you implement. A connector that does not know them ships a real defect that a green `pz run` will
+not catch.
+
+### `PzConnectorException.Message` is published verbatim
+
+The message you throw is written **unaltered** into `run_results.json`, onto the NDJSON event
+stream, and into a `retry_scheduled` reason. There is no redaction layer between your connector and
+those artifacts.
+
+The trust is deliberate — a storage failure naming neither bucket nor path is undiagnosable — and it
+is **total**. A connector wrapping a third-party client owns redacting that client's message, which
+means owning the shapes it answers in. A `name=value` scrub is not enough: object stores answer in
+XML, and an S3 `SignatureDoesNotMatch` body carries the access key id in an `<AWSAccessKeyId>`
+element and a signing preimage in `<StringToSign>` — neither of which is a `name=value` pair.
+
+`ErrorRedactionContractTests` in the TestKit is the acceptance suite for exactly this. Subclass it,
+point `RedactErrorText` at your redactor, and it feeds you an S3 XML 403, an Azure
+`AuthorizationFailure`, a connection string and a `name=value` pair, requiring the credential gone
+and the diagnosis intact.
+
+Note also what survives redaction and *should*: bucket or container, object path, endpoint host and
+port. Run artifacts therefore name where the data lives, which is worth knowing before shipping them
+to a log aggregator or a support thread.
+
+### The write schema is all-nullable, and narrower than you think
+
+The `Schema` handed to `BeginWriteAsync` arrives with **every field `IsNullable = true`**, whatever
+the source declared — pz does not propagate source nullability onto the write side. So a sink's
+per-column non-nullable guards are unreachable through pz, and a green `pz run` is not coverage of
+them. Test them directly.
+
+The v0 type matrix is also narrower than Arrow's: `Float` (32-bit) is not in it, so a `float`
+branch in your writer is likewise never exercised by a pz-driven run.
+
+### `OutputSpec.Attempt`: which attempt at which write
+
+An `OutputSpec` reaching the universal write path carries `Attempt` — `Node`, `Run`, `Ordinal`. If
+your destination can record a durable progress marker transactionally with the data (a Delta commit
+property, an application id, a ledger row), stamp it on commit and read it back at the start of the
+next attempt to skip work already committed. That makes a **within-run** retry effectively-once.
+
+It is `null` on the native-copy path, where there is no write session to carry a marker, and it does
+**not** span runs. See
+[Write attempt identity](/concepts/delivery-guarantees/#write-attempt-identity).
 
 ## Publish so people can find it
 
