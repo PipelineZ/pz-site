@@ -403,7 +403,7 @@ too-narrow column, or a declared type incompatible with the data) fails the writ
 Server truncation error 2628/8152 or a conversion error, wrapped with a hint to widen the column or
 declare a larger type in `columns:` — never a silent truncation. This is a SQL Server–specific
 optimization: Postgres `text` has no equivalent penalty, so it's not part of the general ABI. See
-[`connectors/Pz.Connector.SqlServer/README.md`](https://github.com/coccor/pz/blob/main/connectors/Pz.Connector.SqlServer/README.md#write-column-types)
+[`connectors/Pz.Connector.SqlServer/README.md`](https://github.com/PipelineZ/pz/blob/main/connectors/Pz.Connector.SqlServer/README.md#write-column-types)
 for the option syntax.
 
 ### MySQL connector
@@ -429,7 +429,7 @@ credentials — actual credentials are verified only at run time, through the na
 itself), and `GetSchemaAsync` (used only by `pz validate --connect`'s drift precheck) can answer
 only when the dataset declares a `columns:` contract — without one it throws a clear, permanent
 error naming the fix. See
-[`connectors/Pz.Connector.MySql/README.md`](https://github.com/coccor/pz/blob/main/connectors/Pz.Connector.MySql/README.md) for the
+[`connectors/Pz.Connector.MySql/README.md`](https://github.com/PipelineZ/pz/blob/main/connectors/Pz.Connector.MySql/README.md) for the
 full connection/read/write reference.
 
 ### SQLite connector
@@ -446,7 +446,7 @@ tables *created by a pz sink* store dates/decimals as TEXT — values round-trip
 the declared type flattens. `CheckConnectionAsync` is a real local check (the 16-byte SQLite
 header magic, with a missing-file "will be created on first write" note), and under `pz mcp` the
 connection `path:` joins the `PZ0606` project-containment guard exactly like a localfiles root.
-See [`connectors/Pz.Connector.Sqlite/README.md`](https://github.com/coccor/pz/blob/main/connectors/Pz.Connector.Sqlite/README.md)
+See [`connectors/Pz.Connector.Sqlite/README.md`](https://github.com/PipelineZ/pz/blob/main/connectors/Pz.Connector.Sqlite/README.md)
 for the full reference.
 
 ### S3 connector
