@@ -28,6 +28,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
+			logo: { src: './src/assets/pz-mark.svg', alt: 'PipelineZ' },
 			description:
 				'A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform.',
 			social: [
@@ -67,8 +68,8 @@ export default defineConfig({
 			routeMiddleware: './src/starlightRouteData.ts',
 			plugins: [
 				catppuccin({
-					dark: { flavor: 'mocha', accent: 'teal' },
-					light: { flavor: 'latte', accent: 'teal' },
+					dark: { flavor: 'mocha', accent: 'peach' },
+					light: { flavor: 'latte', accent: 'peach' },
 				}),
 			],
 			customCss: [

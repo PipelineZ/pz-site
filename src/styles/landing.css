@@ -36,9 +36,9 @@
 [data-has-hero] .main-frame {
 	background:
 		radial-gradient(42rem 22rem at 85% -5%,
-			color-mix(in srgb, var(--pz-teal) 14%, transparent), transparent 70%),
+			color-mix(in srgb, var(--pz-peach) 14%, transparent), transparent 70%),
 		radial-gradient(36rem 20rem at 0% 18%,
-			color-mix(in srgb, var(--pz-blue) 10%, transparent), transparent 70%),
+			color-mix(in srgb, var(--pz-yellow) 10%, transparent), transparent 70%),
 		radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
 	background-size: auto, auto, 26px 26px;
 	background-attachment: local;
@@ -303,9 +303,9 @@
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background:
 		linear-gradient(135deg,
-			color-mix(in srgb, var(--pz-teal) 10%, transparent),
-			color-mix(in srgb, var(--pz-blue) 8%, transparent) 60%,
-			color-mix(in srgb, var(--pz-teal) 8%, transparent));
+			color-mix(in srgb, var(--pz-peach) 10%, transparent),
+			color-mix(in srgb, var(--pz-yellow) 8%, transparent) 60%,
+			color-mix(in srgb, var(--pz-peach) 8%, transparent));
 	border-radius: 16px;
 	padding: 1.5rem;
 	margin-bottom: 3rem;
