@@ -29,10 +29,6 @@
 	font-weight: 800;
 	letter-spacing: -0.02em;
 }
-.site-title span {
-	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
-	font-weight: 700;
-}
 [data-has-hero] .main-frame {
 	background:
 		radial-gradient(42rem 22rem at 85% -5%,
