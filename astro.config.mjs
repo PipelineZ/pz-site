@@ -68,8 +68,8 @@ export default defineConfig({
 			routeMiddleware: './src/starlightRouteData.ts',
 			plugins: [
 				catppuccin({
-					dark: { flavor: 'mocha', accent: 'teal' },
-					light: { flavor: 'latte', accent: 'teal' },
+					dark: { flavor: 'mocha', accent: 'peach' },
+					light: { flavor: 'latte', accent: 'peach' },
 				}),
 			],
 			customCss: [
