@@ -1294,7 +1294,7 @@
     }
   ],
   "appState": {
-    "viewBackgroundColor": "#ffffff",
+    "viewBackgroundColor": "#FAF6EF",
     "gridSize": 20
   },
   "files": {}

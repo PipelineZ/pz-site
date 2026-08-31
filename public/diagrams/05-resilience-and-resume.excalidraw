@@ -80,7 +80,7 @@
     {"id":"g_term_t3","type":"text","x":1214,"y":724,"width":350,"height":14,"angle":0,"strokeColor":"#22c55e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":0,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":400011,"version":1,"versionNonce":400011,"isDeleted":false,"boundElements":null,"updated":1,"link":null,"locked":false,"text":"resumed past 45 delivered row(s)  ← next attempt","fontSize":10,"fontFamily":3,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"resumed past 45 delivered row(s)  ← next attempt","lineHeight":1.25}
   ],
   "appState": {
-    "viewBackgroundColor": "#ffffff",
+    "viewBackgroundColor": "#FAF6EF",
     "gridSize": 20
   },
   "files": {}
