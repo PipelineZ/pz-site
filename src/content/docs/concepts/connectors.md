@@ -39,8 +39,8 @@ isolation gets crash isolation and polyglot connectors for free, and the native 
 unaffected either way, since it never routed data through the connector's own process to begin
 with.
 
-**Builtins are the one exception, and they stay option A minus the ALC.** The nine first-party
-connectors (`LocalFiles`, `Postgres`, `S3`, `SqlServer`, `AzureBlob`, `Http`, `MySql`,
+**Builtins are the one exception, and they stay option A minus the ALC.** The ten first-party
+connectors (`LocalFiles`, `Postgres`, `S3`, `SqlServer`, `AzureBlob`, `Gcs`, `Http`, `MySql`,
 `Sqlite`, `Sftp`) are project-referenced straight into `Pz.Cli` and compiled into the same
 assembly as the host — there is no isolation boundary to speak of, because there is no
 plugin-loading step at all: `BuiltinConnectors.CreateRegistry()` `new`s each one up directly.
@@ -207,11 +207,11 @@ policy-free.
 
 ## File formats
 
-File-based datasets/outputs declare `options: { format: <parquet|csv|json> }`. **parquet and
-csv** are supported across all of the file connectors — `localfiles`, `s3`, and
-`azureblob`. **json (NDJSON) is implemented in `azureblob` and (since the 2026-08-14 format-parity
-cycle) `localfiles`**; `s3` supports csv/parquet only and rejects `format: json`. For `localfiles`
-and `s3`, all formats a given connector supports are available on both data-plane tiers — native
+File-based datasets/outputs declare `options: { format: <parquet|csv|json> }`. **parquet, csv,
+and json (NDJSON)** are supported across all of the file connectors — `localfiles`, `s3`,
+`azureblob`, and `gcs` (json landed per-connector: `azureblob` first, `localfiles` in the
+2026-08-14 format-parity cycle, `s3` in the 2026-08-19 s3-source cycle, `gcs` from birth). For
+`localfiles` and `s3`, all formats a given connector supports are available on both data-plane tiers — native
 scan/copy (DuckDB reads/writes the bytes directly) and the universal Arrow-stream path (the
 connector reads/writes bytes itself) — with two localfiles *read* exceptions: parquet reads (no
 managed parquet reader in v0, see [validation](/concepts/validation/)) and json reads (`JsonSource`
@@ -285,8 +285,9 @@ itself.
 
 - **Native tier**: reads via DuckDB's `read_json(<url>, columns = {…} | auto_detect = true,
   format = 'newline_delimited')` — that mode expects line-delimited objects, not a top-level
-  array — writes via `COPY … TO '<url>' (format json)`. `azureblob` is the only connector that
-  reads json, and its reads are native-only (see above). See [File formats](#file-formats) above
+  array — writes via `COPY … TO '<url>' (format json)`. The object-store connectors
+  (`azureblob`, `s3`, `gcs`) all read json exclusively on this tier — their reads are
+  native-only (see above). See [File formats](#file-formats) above
   for the declared/undeclared two-state fragment json and csv now both use identically.
 - **Universal tier**: the shared, connector-agnostic `NdjsonCodec`
   (`Pz.Connectors.Abstractions.Formats`) implements both directions — a top-level JSON array is
@@ -358,7 +359,7 @@ A connector NuGet package contains the connector assembly, marked with
 `pz.connector.json` manifest (connector name, protocol version range, capabilities).
 
 The repo's first-party connectors — `LocalFiles`, `Postgres`, `S3`, `SqlServer`, `AzureBlob`,
-`MySql`, `Sqlite`, and `Http` — all package this way. `sqlserver` (`connectors/Pz.Connector.SqlServer`) is a useful example
+`Gcs`, `MySql`, `Sqlite`, and `Http` — all package this way. `sqlserver` (`connectors/Pz.Connector.SqlServer`) is a useful example
 because it implements both directions of the ABI: as a source it pushes column pruning,
 predicate/watermark/bounded-window filters, and equal-width range-partitioned reads down to
 SQL Server through a typed, boxing-free Arrow reader; as a sink it drives `SqlBulkCopy` for all
@@ -509,8 +510,20 @@ watermark-window cover emitting a URL list literal. Dataset location composes fr
 connection `root:` exactly like the sink (`path:` optional — a read with none is
 `<root>/<entity>.<format>`). The SDK-free control-plane cost follows the MySQL/sqlite
 precedent: `pz validate --connect`'s schema fetch answers only from a declared `columns:`
-contract, and `CheckConnectionAsync` reports verified-at-run-time. GCS works through the
-`endpoint` override — see [Use Google Cloud Storage](/how-to/gcs/).
+contract, and `CheckConnectionAsync` reports verified-at-run-time.
+
+### GCS connector
+
+`gcs` (`connectors/Pz.Connector.Gcs`) picks its data plane from the connection's `auth`
+method, because the two credential families reach different machinery by construction: `hmac`
+(interop key pair) is the only method DuckDB's native `gs://` tier can authenticate, so it
+carries both directions — the exact s3 statement shapes over `gs://` instead of `s3://`, same
+scoped-secret/two-state-contract/window-cover machinery. `service_account`/`adc` are OAuth-only,
+which DuckDB cannot speak, so they carry **writes only** through Google.Cloud.Storage.V1 SDK
+sessions (a source on such a connection is refused at open, naming the HMAC fix); each write
+commits as one atomic upload — a GCS object becomes visible only when its upload completes, so
+there is no temp-object/copy-promote step the way azureblob's SDK tier needs. See
+[Use Google Cloud Storage](/how-to/gcs/) for the full walkthrough.
 
 ### HTTP connector
 
