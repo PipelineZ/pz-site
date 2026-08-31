@@ -1,7 +1,9 @@
 /* ---- Brand color scheme -----------------------------------------------
- * Replaces the default Catppuccin theme with PipelineZ's own palette: warm
- * paper/charcoal neutrals (matching assets/brand/pz-mark.svg's hollow-node
- * "hole" colors) and the amber -> orange flow gradient as the accent.
+ * Replaces the default Catppuccin theme with PipelineZ's own palette: a
+ * flat, fully achromatic neutral scale (duckdb.org-inspired — their
+ * --grey-* tokens have zero saturation, no warm or cool tint at all) and
+ * the amber -> orange flow gradient as the one saturated accent, used
+ * sparingly rather than as an ambient background wash.
  *
  * Only the primitive tokens are set (white/gray-1..7/black, accent-low/
  * accent/accent-high) — Starlight derives everything else (bg, text,
@@ -11,15 +13,15 @@
  * Starlight's own props.css: https://github.com/withastro/starlight/blob/main/packages/starlight/style/props.css
  */
 :root {
-	/* Dark (default) — charcoal #1B1815 background, warm paper-tinted text */
-	--sl-color-white: hsl(37, 35%, 92%);
-	--sl-color-gray-1: hsl(37, 22%, 84%);
-	--sl-color-gray-2: hsl(37, 14%, 68%);
-	--sl-color-gray-3: hsl(37, 10%, 50%);
-	--sl-color-gray-4: hsl(35, 10%, 33%);
-	--sl-color-gray-5: hsl(33, 14%, 21%);
-	--sl-color-gray-6: hsl(30, 15%, 15%);
-	--sl-color-black: hsl(30, 13%, 9%);
+	/* Dark (default) — true near-black #0D0D0D background, true-gray text */
+	--sl-color-white: #f2f2f2;
+	--sl-color-gray-1: #d9d9d9;
+	--sl-color-gray-2: #b2b2b2;
+	--sl-color-gray-3: #808080;
+	--sl-color-gray-4: #4c4c4c;
+	--sl-color-gray-5: #262626;
+	--sl-color-gray-6: #1a1a1a;
+	--sl-color-black: #0d0d0d;
 
 	--sl-color-accent-low: hsl(24, 45%, 20%);
 	--sl-color-accent: hsl(24, 92%, 55%);
@@ -27,16 +29,16 @@
 }
 
 :root[data-theme='light'] {
-	/* Light — paper #FAF6EF background, ink #241E15 text */
-	--sl-color-white: hsl(36, 26%, 11%);
-	--sl-color-gray-1: hsl(35, 18%, 18%);
-	--sl-color-gray-2: hsl(34, 12%, 28%);
-	--sl-color-gray-3: hsl(33, 9%, 42%);
-	--sl-color-gray-4: hsl(34, 9%, 60%);
-	--sl-color-gray-5: hsl(35, 14%, 78%);
-	--sl-color-gray-6: hsl(37, 24%, 89%);
-	--sl-color-gray-7: hsl(38, 40%, 95%);
-	--sl-color-black: hsl(38, 52%, 96%);
+	/* Light — true near-white #FAFAFA background, true-gray ink */
+	--sl-color-white: #0d0d0d;
+	--sl-color-gray-1: #1a1a1a;
+	--sl-color-gray-2: #333333;
+	--sl-color-gray-3: #666666;
+	--sl-color-gray-4: #999999;
+	--sl-color-gray-5: #cccccc;
+	--sl-color-gray-6: #e6e6e6;
+	--sl-color-gray-7: #f2f2f2;
+	--sl-color-black: #fafafa;
 
 	--sl-color-accent-high: hsl(24, 85%, 32%);
 	--sl-color-accent: hsl(24, 92%, 55%);
