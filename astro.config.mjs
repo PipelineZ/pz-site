@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import catppuccin from '@catppuccin/starlight';
 
 // The series moved from /articles/ to /book/; these keep every published link alive.
 const bookPages = [
@@ -66,14 +65,9 @@ export default defineConfig({
 			},
 			// Splits the sidebar: /book/* shows only the series, everywhere else only the docs.
 			routeMiddleware: './src/starlightRouteData.ts',
-			plugins: [
-				catppuccin({
-					dark: { flavor: 'mocha', accent: 'peach' },
-					light: { flavor: 'latte', accent: 'peach' },
-				}),
-			],
 			customCss: [
 				'@fontsource-variable/bricolage-grotesque',
+				'./src/styles/theme.css',
 				'./src/styles/landing.css',
 			],
 		}),

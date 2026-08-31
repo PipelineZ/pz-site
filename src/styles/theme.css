@@ -1,0 +1,44 @@
+/* ---- Brand color scheme -----------------------------------------------
+ * Replaces the default Catppuccin theme with PipelineZ's own palette: warm
+ * paper/charcoal neutrals (matching assets/brand/pz-mark.svg's hollow-node
+ * "hole" colors) and the amber -> orange flow gradient as the accent.
+ *
+ * Only the primitive tokens are set (white/gray-1..7/black, accent-low/
+ * accent/accent-high) — Starlight derives everything else (bg, text,
+ * bg-nav, bg-sidebar, hairlines, ...) from these in its own stylesheet, so
+ * overriding the primitives re-themes the whole site without needing to
+ * chase every derived variable. Selectors and variable names mirror
+ * Starlight's own props.css: https://github.com/withastro/starlight/blob/main/packages/starlight/style/props.css
+ */
+:root {
+	/* Dark (default) — charcoal #1B1815 background, warm paper-tinted text */
+	--sl-color-white: hsl(37, 35%, 92%);
+	--sl-color-gray-1: hsl(37, 22%, 84%);
+	--sl-color-gray-2: hsl(37, 14%, 68%);
+	--sl-color-gray-3: hsl(37, 10%, 50%);
+	--sl-color-gray-4: hsl(35, 10%, 33%);
+	--sl-color-gray-5: hsl(33, 14%, 21%);
+	--sl-color-gray-6: hsl(30, 15%, 15%);
+	--sl-color-black: hsl(30, 13%, 9%);
+
+	--sl-color-accent-low: hsl(24, 45%, 20%);
+	--sl-color-accent: hsl(24, 92%, 55%);
+	--sl-color-accent-high: hsl(35, 95%, 82%);
+}
+
+:root[data-theme='light'] {
+	/* Light — paper #FAF6EF background, ink #241E15 text */
+	--sl-color-white: hsl(36, 26%, 11%);
+	--sl-color-gray-1: hsl(35, 18%, 18%);
+	--sl-color-gray-2: hsl(34, 12%, 28%);
+	--sl-color-gray-3: hsl(33, 9%, 42%);
+	--sl-color-gray-4: hsl(34, 9%, 60%);
+	--sl-color-gray-5: hsl(35, 14%, 78%);
+	--sl-color-gray-6: hsl(37, 24%, 89%);
+	--sl-color-gray-7: hsl(38, 40%, 95%);
+	--sl-color-black: hsl(38, 52%, 96%);
+
+	--sl-color-accent-high: hsl(24, 85%, 32%);
+	--sl-color-accent: hsl(24, 92%, 55%);
+	--sl-color-accent-low: hsl(35, 70%, 90%);
+}

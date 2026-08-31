@@ -1,23 +1,15 @@
 /* ---- Landing page ---------------------------------------------------- */
 
-/* Catppuccin accents (Mocha by default, Latte overrides below) */
+/* Brand tile accents — the amber/orange flow gradient plus four hues
+   chosen to sit alongside it without competing (see assets/brand/). Used
+   as-is in both themes, same as the mark's own gradient. */
 :root {
-	--pz-sky: #89dceb;
-	--pz-blue: #89b4fa;
-	--pz-peach: #fab387;
-	--pz-green: #a6e3a1;
-	--pz-red: #f38ba8;
-	--pz-teal: #94e2d5;
-	--pz-yellow: #f9e2af;
-}
-:root[data-theme='light'] {
-	--pz-sky: #04a5e5;
-	--pz-blue: #1e66f5;
-	--pz-peach: #fe640b;
-	--pz-green: #40a02b;
-	--pz-red: #d20f39;
-	--pz-teal: #179299;
-	--pz-yellow: #df8e1d;
+	--pz-amber: #ffb224;
+	--pz-orange: #f76808;
+	--pz-rust: #c4451c;
+	--pz-moss: #7a9950;
+	--pz-slate: #5b87a6;
+	--pz-teal: #3e8f82;
 }
 
 /* Hero: display type + soft atmosphere behind the splash page */
@@ -32,23 +24,25 @@
 [data-has-hero] .main-frame {
 	background:
 		radial-gradient(42rem 22rem at 85% -5%,
-			color-mix(in srgb, var(--pz-peach) 14%, transparent), transparent 70%),
+			color-mix(in srgb, var(--pz-orange) 14%, transparent), transparent 70%),
 		radial-gradient(36rem 20rem at 0% 18%,
-			color-mix(in srgb, var(--pz-yellow) 10%, transparent), transparent 70%),
+			color-mix(in srgb, var(--pz-amber) 10%, transparent), transparent 70%),
 		radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
 	background-size: auto, auto, 26px 26px;
 	background-attachment: local;
 }
 
-/* Terminal window (stays Catppuccin-Mocha dark in both themes) */
+/* Terminal window (stays charcoal-dark in both themes, like a real terminal) */
 .pz-term {
 	width: 100%;
 	max-width: 34rem;
 	text-align: left;
-	background: #181825;
-	border: 1px solid #313244;
+	/* A shade lighter than the darkest page background (charcoal, #1B1815)
+	   so the card still reads as a raised surface in dark mode. */
+	background: #241f18;
+	border: 1px solid #3a3025;
 	border-radius: 12px;
-	box-shadow: 0 16px 40px -12px rgb(17 17 27 / 0.55);
+	box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.55);
 	overflow: hidden;
 	font-family: var(--__sl-font-mono, ui-monospace, monospace);
 	font-size: 0.78rem;
@@ -59,28 +53,28 @@
 	align-items: center;
 	gap: 0.4rem;
 	padding: 0.55rem 0.8rem;
-	background: #11111b;
-	border-bottom: 1px solid #313244;
+	background: #151109;
+	border-bottom: 1px solid #2e2620;
 }
 .pz-term-bar i {
 	width: 0.65rem;
 	height: 0.65rem;
 	border-radius: 50%;
-	background: #45475a;
+	background: #5c4f3f;
 }
-.pz-term-bar i:nth-child(1) { background: #f38ba8; }
-.pz-term-bar i:nth-child(2) { background: #f9e2af; }
-.pz-term-bar i:nth-child(3) { background: #a6e3a1; }
+.pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
+.pz-term-bar i:nth-child(2) { background: var(--pz-amber); }
+.pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
 .pz-term-bar span {
 	margin-inline-start: 0.5rem;
-	color: #6c7086;
+	color: #8a7a64;
 	font-size: 0.7rem;
 }
 .pz-term pre {
 	margin: 0;
 	padding: 0.9rem 1rem 1rem;
 	background: transparent;
-	color: #cdd6f4;
+	color: #e4d9c4;
 	white-space: pre-wrap;
 }
 .pz-term .ln {
@@ -97,10 +91,10 @@
 .pz-term .ln:nth-child(7)  { animation-delay: 1.55s; }
 .pz-term .ln:nth-child(8)  { animation-delay: 1.75s; }
 .pz-term .ln:nth-child(9)  { animation-delay: 2.0s; }
-.pz-term .ok { color: #a6e3a1; }
-.pz-term .dim { color: #6c7086; }
-.pz-term .prompt { color: #89b4fa; }
-.pz-term .accent { color: #94e2d5; }
+.pz-term .ok { color: var(--pz-moss); }
+.pz-term .dim { color: #8a7a64; }
+.pz-term .prompt { color: var(--pz-orange); }
+.pz-term .accent { color: var(--pz-amber); }
 .pz-term pre::after {
 	content: '';
 	display: inline-block;
@@ -108,7 +102,7 @@
 	height: 1.05em;
 	margin-inline-start: 0.15em;
 	vertical-align: text-bottom;
-	background: #cdd6f4;
+	background: #e4d9c4;
 	opacity: 0;
 	animation: pz-cursor 1.1s steps(2, start) infinite;
 	animation-delay: 2.4s;
@@ -125,7 +119,7 @@
 /* Architecture diagram */
 .pz-arch { width: 100%; height: auto; margin: 1rem 0 0.5rem; }
 .pz-arch .box {
-	fill: var(--sl-color-gray-6, #eff1f5);
+	fill: var(--sl-color-gray-6);
 	stroke: var(--sl-color-gray-4);
 	stroke-width: 1;
 	rx: 8px;
@@ -299,9 +293,9 @@
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background:
 		linear-gradient(135deg,
-			color-mix(in srgb, var(--pz-peach) 10%, transparent),
-			color-mix(in srgb, var(--pz-yellow) 8%, transparent) 60%,
-			color-mix(in srgb, var(--pz-peach) 8%, transparent));
+			color-mix(in srgb, var(--pz-orange) 10%, transparent),
+			color-mix(in srgb, var(--pz-amber) 8%, transparent) 60%,
+			color-mix(in srgb, var(--pz-orange) 8%, transparent));
 	border-radius: 16px;
 	padding: 1.5rem;
 	margin-bottom: 3rem;
