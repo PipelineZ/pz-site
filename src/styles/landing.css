@@ -22,13 +22,10 @@
 	letter-spacing: -0.02em;
 }
 [data-has-hero] .main-frame {
-	background:
-		radial-gradient(42rem 22rem at 85% -5%,
-			color-mix(in srgb, var(--pz-orange) 14%, transparent), transparent 70%),
-		radial-gradient(36rem 20rem at 0% 18%,
-			color-mix(in srgb, var(--pz-amber) 10%, transparent), transparent 70%),
-		radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
-	background-size: auto, auto, 26px 26px;
+	/* Flat ground, no ambient color wash — a dot grid is the only texture,
+	   the orange/amber accent is reserved for type and controls. */
+	background: radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
+	background-size: 26px 26px;
 	background-attachment: local;
 }
 
@@ -37,10 +34,10 @@
 	width: 100%;
 	max-width: 34rem;
 	text-align: left;
-	/* A shade lighter than the darkest page background (charcoal, #1B1815)
-	   so the card still reads as a raised surface in dark mode. */
-	background: #241f18;
-	border: 1px solid #3a3025;
+	/* A shade lighter than the darkest page background (true near-black,
+	   #0d0d0d) so the card still reads as a raised surface in dark mode. */
+	background: #1a1a1a;
+	border: 1px solid #333333;
 	border-radius: 12px;
 	box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.55);
 	overflow: hidden;
@@ -53,28 +50,28 @@
 	align-items: center;
 	gap: 0.4rem;
 	padding: 0.55rem 0.8rem;
-	background: #151109;
-	border-bottom: 1px solid #2e2620;
+	background: #050505;
+	border-bottom: 1px solid #262626;
 }
 .pz-term-bar i {
 	width: 0.65rem;
 	height: 0.65rem;
 	border-radius: 50%;
-	background: #5c4f3f;
+	background: #4c4c4c;
 }
 .pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
 .pz-term-bar i:nth-child(2) { background: var(--pz-amber); }
 .pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
 .pz-term-bar span {
 	margin-inline-start: 0.5rem;
-	color: #8a7a64;
+	color: #808080;
 	font-size: 0.7rem;
 }
 .pz-term pre {
 	margin: 0;
 	padding: 0.9rem 1rem 1rem;
 	background: transparent;
-	color: #e4d9c4;
+	color: #e6e6e6;
 	white-space: pre-wrap;
 }
 .pz-term .ln {
@@ -92,7 +89,7 @@
 .pz-term .ln:nth-child(8)  { animation-delay: 1.75s; }
 .pz-term .ln:nth-child(9)  { animation-delay: 2.0s; }
 .pz-term .ok { color: var(--pz-moss); }
-.pz-term .dim { color: #8a7a64; }
+.pz-term .dim { color: #808080; }
 .pz-term .prompt { color: var(--pz-orange); }
 .pz-term .accent { color: var(--pz-amber); }
 .pz-term pre::after {
@@ -102,7 +99,7 @@
 	height: 1.05em;
 	margin-inline-start: 0.15em;
 	vertical-align: text-bottom;
-	background: #e4d9c4;
+	background: #e6e6e6;
 	opacity: 0;
 	animation: pz-cursor 1.1s steps(2, start) infinite;
 	animation-delay: 2.4s;
