@@ -72,11 +72,12 @@ SqlClient — the universal tier, its only tier today. Diagram 03 explains exact
 tiers mean.
 
 The dashed bands around sources and sinks are **connectors** — the plugins that teach pz to talk
-to one kind of external system. They are ordinary NuGet packages (NuGet is the .NET package
-manager, like npm for .NET), each loaded into its own isolated AssemblyLoadContext — .NET's
-mechanism for giving a plugin a private sandbox for its dependencies, the same idea as separate
-classloaders in Java. Two connectors can depend on different versions of the same library — say
-two SqlClient majors — and never conflict.
+to one kind of external system. A handful ship compiled straight into `pz` itself (LocalFiles,
+Postgres, S3, and six more); every other connector is an ordinary NuGet package (NuGet is the
+.NET package manager, like npm for .NET) that `pz restore` pins and that runs as its own OS
+process, spawned and driven over a small wire protocol (PCP) rather than loaded into the CLI —
+so two connectors can depend on conflicting versions of the same library, or even be written in
+different languages, without ever touching each other or the host.
 
 **The bottom timeline is the lifecycle.** Every verb runs the same eight phases — `compile` and
 `plan` just stop early: load the project files, check restored packages, compile the templates,

@@ -198,15 +198,18 @@ fail-one-at-a-time" pattern everywhere; it's a project-wide rule.
 
 ### Phase 2: restore-check — are the connectors here?
 
-Connectors are plugins. The seven first-party ones (LocalFiles, Postgres, S3, SqlServer,
-AzureBlob, Http, MySql) are built into the `pz` tool itself; third-party ones are NuGet packages that
-`pz restore` downloads into `.pz/packages` and pins in `pz.lock.json`.
+Connectors are plugins. The nine first-party ones (LocalFiles, Postgres, S3, SqlServer,
+AzureBlob, Http, MySql, Sqlite, Sftp) are built into the `pz` tool itself, project-referenced and
+compiled straight in; third-party ones are NuGet packages that `pz restore` downloads into
+`.pz/packages` and pins in `pz.lock.json`.
 
 `ConnectorRegistryFactory.CreateAsync` checks that every connector the project declares is
-available and loads each non-builtin one into its own **`AssemblyLoadContext`** — think "a
-private classloader per plugin", so one connector's dependency versions can never clash with
-another's or with the engine's. The result is a `ConnectorRegistry` the engine can ask for
-connector instances by name.
+available. A builtin resolves straight to the in-process instance `BuiltinConnectors` already
+registered; every other declared connector must be a `runtime: "process"` package (`PZ0360`
+otherwise) and is wired to a spawnable `ProcessConnectorHost` entry instead — driven over PCP, a
+small wire protocol (control-socket handshake + Arrow IPC data plane) rather than loaded into
+this process at all. The result is a `ConnectorRegistry` the engine can ask for connector
+instances by name, indifferent to which hosting model backs any given one.
 
 ### Phase 3: compile — files become a graph
 
@@ -477,5 +480,5 @@ exactly the mechanisms this page walked through.
 | **Arrow RecordBatch** | A chunk of rows in the columnar in-memory format all components exchange zero-copy. |
 | **Watermark** | The saved bookmark of how far an incremental source has been loaded. |
 | **ABI** | The versioned connector contract (interfaces + rules). Changes are additive-only so old connectors keep working. |
-| **ALC (`AssemblyLoadContext`)** | .NET's isolated plugin loader — one per connector package, so dependency versions can't clash. |
+| **PCP** | The out-of-process connector protocol: a spawned child process, handshaken over a control socket, streaming Arrow IPC on a paired data socket. Every non-builtin connector runs this way. |
 | **PZ#### code** | Stable identifier on every user-facing error, e.g. `PZ0214`. Grep for it in the codebase to find exactly where it's raised. |

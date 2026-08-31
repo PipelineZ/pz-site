@@ -111,8 +111,9 @@ Learn more: [The data plane](/concepts/data-plane/).
 ## Connector
 
 A connector is a plugin that teaches PipelineZ how to talk to a kind of system — local files,
-Postgres, S3-compatible object storage. Three connectors are built in; others ship as ordinary
-NuGet packages that `pz restore` downloads and loads in-process.
+Postgres, S3-compatible object storage. Nine connectors are built in, compiled straight into the
+`pz` tool; anything else is a NuGet package that `pz restore` pins and that runs out-of-process,
+spawned and driven over a small wire protocol (PCP) rather than loaded into the CLI itself.
 
 Learn more: [Connectors](/concepts/connectors/).
 

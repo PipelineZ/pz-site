@@ -32,7 +32,10 @@ them.
 
 PipelineZ is a **hub-and-spoke engine with DuckDB as the hub**. Sources land data into a
 DuckDB staging database, SQL pipelines transform it inside DuckDB, and sinks drain results
-out. The CLI process hosts everything; connectors are loaded in-process from NuGet packages.
+out. Builtin connectors are compiled straight into the CLI; every other connector is a NuGet
+package that `pz restore` pins and that runs as its own **out-of-process** connector, spawned
+and driven over a small wire protocol (PCP) — the CLI process never loads third-party code
+in-process. See [Connectors](/concepts/connectors/).
 
 A universal-tier source that declares `StablePartitionIds` lands each partition into its own
 part table instead of one shared ingest stream; a short transaction then moves a completed
@@ -62,7 +65,7 @@ Layering is strictly downward:
 | `Pz.Core` | project model, YAML/SQL parsing, template rendering, DAG compilation, validation | Abstractions |
 | `Pz.Engine` | dispatch, node execution, retries, run artifacts | Core, DuckDb, Abstractions |
 | `Pz.DuckDb` | thin interop layer over the DuckDB C API (Arrow ingest/export, query, EXPLAIN) | — |
-| `Pz.PackageManagement` | NuGet resolution, lock file, connector materialization | Abstractions |
+| `Pz.PackageManagement` | NuGet resolution, lock file, connector materialization, the out-of-process connector host (PCP) | Abstractions |
 | `Pz.Connectors.Abstractions` | the connector ABI (the only assembly connector authors reference) | Apache.Arrow only |
 
 The **Abstractions assembly is the contract of the whole ecosystem**. It depends on nothing
@@ -118,6 +121,8 @@ The load-bearing decisions, and why they went the way they did. Don't undo these
 | 27 | External-connector installability (2026-08-23) | `pz.lock.json` schema **v2** records each asset as (file name, **archive path**), and `PackageMaterializer` extracts by that recorded path; native assets select through a portable **RID graph** (`linux-musl-x64` reaches `linux-x64`) taking only the most specific match; a transitive package's `native/` flattens onto the connector's probe path the way `lib/` already did; a duplicate file name across two packages is `PZ0325` | re-finding an asset in the archive by file name under a `lib/`/`runtimes/` prefix; vendoring the SDK's `PortableRuntimeIdentifierGraph.json`; upgrading a v1 lock in place | a lock holding only file names discards the target framework and RID the resolver already chose, so a multi-targeted, multi-RID package silently installs whichever build comes first in the zip — a `net472` assembly on a .NET 10 host, an `arm64` native library on x86-64; both are files of the right name, so nothing looks wrong until a `MissingMethodException` or a wrong-architecture `dlopen`. The RID graph is derived structurally from one OS-ancestry table rather than vendored, which would need a third-party notices file; a v1 lock names no archive paths to upgrade *from*, so it is diagnosed (`PZ0321`) and regenerated (2026-08-23) |
 | 28 | `partition_by` names columns; `path` says who lays them out (2026-08-23) | one meaning for the option — the columns an output is partitioned by, a name or a list — with calendar tokens in `path:` selecting **pz-rendered** layout (`PathTemplating`) and their absence selecting **destination-owned** layout (`ColumnPartitionedWrites`, new); `PartitionColumns` is the single parser, `DagCompiler` keeps only the connector-agnostic declaration checks (`PZ0219`), and the capability refusal is the planner's `PZ0314` | overloading `partition_by` to mean two different things per connector; letting each connector invent its own spelling for column partitioning; refusing `partition_by` without date tokens | a table format (Delta, Iceberg, Hive-layout parquet) partitions by column value with no path to route into, so the old "tokens required" rule made it undeclarable and any table written through pz unpartitioned; splitting on `path:` keeps one vocabulary while letting the two layouts stay distinct capabilities, and the compiler/planner split matches the existing source-side precedent (`PZ0313`) — only the planner holds the connector instance (2026-08-23) |
 | 29 | Write attempt identity (2026-08-23) | `OutputSpec.Attempt` (`Node`, `Run`, `Ordinal`) stamped on the universal write path, additive on the ABI, so a sink whose destination holds a durable marker can skip work a previous attempt committed | a cross-run dedupe primitive; a connector-side slice ledger for every sink | closes the duplicate window `append` actually suffers — a commit that reached the destination and then failed to be reported back — within one run, which is where it happens; cross-run identity would need an origin run id threaded through `run_results.json` and every artifact backend, and a primitive silently unreliable in one backend is worse than one whose limit is stated on the type (2026-08-23) |
+| 30 | Connector hosting collapses to one model: process-only for external connectors (2026-08-30) | a restored (non-builtin) connector package must declare `runtime: "process"` in its manifest — refused at registry construction with `PZ0360` otherwise; it is spawned as its own OS process and driven over PCP (a small control-socket handshake plus an Arrow IPC data plane); the collectible-ALC in-process connector host is deleted outright; builtins remain the only in-process connectors, compiled straight into the CLI with no ALC at all | keeping decision #4's in-proc ALC-per-package option alongside process hosting as a second, parallel path | an ALC is a versioning boundary, not a security one — third-party code loaded in-process ran with the engine's full privileges (every connection's credentials, the state store, the staging DB); the native scan/copy tier already works unchanged over PCP, the bench gate holds universal-tier throughput at ≥80% of in-proc, and pre-1.0 with no published external connectors was the cheapest moment to collapse two hosting contracts into one; see [Connectors](/concepts/connectors/#hosting-model) |
+| 31 | Host distribution: Native AOT (2026-08-30) | hybrid RID-specific tool packaging — `pz.<rid>` Native AOT sub-packages for linux-x64/linux-arm64/win-x64/osx-arm64 plus a CoreCLR `pz.any` fallback, with a thin pointer package `pz` selecting the right one at install time | keep decision #12's framework-dependent `dotnet tool` + ReadyToRun, now that the plugin loading blocking AOT is gone | decision #30 removed the last JIT-requiring in-proc plugin path from the CLI host, so AOT stopped being off the table; first-party code stays at zero trim/AOT warnings, and the handful of third-party assemblies whose internals still warn are proven at runtime instead, by a CI gate that drives init/run/restore/PZ0360/PCP-spawn/MCP against the published native image |
 
 ## Evolution path
 
@@ -141,9 +146,6 @@ changes implementations, never interfaces.
 - **Lineage** — the manifest already *is* table-level lineage; column-level comes from
   DuckDB's SQL parser (`json_serialize_sql`) over already-rendered SQL. An OpenLineage emitter
   is one more event renderer.
-- **Out-of-proc / polyglot connectors** — an adapter connector that speaks Arrow IPC over
-  stdio to a child process, implementing the existing ABI (decision #4 was made to keep this
-  additive).
 - **Cloud-native** — the CLI is already a self-contained batch job: container image + project
   mount + env secrets. Metrics and traces already speak OTel.
 

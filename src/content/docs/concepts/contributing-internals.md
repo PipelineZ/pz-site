@@ -79,7 +79,7 @@ pz/
 │   ├── Pz.Core/                      # project model, compiler, DAG, validation
 │   ├── Pz.Engine/                    # dispatcher, node executors, retries, artifacts
 │   ├── Pz.DuckDb/                    # C-API interop: arrow ingest/export, queries
-│   ├── Pz.PackageManagement/         # NuGet resolve, lock file, ALC host
+│   ├── Pz.PackageManagement/         # NuGet resolve, lock file, out-of-process connector host (PCP)
 │   ├── Pz.Connectors.Abstractions/   # THE contract (tiny; Apache.Arrow only)
 │   ├── Pz.Connectors.TestKit/        # acceptance suite for connector authors
 │   └── Pz.Diagnostics/               # events, ActivitySource, meters, renderer glue
