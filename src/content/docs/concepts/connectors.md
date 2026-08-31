@@ -13,9 +13,9 @@ is the why and the contract.
 
 ## Hosting model
 
-Three options were on the table:
+Three options were ever on the table:
 
-| | **A. In-process, ALC per connector** | B. Out-of-process (Terraform/Airbyte style, Arrow IPC/Flight) | C. Compile user project against connectors (dbt-Python style) |
+| | A. In-process, ALC per connector | **B. Out-of-process (Terraform/Airbyte style, Arrow IPC)** | C. Compile user project against connectors (dbt-Python style) |
 |---|---|---|---|
 | Data-plane cost | zero-copy Arrow | serialize to IPC (cheap but not free) + process mgmt | zero-copy |
 | Isolation | dependency isolation via ALC; no crash isolation | full crash/security isolation, polyglot connectors | none |
@@ -23,41 +23,86 @@ Three options were on the table:
 | Startup | fast | process-per-connector spawn | slow (compile) |
 | Determinism | lock file pins everything | same | MSBuild resolution variance |
 
-**The decision is A** — in-process, one collectible `AssemblyLoadContext` per connector
-package — with the ABI deliberately shaped so **B is a future deployment option, not a
-redesign**: the contract is "async streams of Arrow batches + JSON config", which maps 1:1
-onto Arrow IPC over stdio or Flight. When someone needs a Python connector or crash
-isolation, an out-of-proc shim implements `ISourceConnector` by proxying — nothing above the
-connector host changes.
+**The decision is now B, mandatory, for every external connector.** v0.1 shipped A — one
+collectible `AssemblyLoadContext` per connector package — with the ABI deliberately shaped so
+B would be additive later: the contract was always "async streams of Arrow batches + JSON
+config", which maps 1:1 onto Arrow IPC over a socket. Pre-1.0, with no published external
+connectors yet, was the cheapest moment to actually make that move: **a restored package must
+declare `runtime: "process"` in its manifest, or the registry refuses it (`PZ0360`)** —
+`"dotnet"`, or shipping no manifest at all, is refused the same way. The in-process ALC
+connector host is gone from the codebase, not merely deprecated. The reasoning: an ALC is a
+dependency-versioning boundary, not a security one — code loaded into it runs with the
+engine's full privileges (every connection's credentials, the state store, the staging DB
+itself), which is a bad trade for third-party code the CLI has never audited. Process
+isolation gets crash isolation and polyglot connectors for free, and the native scan/copy tier
+(most of the data plane, in practice — see [The data plane](/concepts/data-plane/)) is
+unaffected either way, since it never routed data through the connector's own process to begin
+with.
 
-## AssemblyLoadContext rules
+**Builtins are the one exception, and they stay option A minus the ALC.** The nine first-party
+connectors (`LocalFiles`, `Postgres`, `S3`, `SqlServer`, `AzureBlob`, `Http`, `MySql`,
+`Sqlite`, `Sftp`) are project-referenced straight into `Pz.Cli` and compiled into the same
+assembly as the host — there is no isolation boundary to speak of, because there is no
+plugin-loading step at all: `BuiltinConnectors.CreateRegistry()` `new`s each one up directly.
+That is also what makes them trusted: they ship from this repository, under the same review
+and CI as the engine itself, not from an arbitrary NuGet feed.
 
-ALC rules are where plugin systems go to die, so they're explicit:
+## PCP: the out-of-process wire protocol
 
-- Each connector package (plus its transitive closure) loads into its **own collectible
-  ALC**, rooted at the package's resolved assembly list from the lock file.
-- A fixed **shared-assembly list is always unified to the host's copy**. Types crossing the
-  boundary come only from these — that's what lets `RecordBatch` instances flow across
-  without marshaling:
+Every non-builtin connector is spawned as its own OS process and driven over **PCP** — a small,
+language-neutral protocol: a control-socket handshake (identity, capabilities, protocol
+version) followed by RPCs for validate/check/open/read/write, with the actual row data crossing
+on a second, paired socket as raw Arrow IPC rather than serialized through the control channel.
+Nothing above `ConnectorRegistry` — the planner, the engine, the ABI types the rest of this page
+describes — can tell whether a given `ISourceConnector`/`ISinkConnector` instance is a builtin
+or a shim proxying PCP calls to a child process; `ProcessSourceConnector`/`ProcessSinkConnector`
+implement the same interfaces the builtins do, just by forwarding every method to the process
+instead of running the logic locally.
 
-  | Shared assembly | Why |
-  |---|---|
-  | `Pz.Connectors.Abstractions` | the ABI itself |
-  | `Apache.Arrow` | the data format crossing the boundary |
-  | `System.*` framework assemblies | the BCL |
-  | `Microsoft.Extensions.Logging.Abstractions` | scoped logging into the host's renderers |
+- **Loading spawns nothing.** Registering a `runtime: "process"` package reads its manifest and
+  resolves an entrypoint for the host's RID; the first call that actually needs a live
+  connector (`OpenAsync`/`ValidateAsync`/`CheckConnectionAsync`) is what spawns the child. `pz
+  compile`, which only reads identity and capabilities, never pays for a process.
+- **One process per opened connection instance.** The engine opens each named connection
+  instance exactly once per run, so process-per-open and process-per-instance coincide under
+  the only caller there is.
+- **The host owns every process it spawns.** Shutdown goes through a graceful cancel-then-kill
+  ladder; a process that dies mid-operation surfaces as `PZ0358`, a protocol violation
+  (malformed Arrow IPC, a reused write ticket) as `PZ0357`.
 
-- Everything else (Npgsql, AWSSDK, whatever) is private to the connector's ALC. Two
-  connectors can depend on **different versions of the same library** without conflict — the
-  diamond-dependency problem is scoped away rather than solved globally.
-- Native assets (`runtimes/<rid>/native/*`) are resolved per-connector via `NativeLibrary`
-  resolution hooks on the ALC.
+The manifest gains two fields for a process package, alongside the fields every connector
+already declares (see [Discovery, packaging, and restore](#discovery-packaging-and-restore)
+below):
 
-> [!NOTE]
-> The honest consequence: in-proc plugins rule out Native AOT for the CLI host, because
-> plugin loading requires the JIT. The CLI ships as a framework-dependent `dotnet tool` with
-> ReadyToRun for startup; AOT is off the table until/unless the out-of-proc mode matures.
-> The trade is worth it — the data plane is the product, and zero-copy wins.
+- **`runtime: "process"`** — required for every external package.
+- **`entrypoints`** — a RID → package-relative binary path map, e.g. `{"linux-x64":
+  "runtimes/linux-x64/native/pz-mysink", "win-x64": "runtimes/win-x64/native/pz-mysink.exe"}`,
+  resolved with `RuntimeIdentifierGraph` fallback (a package shipping only `linux-x64` is still
+  reachable from `linux-musl-x64`) and rejected if a path would resolve outside the package
+  directory.
+
+| Code | Meaning |
+|---|---|
+| `PZ0354` | No usable entrypoint for this host: unknown `runtime`, no `entrypoints` (or none reachable for this RID), an entrypoint path missing or outside the package directory, or a `runtime: "process"` manifest with no `name`. |
+| `PZ0355` | The connector executable failed to spawn. |
+| `PZ0356` | Handshake failed: timeout waiting for `Hello`, a malformed `Hello`, or a capability/name mismatch against the manifest. |
+| `PZ0357` | Protocol violation during data-plane operations. |
+| `PZ0358` | The connector process died unexpectedly mid-operation. |
+| `PZ0360` | An external connector package declares runtime `"dotnet"` (or ships no manifest) — external connectors are hosted out of process only. |
+
+`pz connector test <entrypoint-or-package-dir> [--config file.yml]` runs black-box PCP protocol
+conformance checks against one out-of-process connector, independent of any pz project — the
+tool an author uses to verify a built binary speaks the protocol correctly before publishing it.
+
+**Authoring one today is not yet a turnkey path.** `Pz.Connectors.Abstractions` (the ABI below)
+and `Pz.Connectors.Toolkit` are for in-process builtins only — there is no published C# library
+that wraps `ISourceConnector`/`ISinkConnector` into a spawnable PCP binary. A Rust SDK exists
+in-tree (`rust/pz-connector`: `SinkConnector`/`Sink`/`WriteSession` traits plus a `serve_sink()`
+entry point) but isn't published to crates.io yet; anything else means implementing the wire
+protocol directly, in whatever language, the way the repo's own conformance fixture
+(`tests/fixtures/PcpFakeConnector`) does. If you're building a connector for your own use today,
+[open an issue](https://github.com/PipelineZ/pz/issues) describing what you need — the protocol
+is stable, but the authoring ergonomics are still catching up to it.
 
 ## The ABI surface
 
@@ -146,9 +191,10 @@ Notes on the shape:
 
 ### Pz.Connectors.Toolkit
 
-`src/Pz.Connectors.Toolkit` is a NuGet package of shared connector *mechanism* — not part of
-the ABI, not on the shared-assembly list, so it loads ALC-private into each connector that
-depends on it, the same as any other third-party library. It exists because the ABI's job is to
+`src/Pz.Connectors.Toolkit` is a NuGet package of shared connector *mechanism* for **builtin**
+connectors — not part of the ABI, an ordinary transitive dependency of whichever builtin
+project references it, the same as any other third-party library. It exists because the ABI's
+job is to
 define the contract, not to hand every connector author the same building blocks over again:
 transient-status classification, the three HTTP paging strategies, the `api_key`/`bearer`/
 `basic` auth trio, `{{ binding }}` expansion for query-string templating, JSON-pointer
@@ -511,12 +557,12 @@ token lives. The dataset declares no `sync:` block (or an explicit `mode: auto`)
 `auto` resolves to whatever the connector reports. Full walkthrough:
 [Extract from an HTTP API](/how-to/extract-from-http-api/#sync-state-delta-link--change-feed-apis).
 
-The manifest is readable **without loading the assembly**. That matters because before it
-existed, an incompatible connector was only detected *after* its assembly had been loaded
-into an ALC and instantiated — by which point arbitrary package code had already run. With
-the manifest, `ConnectorHost.LoadFromDirectory` reads a small, untrusted JSON file and
-rejects an incompatible package before creating an ALC or loading any assembly at all. The
-manifest states and error codes are in
+The manifest is readable **without spawning the connector**. That matters because before it
+existed, an incompatible connector was only detected *after* it had already been loaded and
+instantiated — by which point arbitrary package code had already run. With the manifest,
+`ProcessConnectorHost.LoadFromDirectory` reads a small, untrusted JSON file and rejects an
+incompatible package, or one with no usable `runtime: "process"` entrypoint for this host,
+before spawning anything. The manifest states and error codes are in
 [Author a connector](/how-to/author-a-connector/#ship-the-manifest).
 
 `pz restore` turns declarations into pinned assemblies:
@@ -536,8 +582,8 @@ manifest states and error codes are in
 4. Materializes assemblies into a **global content-addressed cache** (`~/.pz/cache`) with
    per-project links under `.pz/packages`, extracting each asset **by the archive path the lock
    records**. A transitive package's `native/` assets are flattened into the connector package's
-   own `native/` directory, alongside its `lib/` — that directory is the only place
-   `ConnectorLoadContext` probes for an unmanaged library.
+   own `native/` directory, alongside its `lib/` — the layout a process package's `entrypoints`
+   paths (below) resolve against.
 
 > [!IMPORTANT]
 > **The archive path is the load-bearing half.** A lock recording only file names forces extraction

@@ -37,7 +37,7 @@ to execute.
 | `PzConfigException` | project/config errors |
 | `PzValidationException` | aggregated validation failures |
 | `PzConnectorException` | connector failure; `IsTransient` + optional `RetryAfter` drive the engine retry policy |
-| `ConnectorHostException` | connector loading/ALC failures |
+| `ConnectorHostException` | connector loading/process-hosting failures |
 | `RestoreException` | lock/NuGet resolution failures |
 
 The governing rules:

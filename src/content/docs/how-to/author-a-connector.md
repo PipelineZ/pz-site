@@ -3,15 +3,26 @@ title: "Author a connector"
 description: "This article shows you how to build, declare, and package a pz connector — a NuGet package with a source and/or sink implementation that pz loads at run..."
 ---
 
-This article shows you how to build, declare, and package a `pz` connector — a NuGet package
-with a source and/or sink implementation that `pz` loads at run time, including the pre-load
-manifest handshake that lets the CLI reject an incompatible package before running any of its
-code.
+This article shows you how to build, declare, and package a `pz` connector — a source and/or
+sink implementation against the `Pz.Connectors.Abstractions` ABI, plus the manifest handshake
+that lets the CLI reject an incompatible package before running any of its code.
+
+> [!IMPORTANT]
+> **This page walks through the in-process ABI, which today only builtin connectors use.**
+> `pz`'s nine first-party connectors are compiled straight into the CLI from this repository —
+> there is no plugin-loading step, and no isolation boundary, for them. Every other, genuinely
+> external connector must instead run **out of process**, over the PCP wire protocol (`PZ0360`)
+> — see [Connectors: Hosting model](/concepts/connectors/#hosting-model) for why, and
+> [Connectors: PCP](/concepts/connectors/#pcp-the-out-of-process-wire-protocol) for the current
+> state of authoring one (a Rust SDK exists in-tree; a C# equivalent does not yet). The ABI
+> below, and the acceptance suite that enforces it, are still exactly what a PCP connector's
+> implementation is checked against under the hood — they just aren't, by themselves, enough to
+> get you a spawnable binary.
 
 ## Prerequisites
 
-- Familiarity with the plugin architecture — hosting model, ALC isolation rules, ABI versioning
-  policy: see [Connectors](/concepts/connectors/).
+- Familiarity with the plugin architecture — hosting model, ABI versioning policy: see
+  [Connectors](/concepts/connectors/).
 - A minimal working reference implementation lives at
   `tests/fixtures/connector-host/FakeSourceConnector`.
 
@@ -44,12 +55,12 @@ code.
 > `PlanReadAsync` throwing a named `PzConnectorException` in the `PZ0312` family instead, and
 > that refusal stays run-time only for datasets using that format.
 
-`ConnectorHost.LoadFromDirectory` resolves the connector into its own collectible
-`AssemblyLoadContext`. Only a fixed shared-assembly list (`Pz.Connectors.Abstractions`,
-`Apache.Arrow`, `System.*`, `Microsoft.Extensions.Logging.Abstractions`) unifies with the
-host. Everything else your connector depends on — a driver library, a cloud SDK — stays
-private to its own ALC, so two connectors can freely depend on different versions of the same
-third-party library.
+For a builtin, that's the whole loading story: `BuiltinConnectors.CreateRegistry()` in
+`Pz.Cli` project-references your connector's assembly and `new`s it up directly, compiled into
+the same binary as the host — no isolation boundary, because there's no plugin-loading step at
+all. A PCP connector has no equivalent "load" step to speak of either — it never enters this
+process; the engine spawns it and speaks PCP to it instead, as described in
+[Connectors: PCP](/concepts/connectors/#pcp-the-out-of-process-wire-protocol).
 
 ## Use the toolkit
 
@@ -72,9 +83,8 @@ Two things to keep in mind:
   composes however it likes — the toolkit has no opinion on your YAML shape, your retry
   behavior (the engine owns retry policy regardless), or which pieces you use. Nothing in it is
   required; the ABI works identically for a connector that never references the package.
-- **It's an ordinary transitive dependency**, not on the ABI's shared-assembly list — it loads
-  private to your connector's own `AssemblyLoadContext`, the same as any other third-party
-  library you depend on.
+- **It's an ordinary transitive dependency**, not part of the ABI — it's referenced by your
+  connector project the same as any other third-party library you depend on.
 
 `Pz.Connector.Http` (`connectors/Pz.Connector.Http`) is the toolkit's first and most complete
 consumer — read it for a worked example of composing several of these pieces into one
@@ -489,29 +499,33 @@ A connector package may ship a `pz.connector.json` file at the root of its packa
   relative paths against the **project directory**:
 
   ```json
-  { "name": "deltalake", "protocolMajorMin": 1, "protocolMajorMax": 1,
-    "capabilities": ["source", "sink"], "projectDirectoryAnchor": true }
+  { "name": "mysink", "protocolMajorMin": 1, "protocolMajorMax": 1,
+    "capabilities": ["source", "sink"], "projectDirectoryAnchor": true,
+    "runtime": "process", "entrypoints": { "linux-x64": "native/pz-mysink" } }
   ```
+
+  (A builtin's manifest omits `runtime`/`entrypoints` entirely — they only apply to a
+  process-hosted package; see [Connectors: PCP](/concepts/connectors/#pcp-the-out-of-process-wire-protocol).)
 
   Without it, a connector receives relative paths with no anchor and its only correct options are
   to refuse them or to demand absolute ones. It is **opt-in** rather than universal because every
   connection's config is validated against that connector's `ConnectionConfigSchema` with
   `additionalProperties: false` — injecting the option into a connector that does not expect it
-  would fail its own validation. The manifest is read straight off disk, before any ALC exists,
-  because the anchor has to be applied before the connector registry is built.
+  would fail its own validation. The manifest is read straight off disk, before anything is
+  spawned or loaded, because the anchor has to be applied before the connector registry is built.
 
 > [!NOTE]
-> The manifest exists so `ConnectorHost.LoadFromDirectory` can read a small, untrusted JSON
-> file and reject an incompatible package **before creating an ALC or loading any assembly at
-> all** — previously, incompatibility was only detected after arbitrary package code had run.
-> The full rationale is in [Connectors](/concepts/connectors/).
+> The manifest exists so it can be read as a small, untrusted JSON file and rejected as
+> incompatible **before spawning a process or loading any assembly at all** — previously,
+> incompatibility was only detected after arbitrary package code had run. The full rationale is
+> in [Connectors](/concepts/connectors/).
 
 What the host does with it:
 
 | Manifest state | Behavior |
 |---|---|
 | Present, compatible (host's `ProtocolVersion.Major` inside `[protocolMajorMin, protocolMajorMax]`) | Load proceeds normally |
-| Present, incompatible | `ConnectorHostException` `PZ0306` before the package's assembly is loaded, naming the connector's supported range and the host's major, with the hint "upgrade pz, or pin an older connector version" |
+| Present, incompatible | `ConnectorHostException` `PZ0306` before the package's assembly is loaded (or its process spawned), naming the connector's supported range and the host's major, with the hint "upgrade pz, or pin an older connector version" |
 | Present but malformed (invalid JSON, or `protocolMajorMin > protocolMajorMax`) | Also `PZ0306` — a present-but-broken manifest signals a broken package, so this fails loud rather than silently falling back to the no-manifest path |
 | Absent | `LoadFromDirectory`'s optional `warn` callback notes the missing handshake and the load proceeds as before; the post-load check against the instantiated connector's `ConnectorInfo.ProtocolMajor` remains the second line of defense |
 
@@ -588,7 +602,7 @@ A connector is an ordinary NuGet package; two conventions make it discoverable:
 
 ## Next steps
 
-- [Connectors](/concepts/connectors/) — hosting model, ALC rules, ABI versioning,
+- [Connectors](/concepts/connectors/) — hosting model, PCP, ABI versioning,
   watermarks.
 - [The data plane](/concepts/data-plane/) — the batch ownership rules your connector must
   respect.

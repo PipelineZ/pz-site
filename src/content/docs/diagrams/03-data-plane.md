@@ -168,10 +168,11 @@ never leaves a half-replaced table.
   (`az://`/`azure://`) and ADLS Gen2 (`abfss://`) both read through the native path; `abfss://`
   end-to-end coverage against Azurite (Microsoft's local storage emulator) remains a documented
   test gap — the emulator's hierarchical-namespace emulation isn't faithful enough.
-- **What about connectors in other languages, or crash isolation?** The ABI is "async streams of
-  Arrow batches + JSON config", which maps 1:1 onto Arrow IPC (Arrow's serialized wire format)
-  over a child process's stdio pipes. Out-of-process connectors are a future deployment option,
-  not a redesign.
+- **What about connectors in other languages, or crash isolation?** Every non-builtin connector
+  already runs this way: its own OS process, handshaken and driven over PCP — a control-socket
+  protocol plus an Arrow IPC data plane, the same "async streams of Arrow batches + JSON config"
+  shape the in-process ABI uses internally. A process boundary gets both crash isolation and
+  polyglot connectors for free — nothing about PCP is .NET-specific.
 - **Who decides partition count?** The planner, from connector capabilities and hints;
   per-connector concurrency caps apply (a rate-limited API can say 1).
 - **Is a run one big transaction?** No. Extraction streams in batches; each sink write session
