@@ -132,7 +132,7 @@ The tools pz grew up on — DuckDB and dbt — won by being simple, fast,
 and free. pz follows the same path, for the whole pipeline.
 
 <div class="pz-bento">
-	<div class="pz-tile" style="--pz-card: var(--pz-green)">
+	<div class="pz-tile" style="--pz-card: var(--pz-amber)">
 		<p class="pz-tile-title"><i></i>Simple</p>
 		<p>Installed in seconds, learned in an afternoon. A project is SQL
 		files plus one YAML, and the dependency graph is read from the SQL
@@ -140,28 +140,28 @@ and free. pz follows the same path, for the whole pipeline.
 		you know pz.</p>
 		<code class="pz-proof">from <b>{'{{ ref(\'stg_orders\') }}'}</b></code>
 	</div>
-	<div class="pz-tile" style="--pz-card: var(--pz-sky)">
+	<div class="pz-tile" style="--pz-card: var(--pz-slate)">
 		<p class="pz-tile-title"><i></i>Feature-rich</p>
 		<p>Incremental reads, change data capture, bounded backfills, retries
 		that resume, inline data-quality checks, delivery guarantees,
 		OpenTelemetry — built in, not bolted on.</p>
 		<code class="pz-proof">sync: {'{'} mode: <b>cdc</b>, on_delete: soft {'}'}</code>
 	</div>
-	<div class="pz-tile" style="--pz-card: var(--pz-blue)">
+	<div class="pz-tile" style="--pz-card: var(--pz-orange)">
 		<p class="pz-tile-title"><i></i>Fast</p>
 		<p>An embedded analytical engine does the work in-process; data moves
 		in zero-copy batches, and connectors hand over native scans when they
 		can. Node times are milliseconds, not minutes of spin-up.</p>
 		<code class="pz-proof"><b>ok</b> orders_enriched 3 rows 23ms</code>
 	</div>
-	<div class="pz-tile" style="--pz-card: var(--pz-peach)">
+	<div class="pz-tile" style="--pz-card: var(--pz-rust)">
 		<p class="pz-tile-title"><i></i>Extensible</p>
 		<p>Connectors are ordinary packages built against a small, versioned
 		ABI, with a contract test kit that keeps them honest. Five ship
 		first-party; yours is a package away.</p>
 		<code class="pz-proof">- package: <b>Pz.Connector.LocalFiles</b></code>
 	</div>
-	<div class="pz-tile" style="--pz-card: var(--pz-red)">
+	<div class="pz-tile" style="--pz-card: var(--pz-moss)">
 		<p class="pz-tile-title"><i></i>Free</p>
 		<p>MIT-licensed, open source, and yours. No SaaS meter, no per-row
 		pricing, no gated enterprise tier — it runs on hardware you already
