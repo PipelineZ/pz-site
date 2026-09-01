@@ -198,8 +198,8 @@ fail-one-at-a-time" pattern everywhere; it's a project-wide rule.
 
 ### Phase 2: restore-check — are the connectors here?
 
-Connectors are plugins. The nine first-party ones (LocalFiles, Postgres, S3, SqlServer,
-AzureBlob, Http, MySql, Sqlite, Sftp) are built into the `pz` tool itself, project-referenced and
+Connectors are plugins. The ten first-party ones (LocalFiles, Postgres, S3, SqlServer,
+AzureBlob, Gcs, Http, MySql, Sqlite, Sftp) are built into the `pz` tool itself, project-referenced and
 compiled straight in; third-party ones are NuGet packages that `pz restore` downloads into
 `.pz/packages` and pins in `pz.lock.json`.
 

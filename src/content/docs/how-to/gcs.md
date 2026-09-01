@@ -1,72 +1,85 @@
 ---
 title: "Use Google Cloud Storage"
-description: "There is no dedicated GCS connector, and there doesn't need to be one: Google Cloud Storage speaks the S3 protocol on storage.googleapis.com (its..."
+description: "GCS has a first-class `gcs` connector. The auth method selects the data plane: HMAC keys drive DuckDB-native gs:// reads and writes; service-account…"
 ---
 
-There is no dedicated GCS connector, and there doesn't need to be one: Google Cloud Storage
-speaks the S3 protocol on `storage.googleapis.com` (its [interoperability
-mode](https://cloud.google.com/storage/docs/interoperability)), and the `s3` connector's
-`endpoint` override exists for exactly this kind of S3-compatible target. DuckDB — whose
-`httpfs` extension is the s3 connector's entire data plane — documents the same route for
-its own GCS support. Both directions work: reads (`source()`) and writes (`sink()`), in
-parquet, csv, and NDJSON json.
+GCS has a first-class `gcs` connector. Its one unusual property: **the `auth` method selects the
+data plane**, because the two credential families reach different machinery by construction, not
+by policy.
 
-## 1. Create HMAC credentials
+- **`auth: hmac`** (GCS's [interoperability keys](https://cloud.google.com/storage/docs/authentication/hmackeys))
+  is the only method DuckDB's native `gs://` tier can authenticate. It carries **both
+  directions**: reads compile to `read_parquet`/`read_csv`/`read_json` native scans, writes to
+  `COPY … TO 'gs://…'` — data never enters .NET. This is the mode to prefer.
+- **`auth: service_account`** (a key file, or the key JSON inline) and **`auth: adc`**
+  (Application Default Credentials) are OAuth-only, which DuckDB cannot speak. They carry
+  **writes only**, through Google SDK write sessions — including `partition_by` fan-out.
+  A `source()` on such a connection is refused at open with the fix in the message.
 
-GCS's S3-compatible auth uses HMAC keys, not your usual service-account JSON:
+## Option 1: HMAC keys (reads + writes, native)
 
 1. In the Cloud Console: **Cloud Storage → Settings → Interoperability**.
-2. Create an HMAC key for a service account that has the right role on the target bucket
-   (`roles/storage.objectViewer` to read, `roles/storage.objectAdmin` to write).
-3. You get an **access key** and a **secret** — these fill the s3 connector's
-   `access_key`/`secret_key`.
-
-## 2. Point the s3 connector at GCS
+2. Create an HMAC key for a service account with the right role on the target bucket
+   (`roles/storage.objectViewer` to read, `roles/storage.objectAdmin` to write). You get a
+   **key id** and a **secret**.
 
 ```yaml
 # connections.yml
-gcs:
-  connector: s3
-  connection:
-    root: my-bucket/exports          # or name bucket/path per entity instead
-    access_key: "{{ env('GCS_HMAC_ACCESS_KEY') }}"
-    secret_key: "{{ env('GCS_HMAC_SECRET') }}"
-    endpoint: storage.googleapis.com
-    url_style: path
+lake:
+  connector: gcs
+  auth: hmac
+  root: my-bucket/exports           # or name bucket/path per entity instead
+  key_id: "{{ env('GCS_HMAC_KEY_ID') }}"
+  secret: "{{ env('GCS_HMAC_SECRET') }}"
   entities:
     events:
       read:
         format: parquet
-        path: raw/events/*.parquet   # globs work; omit path to read <root>/events.parquet
+        path: raw/events/*.parquet  # globs work; omit path to read <root>/events.parquet
 ```
 
 ```sql
 -- pipelines/orders_out.sql — read from GCS, write back to GCS
-INSERT INTO {{ sink('gcs', 'orders_out', strategy: 'replace', format: 'parquet') }}
-select * from {{ source('gcs', 'events') }}
+INSERT INTO {{ sink('lake', 'orders_out', strategy: 'replace', format: 'parquet') }}
+select * from {{ source('lake', 'events') }}
 ```
 
-Reads compile to DuckDB `read_parquet`/`read_csv`/`read_json` native scans over
-`s3://my-bucket/…`, writes to a `COPY … TO 's3://…'` — both under one scoped
-`CREATE SECRET` carrying the endpoint override, exactly as against AWS.
+Everything the other file connectors do applies unchanged: parquet/csv/json (NDJSON) in both
+directions, csv/json schema auto-detection without a `columns:` contract (with the inference
+warnings; a declared contract prunes the read), date-templated paths with watermark-window
+pruning, `strategy: append` writing a uniquely-named object per run vs `replace` overwriting one
+stable name.
 
-Notes:
+## Option 2: service account / ADC (writes only, SDK)
 
-- `url_style: path` is the reliable choice against `storage.googleapis.com`.
-- `region` can be omitted (GCS ignores it; the connector defaults to `us-east-1`).
-- `use_ssl` defaults to true — leave it.
-- csv/json reads without a `columns:` contract auto-detect their schema as part of the
-  scan (and get the PZ0523/PZ0524 inference warnings); a declared contract prunes the
-  read to exactly the declared columns.
-- `strategy: append` writes a uniquely-named object per run; `replace` overwrites one
-  stable object name. Both are plain object operations — no S3 multipart dependency.
+For a write-only destination where minting HMAC keys is not an option:
 
-## What this recipe rests on
+```yaml
+lake:
+  connector: gcs
+  auth: service_account
+  key_file: /secrets/writer-key.json   # or key_json: '<the raw key JSON>' — one, not both
+  root: my-bucket/exports
+```
 
-The endpoint-override mechanism (custom endpoint + path-style URLs + HMAC-style keys) is
-exercised continuously in this repo's test suite against MinIO, another S3-compatible
-store — including full `pz run` round-trips in both directions and per format. The
-GCS-specific half (that `storage.googleapis.com` faithfully implements the S3 surface
-DuckDB's `httpfs` uses) is Google's documented interoperability contract and DuckDB's
-documented GCS route. If you hit a GCS-specific edge, please open an issue — a failing
-`connections.yml` shape plus the PZ0311 error text is enough to act on.
+`auth: adc` needs no further fields — it resolves the ambient credentials
+(`gcloud auth application-default login`, `GOOGLE_APPLICATION_CREDENTIALS`, or the metadata
+server on GCP compute).
+
+Writes commit as **one atomic upload per object**: batches spool to a local temp file and the
+final object appears only when its upload completes, so an aborted or failed run never leaves a
+partial object behind. `partition_by` with a date-templated `path` fans out per calendar folder
+(per-partition atomic, at-least-once at the set level — same contract as azureblob).
+
+## Notes
+
+- `endpoint` overrides the target host in both modes, but its shape differs by tier: the native
+  (hmac) tier wants `host:port` with `url_style`/`use_ssl` alongside (DuckDB secret options,
+  useful against MinIO or another interop endpoint), while the SDK tier wants a full base URL
+  (e.g. `http://localhost:4443/storage/v1/` against an emulator). Leave it unset against real
+  GCS.
+- Sources on a `service_account`/`adc` connection fail at open with the HMAC next step — there
+  is no universal read tier, so this is a refusal, not a fallback.
+- Any *other* S3-compatible store remains reachable via the `s3` connector's `endpoint`
+  override, which is also how this connector's native tier is exercised in the test suite
+  against MinIO.
