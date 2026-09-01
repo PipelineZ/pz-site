@@ -36,8 +36,7 @@ On the .NET side:
   in a pooled system are the worst bugs.
 - **A global memory budget ties it together**: `duckdb.memory_limit` + (channels × batch
   bytes × active nodes) + fixed overhead is computed and printed at plan time, so "how much
-  RAM does this run need" has a static answer. The formula and measured baselines are in
-  [Performance](/performance/).
+  RAM does this run need" has a static answer.
 - Benchmarks gate regressions; the internal North-star metric is **rows/sec/core at bounded
   RSS**, tracked per release.
 
@@ -109,6 +108,5 @@ latest, nullable enabled, `InternalsVisibleTo` only for test projects.
 
 ## Next steps
 
-- [Performance](/performance/) — budget formula, benchmark suites, measured baselines.
-- [Architecture overview](/concepts/architecture-overview/) — the decision log behind these choices.
+- [Architecture overview](/concepts/architecture-overview/) — the design principles behind these choices.
 - `CONTRIBUTING.md` — workflow, commit conventions, release process.

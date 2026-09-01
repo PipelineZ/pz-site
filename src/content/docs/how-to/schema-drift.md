@@ -37,18 +37,14 @@ for the ones it does.
 
 > [!NOTE]
 > **`localfiles` CSV/JSON and `azureblob` CSV/JSON datasets are covered here too, under `warn`/`fail`
-> only.** Since the 2026-08-12 schema-inference-simplification cycle (see
-> `2026-08-12-schema-inference-simplification-design.md`;
-> `localfiles` json itself arrived with the 2026-08-14 format-parity cycle and follows the same shape),
-> those two connectors can run a `columns:`-less csv/json dataset at all, via DuckDB's own
-> `auto_detect` on the real native-scan read — so this gate's ordinary, connector-agnostic
-> contract-less check (unchanged since before that cycle) now reaches them too. There is no
-> separate inference-specific baseline or seeding path: DuckDB's auto-detected schema plays
-> exactly the same role a landed-data `DESCRIBE` plays for any other contract-less connector
-> (Postgres query-mode, SqlServer, HTTP raw mode), because csv/json's real read already goes
-> through native scan. `on_source_drift: ignore` (the default) still short-circuits before any
-> baseline is read or written, same as for every connector — inference alone never seeds a
-> baseline on its own.
+> only.** Both connectors can run a `columns:`-less csv/json dataset via DuckDB's own
+> `auto_detect` on the real native-scan read, so this gate's ordinary, connector-agnostic
+> contract-less check reaches them too. There is no separate inference-specific baseline or
+> seeding path: DuckDB's auto-detected schema plays exactly the same role a landed-data
+> `DESCRIBE` plays for any other contract-less connector (Postgres query-mode, SqlServer, HTTP raw
+> mode), because csv/json's real read already goes through native scan. `on_source_drift: ignore`
+> (the default) still short-circuits before any baseline is read or written, same as for every
+> connector — inference alone never seeds a baseline on its own.
 
 
 

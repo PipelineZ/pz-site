@@ -229,9 +229,9 @@ watermarks. `pz clean` behaves the same way, for the same reason.
 
 Under a remote backend, all four additionally read `connections.yml` — only when
 `state.connection` names an entry there — and do real network I/O to reach the store, so they can
-fail with **PZ0518** (unreachable) or **PZ0519** (schema mismatch) where previously only local
-file I/O could fail. Reads still never mutate anything, on either backend — that guarantee is
-unconditional.
+fail with **PZ0518** (unreachable) or **PZ0519** (schema mismatch) — failure modes that don't
+apply under a local backend, where only local file I/O can fail. Reads still never mutate
+anything, on either backend — that guarantee is unconditional.
 
 `pz cdc status` and `pz cdc drop` follow the same rule: sync-state is read from, and cleared in,
 whichever store `state:` resolved to — the one the next run actually reads, so a drop under a

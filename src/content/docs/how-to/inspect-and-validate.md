@@ -32,10 +32,6 @@ No nodes execute. The output shows each node's execution strategy — native sca
 connector can hand work straight to DuckDB, universal-path `duck_sql` otherwise — and the
 static memory budget for the run.
 
-> [!TIP]
-> How the memory budget is computed, and how to benchmark your own hardware, is covered in
-> [Performance](/performance/).
-
 ## Validate without running
 
 To catch configuration and SQL errors before a run, use `pz validate`:

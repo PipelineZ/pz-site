@@ -53,5 +53,4 @@ understanding, reference for exact contracts.
 - [MCP contract reference](/reference/mcp-contract/)
 - [Run events (NDJSON contract)](/events/)
 - [Versioning and breaking changes](/versioning/)
-- [Performance and memory](/performance/)
 - [Diagram set](/diagrams/)

@@ -48,7 +48,6 @@ export default defineConfig({
 					items: [
 						{ autogenerate: { directory: 'reference' } },
 						{ label: 'Event stream', link: '/events/' },
-						{ label: 'Performance', link: '/performance/' },
 						{ label: 'Versioning', link: '/versioning/' },
 					],
 				},
