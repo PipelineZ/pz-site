@@ -121,18 +121,19 @@
 }
 
 /* Hero hub-and-spoke: DuckDB centered, six connector categories on a ring
-   around it, spaced generously. Starlight caps its hero-image slot at
-   `min(100%, 25rem)` and that cap itself shrinks well below 25rem near the
-   50rem breakpoint, so every dimension here is a PERCENTAGE of the box
-   Starlight actually hands us (with aspect-ratio locking height to width)
-   rather than a fixed rem value — the ring can't outgrow its slot and
-   spill into the heading at any width. Collapses to a plain stacked grid
-   (spokes hidden) below 28rem, where a ring has no usable room at all. */
-.pz-hub { position: relative; width: 100%; max-width: 25rem; aspect-ratio: 1 / 1; margin: 2rem auto 0; }
+   around it, spaced generously. The hero-image slot's width still varies
+   with viewport (see the override below and Starlight's own hero grid),
+   so every dimension here is a PERCENTAGE of the box Starlight actually
+   hands us (with aspect-ratio locking height to width) rather than a
+   fixed rem value — the ring scales cleanly to fill whatever room it
+   gets and can't outgrow its slot into the heading at any width.
+   Collapses to a plain stacked grid (spokes hidden) below 28rem, where a
+   ring has no usable room at all. */
+.pz-hub { position: relative; width: 100%; max-width: 32rem; aspect-ratio: 1 / 1; margin: 2rem auto 0; }
 .pz-hub-core {
 	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 22%;
 	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.3rem;
-	padding: 6%;
+	padding: 0.45rem;
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background: var(--sl-color-accent-low);
 	border-radius: 16px;
@@ -155,10 +156,10 @@
 .pz-cat {
 	position: absolute; left: calc(50% + 34% * cos(var(--a))); top: calc(50% + 34% * sin(var(--a)));
 	transform: translate(-50%, -50%); width: 26%;
-	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.35rem;
+	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.3rem;
 	border: 1px solid var(--sl-color-gray-5);
 	border-radius: 10px;
-	padding: 6% 5%;
+	padding: 0.5rem 0.55rem;
 	background: var(--sl-color-gray-6);
 }
 .pz-cat-name { font-size: 0.58rem; color: var(--sl-color-white); font-weight: 700; line-height: 1.15; }
@@ -269,6 +270,20 @@
 /* Starlight's splash hero reserves up to 10rem of block padding — trim it */
 [data-has-hero] .hero {
 	padding-block: clamp(1.5rem, 4vmin, 3rem) 0;
+}
+/* Starlight defaults the hero to a 7fr/4fr split with the image capped at
+   25rem — too little room for the hub-and-spoke diagram, which ends up
+   small and pushed into the far right corner. Give it an even split and
+   more headroom; the diagram itself is percentage-based so it just scales
+   up cleanly to fill the extra space rather than needing new geometry. */
+@media (min-width: 50rem) {
+	[data-has-hero] .hero {
+		grid-template-columns: 1fr 1fr;
+		gap: 2.5rem;
+	}
+	[data-has-hero] .hero > .hero-html {
+		width: min(100%, 34rem);
+	}
 }
 [data-has-hero] .hero + * .pz-section:first-child,
 .pz-section:first-of-type {
