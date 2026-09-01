@@ -2,8 +2,9 @@
  * Replaces the default Catppuccin theme with PipelineZ's own palette: a
  * flat, fully achromatic neutral scale (duckdb.org-inspired — their
  * --grey-* tokens have zero saturation, no warm or cool tint at all) and
- * the amber -> orange flow gradient as the one saturated accent, used
- * sparingly rather than as an ambient background wash.
+ * DuckDB's own lemon yellow (hue ~50, #fff100 per duckdb.org/design/manual)
+ * as the one saturated accent, used sparingly rather than as an ambient
+ * background wash.
  *
  * Only the primitive tokens are set (white/gray-1..7/black, accent-low/
  * accent/accent-high) — Starlight derives everything else (bg, text,
@@ -23,9 +24,9 @@
 	--sl-color-gray-6: #1a1a1a;
 	--sl-color-black: #0d0d0d;
 
-	--sl-color-accent-low: hsl(24, 45%, 20%);
-	--sl-color-accent: hsl(24, 92%, 55%);
-	--sl-color-accent-high: hsl(35, 95%, 82%);
+	--sl-color-accent-low: hsl(48, 45%, 18%);
+	--sl-color-accent: hsl(50, 95%, 50%);
+	--sl-color-accent-high: hsl(50, 95%, 80%);
 }
 
 :root[data-theme='light'] {
@@ -40,7 +41,7 @@
 	--sl-color-gray-7: #f2f2f2;
 	--sl-color-black: #fafafa;
 
-	--sl-color-accent-high: hsl(24, 85%, 32%);
-	--sl-color-accent: hsl(24, 92%, 55%);
-	--sl-color-accent-low: hsl(35, 70%, 90%);
+	--sl-color-accent-high: hsl(45, 90%, 26%);
+	--sl-color-accent: hsl(50, 95%, 50%);
+	--sl-color-accent-low: hsl(50, 75%, 88%);
 }

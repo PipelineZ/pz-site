@@ -1,11 +1,13 @@
 /* ---- Landing page ---------------------------------------------------- */
 
-/* Brand tile accents — the amber/orange flow gradient plus four hues
-   chosen to sit alongside it without competing (see assets/brand/). Used
-   as-is in both themes, same as the mark's own gradient. */
+/* Brand tile accents — DuckDB's own lemon yellow (#fff100, per
+   duckdb.org/design/manual) into a deeper gold for the flow gradient,
+   plus four hues chosen to sit alongside it without competing (see
+   assets/brand/). Used as-is in both themes, same as the mark's own
+   gradient. */
 :root {
-	--pz-amber: #ffb224;
-	--pz-orange: #f76808;
+	--pz-yellow: #fff100;
+	--pz-gold: #e8b800;
 	--pz-rust: #c4451c;
 	--pz-moss: #7a9950;
 	--pz-slate: #5b87a6;
@@ -23,7 +25,7 @@
 }
 .pz-hero-line { display: block; }
 .pz-hero-flame {
-	background: linear-gradient(135deg, var(--pz-amber), var(--pz-orange));
+	background: linear-gradient(135deg, var(--pz-yellow), var(--pz-gold));
 	-webkit-background-clip: text;
 	background-clip: text;
 	color: transparent;
@@ -67,7 +69,7 @@
 	background: #4c4c4c;
 }
 .pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
-.pz-term-bar i:nth-child(2) { background: var(--pz-amber); }
+.pz-term-bar i:nth-child(2) { background: var(--pz-yellow); }
 .pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
 .pz-term-bar span {
 	margin-inline-start: 0.5rem;
@@ -97,8 +99,8 @@
 .pz-term .ln:nth-child(9)  { animation-delay: 2.0s; }
 .pz-term .ok { color: var(--pz-moss); }
 .pz-term .dim { color: #808080; }
-.pz-term .prompt { color: var(--pz-orange); }
-.pz-term .accent { color: var(--pz-amber); }
+.pz-term .prompt { color: var(--pz-gold); }
+.pz-term .accent { color: var(--pz-yellow); }
 .pz-term pre::after {
 	content: '';
 	display: inline-block;
@@ -261,7 +263,7 @@
 .pz-term-zone + .pz-term-zone { border-top: 1px solid #262626; }
 .pz-term .pz-term-zone pre { padding: 0; }
 .pz-term .file-tag { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.68rem; color: #808080; margin-bottom: 0.4rem; }
-.pz-term .kw { color: var(--pz-amber); }
+.pz-term .kw { color: var(--pz-yellow); }
 .pz-term .fn { color: #7fb3e6; }
 @media (prefers-reduced-motion: reduce) { .pz-spoke { animation: none; } }
 
@@ -398,9 +400,9 @@
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background:
 		linear-gradient(135deg,
-			color-mix(in srgb, var(--pz-orange) 10%, transparent),
-			color-mix(in srgb, var(--pz-amber) 8%, transparent) 60%,
-			color-mix(in srgb, var(--pz-orange) 8%, transparent));
+			color-mix(in srgb, var(--pz-gold) 10%, transparent),
+			color-mix(in srgb, var(--pz-yellow) 8%, transparent) 60%,
+			color-mix(in srgb, var(--pz-gold) 8%, transparent));
 	border-radius: 16px;
 	padding: 1.5rem;
 	margin-bottom: 3rem;

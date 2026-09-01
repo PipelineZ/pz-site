@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 64" width="224" height="64" role="img" aria-label="PipelineZ">
   <defs>
     <linearGradient id="pz-flow-z" gradientUnits="userSpaceOnUse" x1="186.77" y1="15.42" x2="215.65" y2="47">
-      <stop offset="0" stop-color="#FFB224"/>
-      <stop offset="1" stop-color="#F76808"/>
+      <stop offset="0" stop-color="#FFF100"/>
+      <stop offset="1" stop-color="#E8B800"/>
     </linearGradient>
   </defs>
   <style>
