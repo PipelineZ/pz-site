@@ -21,6 +21,13 @@
 	font-weight: 800;
 	letter-spacing: -0.02em;
 }
+.pz-hero-line { display: block; }
+.pz-hero-flame {
+	background: linear-gradient(135deg, var(--pz-amber), var(--pz-orange));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
 [data-has-hero] .main-frame {
 	/* Flat ground, no ambient color wash — a dot grid is the only texture,
 	   the orange/amber accent is reserved for type and controls. */
