@@ -461,7 +461,7 @@ enough to read top to bottom, and heavily commented with the *why*:
 3. `src/Pz.Core/Dag/DagCompiler.cs` — files → nodes → sorted DAG.
 4. `src/Pz.Engine/Dispatch/RunOrchestrator.cs` — the dispatcher from §6.
 5. `src/Pz.Engine/Execution/SourceLoadExecutor.cs` and `SinkWriteExecutor.cs` — the data plane in practice.
-6. [Architecture overview](/concepts/architecture-overview/) — the decision log: *why* it's built this way.
+6. [Architecture overview](/concepts/architecture-overview/) — *why* it's built this way.
 
 And keep [`docs/diagrams/`](/diagrams/) open — four presentation-grade diagrams of
 exactly the mechanisms this page walked through.

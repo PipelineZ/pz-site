@@ -499,11 +499,9 @@ A dataset can also skip ordered cursors entirely by leaving `sync:` absent (or d
 `mode: auto`) on a connector whose natural read for that dataset is an opaque, connector-owned
 continuation token (a change-feed delta link) the engine stores verbatim instead of a comparable
 cursor value — see [Delivery
-guarantees](/concepts/delivery-guarantees/#sync-state-another-commit-gated-state-kind). There's no
-separate mutual-exclusion rule to state here any more: `sync:` is one block with one `mode` field,
-so an ordered cursor and an opaque token can never both be declared for the same dataset — the
-old cross-block conflict this used to need a dedicated error for (`PZ0315`) is no longer
-representable.
+guarantees](/concepts/delivery-guarantees/#sync-state-another-commit-gated-state-kind). `sync:` is
+one block with one `mode` field, so an ordered cursor and an opaque token can never both be
+declared for the same dataset.
 
 ### One reader, so the SQL is the whole story
 

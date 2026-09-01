@@ -13,7 +13,7 @@ is the why and the contract.
 
 ## Hosting model
 
-Three options were ever on the table:
+The trade-offs across hosting models:
 
 | | A. In-process, ALC per connector | **B. Out-of-process (Terraform/Airbyte style, Arrow IPC)** | C. Compile user project against connectors (dbt-Python style) |
 |---|---|---|---|
@@ -23,20 +23,15 @@ Three options were ever on the table:
 | Startup | fast | process-per-connector spawn | slow (compile) |
 | Determinism | lock file pins everything | same | MSBuild resolution variance |
 
-**The decision is now B, mandatory, for every external connector.** v0.1 shipped A — one
-collectible `AssemblyLoadContext` per connector package — with the ABI deliberately shaped so
-B would be additive later: the contract was always "async streams of Arrow batches + JSON
-config", which maps 1:1 onto Arrow IPC over a socket. Pre-1.0, with no published external
-connectors yet, was the cheapest moment to actually make that move: **a restored package must
-declare `runtime: "process"` in its manifest, or the registry refuses it (`PZ0360`)** —
-`"dotnet"`, or shipping no manifest at all, is refused the same way. The in-process ALC
-connector host is gone from the codebase, not merely deprecated. The reasoning: an ALC is a
-dependency-versioning boundary, not a security one — code loaded into it runs with the
+**Every external connector runs out-of-process.** A restored package must
+declare `runtime: "process"` in its manifest, or the registry refuses it (`PZ0360`) —
+`"dotnet"`, or shipping no manifest at all, is refused the same way. Out-of-process hosting is a
+security boundary, not just a versioning one: code loaded in-process would run with the
 engine's full privileges (every connection's credentials, the state store, the staging DB
 itself), which is a bad trade for third-party code the CLI has never audited. Process
-isolation gets crash isolation and polyglot connectors for free, and the native scan/copy tier
+isolation also gets crash isolation and polyglot connectors for free, and the native scan/copy tier
 (most of the data plane, in practice — see [The data plane](/concepts/data-plane/)) is
-unaffected either way, since it never routed data through the connector's own process to begin
+unaffected either way, since it never routes data through the connector's own process to begin
 with.
 
 **Builtins are the one exception, and they stay option A minus the ALC.** The ten first-party
@@ -209,8 +204,7 @@ policy-free.
 
 File-based datasets/outputs declare `options: { format: <parquet|csv|json> }`. **parquet, csv,
 and json (NDJSON)** are supported across all of the file connectors — `localfiles`, `s3`,
-`azureblob`, and `gcs` (json landed per-connector: `azureblob` first, `localfiles` in the
-2026-08-14 format-parity cycle, `s3` in the 2026-08-19 s3-source cycle, `gcs` from birth). For
+`azureblob`, and `gcs`. For
 `localfiles` and `s3`, all formats a given connector supports are available on both data-plane tiers — native
 scan/copy (DuckDB reads/writes the bytes directly) and the universal Arrow-stream path (the
 connector reads/writes bytes itself) — with two localfiles *read* exceptions: parquet reads (no
@@ -224,24 +218,19 @@ entirely native-only** (an
 below) — every format it reads goes through the DuckDB `azure` extension exclusively, with no
 universal-tier read fallback; only its *writes* still run the universal tier (`partition_by`
 fan-out). The remaining difference across formats: `parquet`'s embedded schema needs no contract, full
-stop. csv and json datasets (sources) may declare a `columns:` contract; as of the 2026-08-12
-schema-inference cycle, a full contract is no longer required for `localfiles` csv/json or
-`azureblob` csv/json — only `s3` csv still requires one. The mechanism is DuckDB's own `auto_detect`, run as
-part of the real native-scan read (`read_csv`/`read_json` with `auto_detect = true`) rather than a
-separate sampling pass — there is no schema known before the read, because native scan no longer
-needs one to succeed. This is a strict two-state model, for both formats identically (final
-whole-branch review Fix A): with **no** declared `columns:` at all, `auto_detect = true` with no
-`columns=` map lets DuckDB infer the whole schema from the file. With **any** declared `columns:`
-— partial or full, native scan has no way to tell them apart without reading the file, which it
-deliberately never does — the fragment reverts to `auto_detect = false, columns = {...}`: DuckDB
-reads *only* the named columns, exactly as it always did before the 2026-08-12 cycle (the class
-doc comment on `CsvSource` calls this "contracts prune on read"). There is no partial-declare-plus-
-inference middle case: declaring even one column means the declared set alone governs the read,
-not a starting point DuckDB fills in the rest of. (A same-day, since-reverted excursion briefly had
-csv combine DuckDB's `types = {...}` override with `auto_detect = true` for a declared contract —
-verified to work, but it silently widened the read to keep every column in the file instead of
-confining it to what's declared, a real regression for a project with a pre-existing contract; Fix
-A reverted it, so csv and json now use the identical two-state shape.) Whatever is left undeclared
+stop. csv and json datasets (sources) may declare a `columns:` contract; a full contract is not
+required for `localfiles` csv/json or `azureblob` csv/json — only `s3` csv still requires one. The
+mechanism is DuckDB's own `auto_detect`, run as part of the real native-scan read (`read_csv`/
+`read_json` with `auto_detect = true`) rather than a separate sampling pass — there is no schema
+known before the read, because native scan does not need one to succeed. This is a strict two-state
+model, for both formats identically: with **no** declared `columns:` at all, `auto_detect = true`
+with no `columns=` map lets DuckDB infer the whole schema from the file. With **any** declared
+`columns:` — partial or full, native scan has no way to tell them apart without reading the file,
+which it deliberately never does — the fragment reverts to `auto_detect = false, columns = {...}`:
+DuckDB reads *only* the named columns (the class doc comment on `CsvSource` calls this "contracts
+prune on read"). There is no partial-declare-plus-inference middle case: declaring even one column
+means the declared set alone governs the read, not a starting point DuckDB fills in the rest of.
+Whatever is left undeclared
 — up to and including the entire dataset — gets whatever type DuckDB's sniffer assigns it; an
 ambiguous or all-null column has no dedicated pz error code, it is simply DuckDB's call (typically
 `VARCHAR`) — a one-line `columns: { <col>: <type> }` override fixes a wrong guess. DuckDB's
@@ -250,13 +239,13 @@ contract-less dataset whose real shape changes further into the file than that s
 still surface a genuine cast/parse error mid-run, fixable with the same one-line `columns:`
 override. `pz validate` (tier 4, no
 `--connect`) reports a contract-less csv/json dataset as `undeclared` and skips dry-compiling any
-pipeline that depends on it, same as before this feature existed — a graceful, non-failing skip.
+pipeline that depends on it — a graceful, non-failing skip.
 `pz validate --connect` (tier 5) is a different story: `ConnectivityValidator` still calls
 `ISource.GetSchemaAsync` to fetch a schema for every dataset regardless of contract, and that
 method is the unchanged universal-tier path, which unconditionally requires a full `columns:`
 contract for csv/json — so `--connect` actually **fails** with `PZ0330` for a contract-less
-csv/json dataset (accepted per decision 7, not fixed: tier 5 gives up pre-flight validation for
-this case rather than gaining a graceful skip of its own). A project that wants `pz validate
+csv/json dataset: tier 5 gives up pre-flight validation for this case rather than gaining a
+graceful skip of its own. A project that wants `pz validate
 --connect` to succeed still needs either a declared `columns:` contract on every csv/json dataset,
 or to skip `--connect` and rely on a real `pz run` to surface any real problem.
 
@@ -292,13 +281,13 @@ itself.
 - **Universal tier**: the shared, connector-agnostic `NdjsonCodec`
   (`Pz.Connectors.Abstractions.Formats`) implements both directions — a top-level JSON array is
   rejected here with a named format error — but only its write half (`NdjsonCodec.WriteAsync`)
-  has a first-party caller today, and no longer directly: `azureblob`'s universal-tier json
+  has a first-party caller today: `azureblob`'s universal-tier json
   **write** session (`AzureJsonWriteSession`) calls the toolkit's `NdjsonWriteCodec`
   (`Pz.Connectors.Toolkit.Formats`), which delegates straight through to `NdjsonCodec.WriteAsync`
-  — output stays byte-identical, but callers migrate onto the toolkit's surface rather than
-  Abstractions' directly, since azure reads now go through the native tier exclusively.
-  `localfiles`' universal-tier json write session (`NdjsonSinkWriteSession`, 2026-08-14
-  format-parity cycle) is a second toolkit-surface caller of the same codec; its json *reads*
+  — output stays byte-identical, routed through the toolkit's surface rather than
+  Abstractions' directly, since azure reads go through the native tier exclusively.
+  `localfiles`' universal-tier json write session (`NdjsonSinkWriteSession`)
+  is a second toolkit-surface caller of the same codec; its json *reads*
   are native-only, so like azure it never calls the read half. `NdjsonCodec.ReadAsync` remains
   a published ABI helper with no first-party caller; `s3` doesn't use the codec at all. Timestamps are invariant-culture ISO-8601 UTC
   (`yyyy-MM-ddTHH:mm:ss.ffffffZ`), dates are `yyyy-MM-dd`, matching the byte-stable-writer
@@ -326,10 +315,6 @@ A connector that addresses a location takes `root:` on the connection. `localfil
 against the project directory (or takes it absolute); `s3` reads it as `<bucket>[/<prefix>]`. An
 entity with no `path:` of its own resolves to `<root>/<entity>.<format>` for a read and
 `<root>/<entity>/` for a write, so a project that names its entities well need not name paths at all.
-
-> `root:` shipped in `localfiles`' declared connection schema from v0.1 and was read by nothing until
-> the 2026-07-28 connections spec's step 6 — a project setting it was accepted by every validation
-> tier and then ignored.
 
 ## What a connector is told to read or write
 
@@ -502,7 +487,7 @@ for the full reference.
 **SDK-free**: DuckDB's `httpfs` extension is the entire data plane, with one scoped
 `CREATE SECRET` per connection-direction (hash-suffixed names, so distinctly-named connections
 never collide onto one secret). Writes are a `COPY … TO 's3://…'` (parquet/csv/NDJSON json);
-reads — added in the 2026-08-19 s3-source cycle — are `read_parquet`/`read_csv`/`read_json`
+reads are `read_parquet`/`read_csv`/`read_json`
 native scans with the same two-state contract model as localfiles/azureblob (a declared
 `columns:` contract prunes the read; contract-less csv/json auto-detect and get the
 schema-inference warnings), glob paths, windowed-dataset wrapping, and the date-token
@@ -532,7 +517,7 @@ JSON REST APIs. Its dataset options are a small recipe for one endpoint — `pat
 `pagination:` block, and an optional `items` pointer to the array inside the response — rather
 than a table/query name, since an HTTP endpoint is the closest thing this connector has to a
 "table". It declares `Capabilities = BoundedWindow | SyncState`: `BoundedWindow` lets it run
-windowed/incremental extraction (`PZ0313` no longer refuses it), and `SyncState` lets it run in
+windowed/incremental extraction without tripping `PZ0313`, and `SyncState` lets it run in
 delta-link mode — replaying an opaque connector-issued token (e.g. a Microsoft Graph
 `@odata.deltaLink`) verbatim instead of filtering on an orderable cursor, for APIs that hand back
 a "call this URL next time" pointer rather than a queryable date/id field. A dataset configured
@@ -618,10 +603,10 @@ drift (`--no-lock-check` exists for emergencies, loudly). CI is therefore byte-f
 reproducible.
 
 > [!NOTE]
-> The alternative — generating a synthetic csproj and shelling out to `dotnet restore` — was
-> rejected: it requires an SDK install, makes error surfaces MSBuild-shaped, and adds seconds
-> of overhead. In-proc NuGet is more work once, better forever. A `RestoreStrategy` seam
-> remains so an MSBuild fallback can exist for exotic feed setups.
+> Generating a synthetic csproj and shelling out to `dotnet restore` would require an SDK
+> install, make error surfaces MSBuild-shaped, and add seconds of overhead — in-process NuGet
+> avoids all three. A `RestoreStrategy` seam remains so an MSBuild fallback can exist for exotic
+> feed setups.
 
 ## ABI versioning
 
@@ -820,12 +805,10 @@ for what guarantee a partitioned write provides on commit/crash.
 
 Two additional, independent levers exist in the ABI to keep a universal-tier read over a very
 large file set cheap on memory and per-file overhead, complementing [date-partitioned
-pruning](#date-partitioned-paths) above (see [Performance: Many small
-files](/performance/#many-small-files) for when to reach for each). **Neither has a
-first-party implementor today**: the `azureblob` connector, previously the only builtin to wire
-either up, now reads exclusively through the native tier, which hands DuckDB the whole matched
-file list/glob in one `read_parquet([...])`/`read_csv([...])` call and needs no engine-side
-coalescing or lazy enumeration.
+pruning](#date-partitioned-paths) above. **Neither has a first-party implementor today**: the
+`azureblob` connector reads exclusively through the native tier, which hands DuckDB the whole
+matched file list/glob in one `read_parquet([...])`/`read_csv([...])` call and needs no
+engine-side coalescing or lazy enumeration.
 
 - **Streaming partition enumeration** — a source that advertises
   `ConnectorCapabilities.StreamingPartitions` yields partitions lazily as it enumerates, instead

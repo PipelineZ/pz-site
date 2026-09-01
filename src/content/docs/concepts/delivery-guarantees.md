@@ -51,12 +51,12 @@ a keyed upsert makes "the same slice landed twice" indistinguishable from "it la
 so is `replace` when it's legal: a full overwrite means last write wins. `append` has no such
 protection, whichever read shape feeds it.
 
-- **`incremental` × `replace` is a new refusal** (`PZ0335`, previously silently legal): each run
+- **`incremental` × `replace` is refused** (`PZ0335`): each run
   would replace the target with only the newest slice, discarding everything an ordered-cursor
   read relies on staying put across runs. The matrix makes this bug unrepresentable.
 - **`feed` × `replace` is refused at plan time** (`PZ0335`): a connector-managed feed's read is
   not guaranteed to be a complete snapshot — replace would discard previously delivered rows. The
-  refusal is unconditional this cycle; a future snapshot-declaring feed capability (a
+  refusal is unconditional today; a future snapshot-declaring feed capability (a
   `ConnectorCapabilities` flag by which a full-snapshot feed says "every read is complete") would
   let such a feed legally replace. `ExecutionPlanner` raises it, because only the planner holds the
   opened connector and the dataset's resolved read shape.
@@ -110,7 +110,7 @@ leaving an operator to assume the historical "everything unwound" behavior:
 | `none` | Abort cleans up nothing — every delivered row is already visible downstream. `Pz.Connector.Http` is `None`: you cannot un-POST a request that already returned 2xx. |
 
 **The presence rule.** A failed `SinkWrite` whose connector is *not* `DiscardsAll` reports a
-`delivery` block instead of the plain failure message that used to imply cleanup happened:
+`delivery` block, since a plain failure message alone would incorrectly suggest cleanup happened:
 
 ```
 delivery stopped: up to 340 row(s) already visible at the destination (abort: none)
@@ -149,8 +149,8 @@ gets its folder's own write-strategy guarantee (`replace` overwrites that folder
 `append` is at-least-once for it) — so the write is at-least-once **at the partition-set level**,
 the same "a slice may be revisited" shape as the `append` column above, one level up.
 
-Staging every partition's temp blob and promoting the whole set together was considered and
-rejected: "promote N blobs" is not itself atomic on an object store, so an all-or-nothing scheme
+Staging every partition's temp blob and promoting the whole set together would not gain
+atomicity: "promote N blobs" is not itself atomic on an object store, so an all-or-nothing scheme
 would still leave a partial set observable to a crash mid-promote, and would need its own
 manifest/marker to make that set self-describing — more machinery for a guarantee it can't
 actually deliver. Per-partition atomic is simpler and matches how other object-store partitioned
@@ -199,10 +199,10 @@ pattern with different semantics, not the case this rule targets.
 > Compilation separately emits a non-fatal advisory notice for an explicit `sync: { mode: auto }`
 > dataset reaching a non-`merge` sink without consent — including a `replace` sink. It cannot fire
 > for an `incremental` dataset: `PZ0335` refuses `replace` and `PZ0214` refuses unconsented
-> `append` first, so an incremental read never reaches a non-`merge` sink. The notice predates this
-> page's doctrine and speaks only in terms of "non-merge", so it flags a `replace`-fed `auto`
+> `append` first, so an incremental read never reaches a non-`merge` sink. The notice
+> speaks only in terms of "non-merge", so it flags a `replace`-fed `auto`
 > dataset even though `replace` is effectively-once per the matrix above; treat it as a coarse
-> legacy nag, not a correctness signal. `write: { duplicates: accept }` silences it the same way
+> nag, not a correctness signal. `write: { duplicates: accept }` silences it the same way
 > it silences `PZ0214` — consent given once shouldn't be nagged about twice.
 
 ## PZ0335: incremental × replace is refused
@@ -274,13 +274,12 @@ reads each row once and has no boundary re-read.
 
 ## How `pz retry` staging reuse works
 
-A successful `pz retry` used to be unable to advance the watermark at all: retry selects only the
-prior run's failed/skipped nodes plus their ancestors, so a sink that already *succeeded* is never
-re-selected, and watermark advancement requires every structural `SinkWrite` descendant to be
-present-and-succeeded in *this run's own* results. That blocked advancement even after a fully
-successful retry — and the next `pz run` would then re-extract the same slice and redeliver it to
-every sink, duplicating rows in whichever ones were already committed. Retry staging reuse and
-carried-forward sinks close that loop.
+Retry selects only the prior run's failed/skipped nodes plus their ancestors, so a sink that
+already *succeeded* is never re-selected on its own — but watermark advancement requires every
+structural `SinkWrite` descendant to be present-and-succeeded in *this run's own* results. Retry
+staging reuse and carried-forward sinks close that gap, so a fully successful retry advances the
+watermark instead of leaving the next `pz run` to re-extract the same slice and redeliver it to
+every sink, duplicating rows in whichever ones were already committed.
 
 ### Reuse: copying instead of re-extracting
 

@@ -185,15 +185,10 @@ in progress (CLI or another MCP call) is refused with `PZ0604`, never blocked on
 
 ## Resources
 
-The server publishes no MCP resources.
-
-It previously embedded a curated doc set (`pz://docs/<path>`), built into the
-binary. Those were replaced by the `pz_docs_*` tools above, which read the
-published documentation from the site: an embedded copy answers from whatever was
-true when that build of `pz` was cut, which is quietly wrong for anyone not on the
-latest release. **This is a breaking change** to an otherwise append-only
-contract, taken deliberately while the surface is pre-1.0. A client that read
-those resources should call `pz_docs_list`/`pz_docs_search`/`pz_docs_get`.
+The server publishes no MCP resources. Documentation is served through the
+`pz_docs_*` tools above, which read the published documentation from the site
+rather than an embedded copy — fetching live means the answer reflects the
+current site rather than whatever was true when a given build of `pz` was cut.
 
 The documentation was never load-bearing and still isn't: every rule it states is
 also surfaced through tool `next_step` texts and `pz_project_overview`, so a

@@ -161,9 +161,7 @@ leaves a half-written destination (article 4's replace-safely rule).
 Where both ends of an edge speak SQL, `pz` hands DuckDB a fragment and steps out of the way -
 the data never enters .NET at all; where they don't, it streams as Arrow batches rather than
 row by row. That is measured, not asserted: a million rows SQL Server to SQL Server, end to
-end, takes 10.5 s on a laptop, and `pz plan` prints the memory budget before you run. The
-[performance page](/performance/) has every number and the scripts to re-run them on your own
-hardware.
+end, takes 10.5 s on a laptop, and `pz plan` prints the memory budget before you run.
 
 `pz run <name>` runs one *flow* - that node plus everything upstream and downstream. On a
 project with several independent flows, bare `pz run` refuses (so you never run the world

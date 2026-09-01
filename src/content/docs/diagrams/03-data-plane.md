@@ -162,7 +162,7 @@ never leaves a half-replaced table.
 - **Which tier does Azure get?** Native-only for reads: every azure read rides the native
   scan/copy over DuckDB's `azure` extension — there is no universal fallback to demote onto, so
   `engine.force_universal` on an azure read dataset is refused at plan time (PZ0312) instead of
-  silently routing to a stream that no longer exists. The universal tier survives on azure for
+  silently routing to a stream that doesn't exist. The universal tier survives on azure for
   **writes only**: `partition_by` fan-out (routing rows into per-day folders) isn't expressible
   in one native `COPY`, so it streams Arrow batches over the Azure Storage SDK. Blob
   (`az://`/`azure://`) and ADLS Gen2 (`abfss://`) both read through the native path; `abfss://`

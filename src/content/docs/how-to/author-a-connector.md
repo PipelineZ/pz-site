@@ -211,8 +211,7 @@ public ConnectorCapabilities Capabilities =>
 One structural rule the compiler/planner enforce so you don't have to: **single-partition only
 (`PZ0316`)** — a dataset resolving to the `feed` read shape is refused at plan time if the same
 connector also declares `PartitionedRead` or `StreamingPartitions` — one opaque token cannot
-reconcile state across independent partitions. The old two-YAML-block "mutually exclusive with
-ordered-cursor incremental" rule is gone: `sync:` is one block with one `mode` field
+reconcile state across independent partitions. `sync:` is one block with one `mode` field
 (`auto`/`incremental`/`cdc`), so declaring both an opaque token and an ordered cursor *in YAML
 block form* isn't representable. One conflict the single block can't rule out survives, though:
 declaring `sync: {mode: incremental}` (or a SQL `watermark()`) on a dataset whose connector manages
@@ -516,9 +515,7 @@ A connector package may ship a `pz.connector.json` file at the root of its packa
 
 > [!NOTE]
 > The manifest exists so it can be read as a small, untrusted JSON file and rejected as
-> incompatible **before spawning a process or loading any assembly at all** — previously,
-> incompatibility was only detected after arbitrary package code had run. The full rationale is
-> in [Connectors](/concepts/connectors/).
+> incompatible **before spawning a process or loading any assembly at all**.
 
 What the host does with it:
 

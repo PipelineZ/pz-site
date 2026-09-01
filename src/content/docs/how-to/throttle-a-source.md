@@ -58,8 +58,7 @@ than firing immediately.
 > [!IMPORTANT]
 > **The unit is operations, not rows.** `rate_limit:` paces how often the connector talks to the
 > remote endpoint — it has no notion of row count, and it does not resurrect the old
-> `max_rows_per_second` dataset/output option (removed for being the wrong lever — see decision 21
-> in the [architecture overview](/concepts/architecture-overview/) decision log).
+> `max_rows_per_second` dataset/output option (removed for being the wrong lever).
 > A single HTTP page can carry anywhere from zero to thousands of rows; `rate_limit:` doesn't
 > know or care — it only counts the round-trip.
 

@@ -36,9 +36,8 @@ select * from {{ source('erp', 'dbo.orders') }}
 ```
 
 Every other pipeline then writes `ref('stg_orders')`. That gives one extraction shared by every
-consumer — the same shape pz produced implicitly before the rule existed, except the shared relation
-is a file you wrote and can open. Shared narrowing goes in that file too, so the assumption is
-written down rather than emerging from two others:
+consumer, and the shared relation is a file you wrote and can open. Shared narrowing goes in that
+file too, so the assumption is written down rather than emerging from two others:
 
 ```sql
 select * from {{ source('erp', 'dbo.orders') }}
@@ -114,8 +113,7 @@ each its own upstream.
 
 Two chains cannot share a `source()` dataset instead — that is `PZ0349` (see
 [One reader per source dataset](#one-reader-per-source-dataset) above). A shared staging pipeline is
-how sources reach several chains, and it connects them into one flow exactly as a shared source node
-used to.
+how sources reach several chains, connecting them into one flow.
 
 ## The eight phases
 
@@ -208,10 +206,8 @@ DuckDB gets **one process-wide database with one serialized connection per run**
 concurrent statement execution, and unguarded dispatch raced on DuckDB's native pending-query
 state. Concurrent pipeline queries are dispatched by the topological dispatcher, not run over
 parallel connections. This is a
-correctness constraint, not a performance problem: the measured concurrent/sequential ratio is
-0.94–1.04 (see [Performance](/performance/)) — the gate serializes real DuckDB work with
-minimal overhead. As-built limitation: connection-per-operation is a later
-spike.
+correctness constraint, not a performance problem: the gate serializes real DuckDB work with
+minimal overhead.
 
 Cancellation is a single `CancellationToken` tree: Ctrl-C is graceful (stop dispatching, cancel
 nodes, abort sink sessions, finalize artifacts); a second Ctrl-C forces. Connectors must honor

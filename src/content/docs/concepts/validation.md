@@ -90,10 +90,6 @@ project states that are legitimate, not broken:
 |---|---|---|---|
 | `PZ0223` | Dead-leaf pipeline | A non-ephemeral pipeline has no `INSERT INTO` **and** is consumed by no `ref()` — it computes a result nothing uses | Add an `INSERT INTO {{ sink(...) }}` or a `ref()` consumer, or leave it if this is temporary (e.g. inspecting intermediate data) |
 
-> **Retired: `PZ0207`** (orphan sink output). Since outputs are created by the `sink()` call that
-> names them (2026-07-28 connections spec), an output cannot exist without a writer. The code is
-> not reused.
-
 Warnings are printed as `warning: PZ#### ...` lines by `pz validate`, `pz plan`, and `pz run`,
 aggregated alongside (but kept distinct from) the error list — never fail-one-at-a-time, same
 as errors. The distinguishing property: **warnings never change the exit code and never block a

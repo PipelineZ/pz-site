@@ -92,13 +92,9 @@ pipeline latency, memory bounds, and progress reporting granular.
 
 Because staging is disk-backed and the .NET side only ever holds in-flight batches, a dataset
 larger than RAM is the *default* case, not a special mode. DuckDB's `memory_limit` governs
-spill; the engine's own memory use stays bounded by the channel formula above. How the static
-budget is computed — and the measured baselines — are in [Performance](/performance/),
-which documents the 0.94–1.04 concurrent/sequential gate ratio behind the single-connection
-decision.
+spill; the engine's own memory use stays bounded by the channel formula above.
 
 ## Next steps
 
 - [The execution model](/concepts/execution-model/) — how nodes and channels drive this data plane.
 - [Connectors](/concepts/connectors/) — the ABI a connector implements to feed it.
-- [Performance](/performance/) — budget formula and benchmarks.

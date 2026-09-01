@@ -362,9 +362,9 @@ up to N row(s) already visible...` rather than implying anything unwound.
 > internal id, not an email address or an account number) if your endpoint or its errors might
 > be logged somewhere you don't control.
 >
-> `{key}` is reserved across ALL path validation, not just this sink's own — a literal `{key}`
-> in a file-connector path (LocalFiles/S3/AzureBlob's calendar-token templating) is no longer
-> rejected as an unknown token; it lands as a literal path segment.
+> `{key}` is reserved across ALL path validation, not just this sink's own — but a literal `{key}`
+> in a file-connector path (LocalFiles/S3/AzureBlob's calendar-token templating) is accepted as a
+> literal path segment rather than rejected as an unknown token.
 
 **Checkpointing is automatic.** The connector declares `CheckpointableWrites`: under `pz retry` or
 a same-run retry attempt, the engine resumes delivery past whatever prefix the destination has
