@@ -91,14 +91,14 @@ else your team ships.
 
 ```sql title="pipelines/orders_enriched.sql"
 INSERT INTO {{ sink('lake', 'orders_curated',
-                    strategy: 'replace', format: 'parquet') }}
-select
+    strategy: 'replace', format: 'parquet') }}
+SELECT
     o.id,
     o.amount,
     c.email
-from {{ ref('stg_orders') }} as o
-join {{ source('raw', 'customers') }} as c
-  on c.id = o.customer_id
+FROM {{ ref('stg_orders') }} AS o
+JOIN {{ source('raw', 'customers') }} AS c
+    ON c.id = o.customer_id
 ```
 
 ```yaml title="connections.yml"
@@ -131,7 +131,7 @@ change gets caught in review, not in production.
 <span class="fname">pipelines/orders_enriched.sql</span>
 <span class="stat"><span class="add">+3</span> <span class="rem">-1</span></span>
 </div>
-<pre><span class="dl ctx"> INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated',</span><span class="dl rem"><span class="mark-rem">-</span>                    strategy: 'replace', format: 'parquet') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>                    strategy: 'merge', key: ['id'], format: 'parquet') {'}'}{'}'}</span><span class="dl ctx"> select</span><span class="dl ctx">     o.id,</span><span class="dl ctx">     o.amount,</span><span class="dl ctx">     c.email</span><span class="dl ctx"> from {'{'}{'{'} ref('stg_orders') {'}'}{'}'} as o</span><span class="dl ctx"> join {'{'}{'{'} source('raw', 'customers') {'}'}{'}'} as c</span><span class="dl ctx">   on c.id = o.customer_id</span><span class="dl add"><span class="mark">+</span>where o.amount &gt; 0</span></pre>
+<pre><span class="dl ctx"> INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated',</span><span class="dl rem"><span class="mark-rem">-</span>    strategy: 'replace', format: 'parquet') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>    strategy: 'merge', key: ['id'], format: 'parquet') {'}'}{'}'}</span><span class="dl ctx"> SELECT</span><span class="dl ctx">     o.id,</span><span class="dl ctx">     o.amount,</span><span class="dl ctx">     c.email</span><span class="dl ctx"> FROM {'{'}{'{'} ref('stg_orders') {'}'}{'}'} AS o</span><span class="dl ctx"> JOIN {'{'}{'{'} source('raw', 'customers') {'}'}{'}'} AS c</span><span class="dl ctx">     ON c.id = o.customer_id</span><span class="dl add"><span class="mark">+</span>WHERE o.amount &gt; 0</span></pre>
 <div class="pz-review">
 <span class="pz-avatar">MR</span>
 <div class="pz-review-body">
