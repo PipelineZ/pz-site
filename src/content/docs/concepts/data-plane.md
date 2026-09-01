@@ -7,7 +7,13 @@ This article explains how bytes move through PipelineZ: why DuckDB is the hub, t
 connector's data can travel on, why Arrow `RecordBatch` is the one canonical in-memory format,
 and the ownership rules that keep the zero-copy path safe.
 
-![Data plane: two tiers into and out of DuckDB](/diagrams/03-data-plane.png)
+<figure class="dgm">
+  <a href="/diagrams/03-data-plane.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/03-data-plane.png" alt="The data plane: native scan versus streamed Arrow batches, chosen per edge">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/03-data-plane-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## DuckDB is the hub
 

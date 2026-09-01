@@ -7,7 +7,13 @@ This article explains what happens when a project runs: how the DAG is built and
 nodes are, the eight phases every command goes through, how work is dispatched, and how the
 engine reports what it's doing.
 
-![Compile: from files to DAG](/diagrams/02-compile-dag.png)
+<figure class="dgm">
+  <a href="/diagrams/02-compile-dag.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## The DAG
 
@@ -215,7 +221,13 @@ tokens, and the TestKit verifies they do.
 
 ## Observability
 
-![Run lifecycle and the event stream](/diagrams/04-run-lifecycle.png)
+<figure class="dgm">
+  <a href="/diagrams/04-run-lifecycle.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: topological dispatch, one typed event stream, and retry semantics">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 There is one structured event stream with multiple renderers — the console tree, NDJSON, and
 (later) OTel are all views over the same events.
