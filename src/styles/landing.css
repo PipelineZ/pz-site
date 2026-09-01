@@ -299,10 +299,9 @@
 	[data-has-hero] .hero {
 		grid-template-columns: 1fr 1fr;
 		gap: 2.5rem;
-		/* Starlight centers the row by default — against the tall
-		   hub-and-spoke diagram that leaves a wide dead zone above the
-		   headline. Align both columns to the top instead. */
-		align-items: start;
+		/* Keep Starlight's default row centering — the artifact centers
+		   the text against the diagram too, so the headline lines up with
+		   the hub, not the top edge of the (much taller) diagram box. */
 	}
 	[data-has-hero] .hero > .hero-html {
 		width: min(100%, 34rem);
