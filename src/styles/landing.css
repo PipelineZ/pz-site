@@ -14,7 +14,10 @@
 	--pz-teal: #3e8f82;
 }
 
-/* Hero: display type + soft atmosphere behind the splash page */
+/* Hero: display type + soft atmosphere behind the splash page.
+   Font sizes below pin to the values in the approved mockup — Starlight's
+   own hero/heading clamps run a bit larger (looser line-height on the
+   h1, a wider tagline clamp, a taller section h2). */
 [data-has-hero] .hero h1,
 [data-has-hero] .sl-markdown-content h2 {
 	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
@@ -22,6 +25,13 @@
 [data-has-hero] .hero h1 {
 	font-weight: 800;
 	letter-spacing: -0.02em;
+	line-height: 1.03;
+}
+[data-has-hero] .hero .tagline {
+	font-size: 1.02rem;
+}
+[data-has-hero] .sl-markdown-content h2 {
+	font-size: clamp(1.5rem, 2.4vw, 2.1rem);
 }
 .pz-hero-line { display: block; }
 .pz-hero-flame {
@@ -271,7 +281,7 @@
 .pz-section { margin-top: 4rem; }
 /* Starlight's splash hero reserves up to 10rem of block padding — trim it */
 [data-has-hero] .hero {
-	padding-block: clamp(1.5rem, 4vmin, 3rem) 0;
+	padding-block: clamp(1rem, 3vmin, 2rem) 0;
 }
 /* Starlight defaults the hero to a 7fr/4fr split with the image capped at
    25rem — too little room for the hub-and-spoke diagram, which ends up
@@ -282,6 +292,10 @@
 	[data-has-hero] .hero {
 		grid-template-columns: 1fr 1fr;
 		gap: 2.5rem;
+		/* Starlight centers the row by default — against the tall
+		   hub-and-spoke diagram that leaves a wide dead zone above the
+		   headline. Align both columns to the top instead. */
+		align-items: start;
 	}
 	[data-has-hero] .hero > .hero-html {
 		width: min(100%, 34rem);
@@ -316,7 +330,7 @@
 .pz-kicker {
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	font-size: var(--sl-text-xs);
+	font-size: 0.7rem;
 	font-weight: 600;
 	color: var(--sl-color-accent-high);
 }
