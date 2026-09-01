@@ -279,9 +279,16 @@
 
 /* Section rhythm + code showcase grid */
 .pz-section { margin-top: 4rem; }
-/* Starlight's splash hero reserves up to 10rem of block padding — trim it */
+/* Starlight's splash hero reserves up to 10rem of block padding, and the
+   surrounding content-panel adds another 24px of its own on every page —
+   trim both on the homepage so the whole hero (headline + diagram
+   together) sits close under the nav instead of floating in a tall
+   empty band. */
+[data-has-hero] .content-panel {
+	padding-top: 0.5rem;
+}
 [data-has-hero] .hero {
-	padding-block: clamp(1rem, 3vmin, 2rem) 0;
+	padding-block: clamp(0.5rem, 2vmin, 1rem) 0;
 }
 /* Starlight defaults the hero to a 7fr/4fr split with the image capped at
    25rem — too little room for the hub-and-spoke diagram, which ends up
