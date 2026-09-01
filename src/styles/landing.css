@@ -156,7 +156,7 @@
 	flex: none; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: #14110a;
 	display: flex; align-items: center; justify-content: center;
 }
-.pz-duck-badge svg { width: 0.95rem; height: 0.95rem; }
+.pz-duck-badge svg { width: 1.1rem; height: 1.1rem; }
 .pz-spoke {
 	position: absolute; left: 50%; top: 50%; height: 2px; width: 21%; transform-origin: 0 50%;
 	transform: rotate(var(--a));
@@ -175,8 +175,8 @@
 	background: var(--sl-color-gray-6);
 }
 .pz-cat-name { font-size: 0.58rem; color: var(--sl-color-white); font-weight: 700; line-height: 1.15; }
-.pz-cat-icons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.3rem; }
-.pz-cat-icons svg { height: 13px; width: auto; flex: none; }
+.pz-cat-icons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.35rem; }
+.pz-cat-icons svg { height: 18px; width: auto; flex: none; }
 .pz-cat-dir {
 	font-family: var(--__sl-font-mono, ui-monospace, monospace);
 	font-size: 0.46rem;
@@ -198,7 +198,7 @@
 	.pz-hub .pz-hub-core { grid-area: hub; }
 	.pz-hub-core strong { font-size: 0.78rem; }
 	.pz-cat-name { font-size: 0.78rem; }
-	.pz-cat-icons svg { height: 20px; }
+	.pz-cat-icons svg { height: 24px; }
 	.pz-cat-dir { font-size: 0.64rem; padding: 0.15rem 0.5rem; }
 	.pz-hub .pz-cat-dw { grid-area: dw; } .pz-hub .pz-cat-cloud { grid-area: cloud; }
 	.pz-hub .pz-cat-saas { grid-area: saas; } .pz-hub .pz-cat-files { grid-area: files; }
