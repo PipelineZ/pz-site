@@ -7,7 +7,13 @@ PipelineZ is a CLI-first, batch-oriented ETL framework for .NET that applies dbt
 to **data movement**, not analytics modeling. This article is the hub for the concept pages:
 it covers the design principles and how the pieces fit together.
 
-![Overview: hub-and-spoke with DuckDB as the hub](/diagrams/01-overview.png)
+<figure class="dgm">
+  <a href="/diagrams/01-overview.png">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/01-overview.png" alt="Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt">
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/01-overview-dark.png" alt="" aria-hidden="true">
+  </a>
+  <figcaption>Click the diagram to open it full size.</figcaption>
+</figure>
 
 ## Design principles
 
