@@ -1,197 +1,126 @@
 ---
 title: "Use pz with an AI agent"
-description: "From your project directory, wire up one or more clients in one step:"
+description: "How to connect an MCP client such as Claude Code, VS Code, or GitHub Copilot CLI to pz mcp, and what the server does and does not expose by default."
+sidebar:
+  order: 16
 ---
 
 `pz mcp` serves the current project to any [Model Context Protocol](https://modelcontextprotocol.io)
-client — Claude Code, VS Code, GitHub Copilot CLI, opencode, or a custom agent — as a
-set of typed tools: introspect the project, run `pz validate`/`pz compile`/`pz plan`
-as a fix loop, author `connections.yml`/`pipelines/*.sql` with self-verifying edits,
-and — only if you opt in — actually run the project. pz never calls an LLM itself;
-the agent lives entirely on the other side of the protocol. Full contract:
+client, such as Claude Code, VS Code, GitHub Copilot CLI, or opencode, as a set of typed tools:
+introspect the project, run `pz validate`/`pz compile`/`pz plan` as a fix loop, author
+`connections.yml`/`pipelines/*.sql` with self-verifying edits, and, only if you opt in, actually
+run the project. pz never calls an LLM itself; the agent lives entirely on the other side of the
+protocol. Read this guide to connect a client. The full envelope and tool table live in the
 [MCP contract reference](/reference/mcp-contract/).
 
-## Quickstart: `pz mcp init`
+## Prerequisites
 
-From your project directory, wire up one or more clients in one step:
+- A `pz` project. Follow the [quickstart](/quickstart/) if you don't have one yet.
+- One of the four supported clients, or any MCP client that can launch a local stdio server.
 
-```bash
-pz mcp init claude-code
-pz mcp init vscode claude-code copilot-cli opencode   # several at once
-pz mcp init --all                                      # all four
-```
+## Steps
 
-This does two things per client, merge-preservingly (existing config files keep
-every other key and every other server entry — only the `pz` entry is written or
-updated):
+1. **Wire up one or more clients in one command**, from the project directory:
 
-1. Writes (or updates) that client's MCP config file with a `pz` server entry
-   pointing at `pz mcp` (see [Manual setup](#manual-setup) below for the exact
-   shape each client gets).
-2. Installs the embedded `pz-pipelines` skill — a `SKILL.md` plus the
-   `authoring-for-agents.md` guide — into the locations that client's ecosystem
-   looks for skills in, so an agent that supports skills gets pz-specific
-   authoring guidance without you writing any of it by hand.
+   ```bash
+   pz mcp init claude-code
+   pz mcp init vscode claude-code copilot-cli opencode   # several at once
+   pz mcp init --all                                     # all four
+   ```
 
-Re-running is idempotent: the same inputs produce the same files, with any prior
-`pz` entry replaced in place.
+   This is merge-preserving: existing config files keep every other key and every other server
+   entry, and only the `pz` entry is written or updated. Re-running is idempotent.
 
-Pass `--allow-run` to bake the flag into the generated server entry for every
-selected client (see below for what it unlocks). `--skill-locations` overrides
-which skill directories get installed — see [Skill install locations](#skill-install-locations).
-Add `--project <dir>` to target a project other than the current directory.
+   For each client, `pz mcp init` also installs the embedded `pz-pipelines` skill, a `SKILL.md`
+   plus an authoring guide, into the locations that client's ecosystem looks for skills in. Pass
+   `--skill-locations` to override which locations get installed; see the
+   [CLI reference](/reference/cli/#pz-mcp-init) for the full token list.
 
-No client named and no `--all` is a `PZ0605` error listing the four client names —
-explicit over implicit, the same posture as a bare `pz run` on a multi-flow
-project.
+2. **Decide whether the agent may run the project.** Without `--allow-run`, the server exposes
+   only introspection, verification, and authoring tools. It can read your project, validate its
+   own edits, and iterate on `connections.yml`/pipeline SQL, but it cannot move data, hit a real
+   database, or advance a watermark. The three execution tools are absent from the tool listing
+   entirely when the flag is off, not present-but-refusing, so a connected agent never plans
+   around a capability it doesn't have.
 
-## `--allow-run`: off by default, on purpose
+   Add `--allow-run` only when you want the agent to run the project itself:
 
-Without `--allow-run`, the server exposes only introspection, verification, and
-authoring tools — nothing that moves real data or advances a watermark. The three
-execution tools (`pz_run`, `pz_retry`, `pz_run_results`) are **absent from the tool
-listing entirely** when the flag is off, not present-but-refusing: the connected
-agent never even sees them, so it can't plan around a capability it doesn't have.
+   ```bash
+   pz mcp --allow-run                    # direct invocation
+   pz mcp init claude-code --allow-run   # baked into the generated client config
+   ```
 
-This makes the server safe to point an agent at by default: it can read your
-project, validate its own edits, and iterate on `connections.yml`/pipeline SQL —
-but it cannot move data, hit a real database, or advance state — until an operator
-(a human, deliberately) starts the server with `--allow-run`. That's a server-start
-flag, not something a model can toggle from inside a conversation.
+   That's a server-start flag, decided by whoever launches `pz mcp`, not something a model can
+   toggle from inside a conversation. A gated run reports once, when it finishes, with the full
+   node-by-node summary; its events do not stream to the client as progress notifications in this
+   version. Watch a long run live with the CLI's own output or the NDJSON event stream instead.
 
-```bash
-pz mcp --allow-run          # direct invocation
-pz mcp init claude-code --allow-run   # baked into the generated client config
-```
+3. **If your client isn't one of the four**, wire it up by hand. Every client needs the same two
+   things: a command to launch (`pz mcp`, optionally with `--allow-run`) and a working directory
+   at the project root.
 
-A gated run reports **once, when it finishes** — the run's events do not stream to
-the client as MCP progress notifications in this version (deliberately deferred; the
-final result carries the full node-by-node summary either way). Watch a long run
-live with the CLI's own output or the NDJSON event stream instead.
+   | Client | Config file | Top-level key |
+   |---|---|---|
+   | `vscode` | `<project>/.vscode/mcp.json` | `servers.pz` |
+   | `claude-code` | `<project>/.mcp.json` | `mcpServers.pz` |
+   | `copilot-cli` | `~/.copilot/mcp-config.json` | `mcpServers.pz` |
+   | `opencode` | `<project>/opencode.json` | `mcp.pz` |
 
-## What `pz mcp init` writes
+   For a generic client: `command: pz`, `args: [mcp]` (add `--allow-run` if the client supports
+   execution tools), and `cwd` set to the project root. A client that can't set `cwd` can pass the
+   directory explicitly instead: `args: [mcp, --project, /path/to/project]`.
 
-| Client | Config file | Top-level key |
-|---|---|---|
-| `vscode` | `<project>/.vscode/mcp.json` | `servers.pz` |
-| `claude-code` | `<project>/.mcp.json` | `mcpServers.pz` |
-| `copilot-cli` | `~/.copilot/mcp-config.json` (the one user-global target — every other client's file is project-local) | `mcpServers.pz` |
-| `opencode` | `<project>/opencode.json` | `mcp.pz` |
+## Verify
 
-An existing config file that fails to parse as JSON is refused outright (`PZ0605`)
-— left byte-untouched, never overwritten with a fresh empty file.
+Ask the connected client to call `pz_project_overview`. A working connection returns the
+project's name, flows, connections, and pipelines; a failed one means the client couldn't launch
+`pz mcp` or reach it over stdio, usually a wrong command path or working directory.
 
-### Skill install locations
+## Concurrency
 
-| `--skill-locations` token | Directory | Installed by default for |
-|---|---|---|
-| `standard` | `.agents/skills/pz-pipelines/` | always |
-| `claudecode` | `.claude/skills/pz-pipelines/` | `claude-code` |
-| `github` | `.github/skills/pz-pipelines/` | `vscode`, `copilot-cli` |
-| `opencode` | `.opencode/skill/pz-pipelines/` (singular `skill`, matching that ecosystem's own convention) | `opencode` |
-
-The default install set is `standard` plus whatever the clients you named imply;
-pass `--skill-locations all`, `--skill-locations none`, or an explicit
-comma-separated list to override. An unrecognized token is `PZ0605`, checked
-before any file is written — a typo never partially installs.
-
-## Manual setup
-
-If your client isn't one of the four `pz mcp init` covers, or you'd rather wire it
-up by hand, every client needs the same two things: a command to launch (`pz mcp`,
-optionally with `--allow-run`) and a working directory at the project root. The
-four shapes `pz mcp init` itself generates, for reference:
-
-**VS Code** (`.vscode/mcp.json`, `servers.pz`):
-
-```json
-{ "type": "stdio", "command": "pz", "args": ["mcp"] }
-```
-
-**Claude Code** (`.mcp.json`, `mcpServers.pz`) — equivalent to
-`claude mcp add pz -- pz mcp`:
-
-```json
-{ "command": "pz", "args": ["mcp"] }
-```
-
-**GitHub Copilot CLI** (`~/.copilot/mcp-config.json`, `mcpServers.pz`):
-
-```json
-{ "type": "local", "command": "pz", "args": ["mcp"], "tools": ["*"] }
-```
-
-**opencode** (`opencode.json`, `mcp.pz`):
-
-```json
-{ "type": "local", "command": ["pz", "mcp"], "enabled": true }
-```
-
-For a generic client that isn't any of these four: `command: pz`, `args: [mcp]`
-(add `--allow-run` to the args if the client supports execution tools), and
-`cwd` set to the project root — `pz mcp` serves the project in its current working
-directory by default. A client that cannot set `cwd` can pass the directory
-explicitly instead: `args: [mcp, --project, /path/to/project]` (`--project` works on
-both `pz mcp` and `pz mcp init`).
-
-## Concurrency: two humans, two terminals
-
-The server takes no long-lived project lock. Mutations (`pz_add_connection`,
-`pz_write_pipeline`, ...) are atomic per call — write to a temp file, rename over
-the original — but there is no cross-call transaction, and gated runs take the
-same `RunDirLock` a CLI-invoked `pz run` does. Practically: **two agents (or an
-agent and a human) pointed at one project behave exactly like two humans with two
-terminals.** Last write wins on files; a run and a concurrent run — from either
-side, CLI or MCP — exclude each other (`PZ0604` on the side that loses the race)
-rather than corrupting shared state. This is good enough for a single project with
-a single active author, which is the intended v1 shape; running two agents against
-the same project concurrently and expecting them to merge cleanly is not
-supported.
+The server takes no long-lived project lock. Mutation tools are atomic per call, writing to a
+temp file and renaming over the original, but there is no cross-call transaction, and a gated run
+takes the same run lock a CLI-invoked `pz run` does. Two agents (or an agent and a human) pointed
+at one project behave like two humans with two terminals: last write wins on files, and a run
+racing a concurrent run excludes the loser rather than corrupting shared state. Running two agents
+against the same project concurrently and expecting them to merge cleanly is not supported.
 
 ## Secrets
 
-The MCP surface extends the project's existing secret-hygiene rule to authoring:
-connection config values never leave the server, and a mutation tool refuses to
-write one in as plaintext.
+The MCP surface extends the project's existing secret-hygiene rule to authoring. Connection
+config values never leave the server: `pz_project_overview` returns connection names and
+connector types only, never a config value. The mutation tools that write connection config
+require any option whose key name contains `password`, `secret`, `token`, `key`, or
+`connection_string` to be a `${VAR}` reference, the whole value and nothing else. A literal value
+in that shape is refused before any file is written.
 
-- `pz_project_overview` returns connection **names and connector types only** —
-  never a config value. `pz_plan`'s `reason` strings and `pz_state`'s values are
-  the same way; neither can carry a credential.
-- `pz_add_connection`/`pz_update_connection` require any option whose **key name**
-  contains `password`, `secret`, `token`, `key`, or `connection_string` to be a
-  `${VAR}` environment-variable reference — the whole
-  value, nothing else, e.g. `"${DB_PASSWORD}"`. (That key-name heuristic is the
-  whole check in v1: a connector schema marking a property `writeOnly`/
-  `format: password` is not consulted, so a credential-shaped option under an
-  unusual name is your responsibility.) A literal value in that shape is
-  refused with **`PZ0601`** before any file is written or any connector is even
-  resolved — the secret itself never transits the tool result, only the offending
-  key name does. See [Secure connection config](/how-to/secure-connection-config/) for
-  how to get the variable into the process environment in the first place.
-- **A newly exported variable does not reach a running server.** `pz mcp` resolves
-  `${VAR}` against the environment of the process it was launched in, which it
-  inherited from the client at launch — so exporting the variable in some other
-  shell changes nothing until the MCP server is restarted. `PZ0103`'s `next_step`
-  says so explicitly under `pz mcp`, because an agent that cannot see the operator's
-  terminal has no other way to learn it: set the variable where the client will pick
-  it up, then restart the server.
+A newly exported environment variable does not reach a running server: `pz mcp` resolves `${VAR}`
+against the environment it was launched in, inherited from the client at launch. Set the variable
+where the client will pick it up, then restart the server. See
+[Secure connection config](/how-to/secure-connection-config/) for getting a secret into that
+environment in the first place.
 
 ## Paths stay inside the project
 
-Under `pz mcp`, a localfiles `path:`/`root:`/`base_dir:` that resolves outside the
-project directory — `../` traversal or an absolute path elsewhere — is refused with
-**`PZ0606`**, whether it sits in the existing config or in a block an authoring tool
-proposes to write. This matches the posture the mutation tools already take for
-`../` in names (`PZ0602`): the agent surface operates only on files inside the
-project. The plain `pz` CLI is unchanged — your config, your files — so a project
-that legitimately reads outside its own directory still runs from the terminal;
-it just isn't drivable through an agent. The containment check is lexical, a guard
-for steering agents, not a symlink-proof security boundary.
+Under `pz mcp`, a `localfiles` `path:`/`root:`/`base_dir:` that resolves outside the project
+directory, `../` traversal or an absolute path elsewhere, is refused, whether it sits in existing
+config or in a block an authoring tool proposes to write. The plain `pz` CLI is unchanged: a
+project that legitimately reads outside its own directory still runs from the terminal, it just
+isn't drivable through an agent.
 
-## Learn more
+## Troubleshooting
 
-- [MCP contract reference](/reference/mcp-contract/) — the full envelope
-  shape, tool-by-tool inputs/results, and the PZ06xx error codes.
-- Once connected, a resource-aware client can pull in the embedded authoring guide
-  and every concepts/how-to doc directly (`pz://docs/...` resources) — ask it to
-  read `pz://docs/reference/authoring-for-agents.md` first if it needs a primer.
+| If you see | Do |
+|---|---|
+| `PZ0605` from `pz mcp init` | No client was named and no `--all` was passed, an existing config file failed to parse as JSON, or `--skill-locations` named an unrecognized token. The message names which. |
+| `PZ0601` from a mutation tool | The proposed connection config carries a credential-shaped value that isn't a `${VAR}` reference. Move it into the environment and reference it with `${VAR}` instead. |
+| `PZ0103` after exporting a new secret | The running server never saw it. Set the variable where the client launches `pz mcp` from, then restart the server. |
+| `PZ0604` on a run tool | Another run already holds the project's run lock, from the CLI or another MCP call. Wait for it to finish. |
+| `PZ0606` from a mutation tool | A `localfiles` path resolves outside the project directory. Point it back inside the project, or make the edit from the CLI instead. |
+
+## Related
+
+- [MCP contract reference](/reference/mcp-contract/): the full result envelope, every tool's inputs and results, and the PZ06xx error codes.
+- [Secure connection config](/how-to/secure-connection-config/): getting a secret into the environment the MCP server reads.
+- [CLI reference](/reference/cli/#pz-mcp): every `pz mcp` and `pz mcp init` flag.
+- [Author a connector](/how-to/author-a-connector/): what an agent using the authoring tools is ultimately editing.

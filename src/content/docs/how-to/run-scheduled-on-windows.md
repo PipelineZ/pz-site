@@ -1,137 +1,131 @@
 ---
-title: "Run scheduled on Windows"
-description: "Production recipe for running pz projects nightly on a Windows host (tested on an Azure Windows VM). Prerequisites: .NET 10 SDK installed; for Azure SQL..."
+title: "Run on a schedule on Windows"
+description: "How to run a pz project nightly on a Windows host using Task Scheduler, tested on an Azure Windows VM."
+sidebar:
+  order: 13
 ---
 
-Production recipe for running pz projects nightly on a Windows host (tested on an Azure
-Windows VM). Prerequisites: .NET 10 SDK installed; for Azure SQL auth, the VM has a
-managed identity (see [secure connection config](/how-to/secure-connection-config/)).
+This guide sets up an unattended, nightly `pz run` on a Windows host, using Task Scheduler and
+a PowerShell wrapper. It was tested on an Azure Windows VM. Read it once you have a project that
+runs correctly by hand and need it running on its own every night.
 
-## 1. Install from the release bundle
+## Prerequisites
 
-Build the bundle on a dev machine and copy it over:
+- The .NET 10 SDK installed on the host.
+- For Azure SQL authentication, a managed identity attached to the VM. See
+  [Secure connection config](/how-to/secure-connection-config/).
+- A release bundle built from a dev machine (`scripts/make-release-bundle.sh` writes
+  `artifacts/pz-bundle-<version>.zip`).
 
-```console
-scripts/make-release-bundle.sh          # writes artifacts/pz-bundle-<version>.zip
-```
+## Steps
 
-On the VM, extract it anywhere and run:
+1. **Install `pz` from the release bundle.** Copy the bundle to the VM, extract it anywhere, and run:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install.ps1
+   ```
 
-This installs `pz.exe` to `C:\pz\tool` from the bundle's own offline feed (no nuget.org
-egress; pass `-ToolPath` to change the location). Upgrades use the same command with a
-newer bundle. Keep the extracted bundle directory: for projects that declare non-builtin
-`connectors:`, set `PZ_FEEDS` (machine or user scope) to the bundle's `feed` directory, or
-pass `pz restore --feeds <dir>`, so `pz restore` also stays offline. To roll back to an older bundle, uninstall first (`dotnet tool
-uninstall pz --tool-path C:\pz\tool`) — `dotnet tool update` refuses downgrades.
+   This installs `pz.exe` to `C:\pz\tool` from the bundle's own offline feed, with no nuget.org
+   egress. Pass `-ToolPath` to change the location. Upgrades use the same command with a newer
+   bundle; to roll back to an older one, uninstall first with
+   `dotnet tool uninstall pz --tool-path C:\pz\tool`, since `dotnet tool update` refuses downgrades.
 
-> [!NOTE]
-> The package id was `Pz.Cli` through `0.2.1`, and is `pz` from `0.2.2` on.
-> `install.ps1` handles the transition: it removes any `Pz.Cli` a pre-rename bundle left at
-> the tool path before installing `pz`, because both packages claim the same `pz.exe` shim
-> and the install would otherwise fail on that collision. Rolling back to a pre-rename
-> bundle works the same way in reverse — uninstall `pz` first.
+   Keep the extracted bundle directory. For a project that declares non-builtin `connectors:`, set
+   `PZ_FEEDS` (machine or user scope) to the bundle's `feed` directory, or pass
+   `pz restore --feeds <dir>`, so `pz restore` also stays offline.
 
-> [!NOTE]
-> **Air-gapped azure reads:** azure datasets read through DuckDB's `azure` extension, which
-> DuckDB fetches on first `INSTALL azure`. On a host without outbound internet, pre-provision
-> it (run one azure-reading flow while networked, or copy DuckDB's extension directory from a
-> networked machine — `%USERPROFILE%\.duckdb\extensions` on Windows; pz does not override
-> `extension_directory`) — there is no SDK fallback read path.
+   :::note
+   The package id was `Pz.Cli` through `0.2.1` and is `pz` from `0.2.2` on. `install.ps1` handles
+   the transition by removing any `Pz.Cli` a pre-rename bundle left at the tool path before
+   installing `pz`, since both packages claim the same `pz.exe` shim.
+   :::
 
-## 2. Lay out projects, state, and logs on the data disk
+   :::note
+   **Air-gapped Azure reads:** azureblob entities read through DuckDB's `azure` extension, which
+   DuckDB fetches on first `INSTALL azure`. On a host with no outbound internet, pre-provision it
+   by running one azure-reading flow while networked, or by copying DuckDB's extension directory
+   (`%USERPROFILE%\.duckdb\extensions` on Windows) from a networked machine. There is no SDK
+   fallback read path.
+   :::
 
-Keep everything that must survive OS servicing on the persistent data disk (not `C:`):
+2. **Lay out projects, state, and logs on the persistent data disk**, not `C:`:
 
-```
-D:\pz\projects\<name>\    # git clone of the project (config + SQL)
-D:\pz\logs\               # NDJSON run logs and per-run stderr logs (written by run-pz.ps1)
-```
+   ```
+   D:\pz\projects\<name>\    # git clone of the project (config + SQL)
+   D:\pz\logs\               # NDJSON run logs and per-run stderr logs
+   ```
 
-Two pieces of state matter inside each project directory:
+   `.pz\state\watermarks.json` holds incremental-load state, local by default. Inspect it with
+   `pz state show`, and repair it with `pz state rollback` / `set` / `clear` rather than an
+   editor. Back up `.pz\state\audit.jsonl` alongside it: it is the record of every manual change
+   and stays local even on a project that moves everything else to a remote store. A VM is
+   long-lived, so local state is the right default here; on an ephemeral host with no persistent
+   disk between runs, move state into SQL Server instead. See
+   [Move state off the local disk](/how-to/remote-state/).
 
-- `.pz\state\watermarks.json` — incremental-load state, local by default. Inspect it with
-  `pz state show`, and repair it with `pz state rollback` / `set` / `clear` rather than an
-  editor. Losing it forces a full re-extract (merge/replace sinks stay correct; append sinks
-  would duplicate) — back it up if that matters: a nightly `Copy-Item` to blob/another disk
-  is sufficient at this stage. Back up `.pz\state\audit.jsonl` alongside it too: that is the
-  record of every manual change, and it stays local even on a project that moves everything
-  else to a remote store. A VM is long-lived, so local state is the right default here; on an
-  ephemeral host (no persistent disk between runs) move state into SQL Server instead — see
-  [Move state off the local disk](/how-to/remote-state/).
-- `.pz\runs\<id>\` — per-run artifacts including a staging DuckDB file. Automatic retention
-  (`retention:` in `project.yml`, on by default at `keep_last: 10`) deletes the staging DB
-  from runs past that window at the end of every `pz run`, keeping every `run_results.json`
-  and leaving `pz retry` able to reuse the newest run's staged data — no wrapper changes
-  needed. The run directories themselves still accumulate; use
-  [`pz clean --older-than 30d --purge`](/reference/cli/) if that becomes a problem. It
-  is safe to run alongside a live `pz run`: a run holds an OS lock on its own directory, and
-  `pz clean` skips locked ones.
+   `.pz\runs\<id>\` holds per-run artifacts, including a staging DuckDB file. Automatic retention
+   (`retention:` in `project.yml`, `keep_last: 10` by default) deletes the staging database from
+   runs past that window at the end of every `pz run`, keeping every `run_results.json`. The run
+   directories themselves still accumulate; use `pz clean --older-than 30d --purge` if that
+   becomes a problem. It's safe to run alongside a live `pz run`, since a run holds an OS lock on
+   its own directory and `pz clean` skips locked ones.
 
-## 3. Configure the task's environment
+3. **Set the task's environment.** Prefer a Key Vault fetch inside the wrapper for secrets, per
+   [Secure connection config](/how-to/secure-connection-config/). Set the OpenTelemetry endpoint
+   if you're forwarding telemetry:
 
-Set what the run needs in the environment the task will see (secrets: prefer a Key Vault
-fetch inside the wrapper — see [secure connection config](/how-to/secure-connection-config/)):
+   ```powershell
+   $env:PZ_OTEL_ENDPOINT = "http://127.0.0.1:4317"
+   ```
 
-```powershell
-PZ_OTEL_ENDPOINT=http://127.0.0.1:4317   # see the Azure Monitor how-to
-```
+4. **Copy the wrapper script and create the scheduled task.** The bundle ships `run-pz.ps1`
+   (also in `scripts/bundle/`): it runs `pz run --all` for one project, captures stdout NDJSON to
+   a dated `.ndjson` log in `D:\pz\logs` and stderr to a sibling `.stderr.log` (deleted when
+   empty), prunes logs older than 30 days, and exits with pz's own exit code.
 
-## 4. Create the scheduled task
+   ```powershell
+   Copy-Item .\run-pz.ps1 C:\pz\
+   ```
 
-The bundle ships `run-pz.ps1` (also in `scripts/bundle/`): it runs `pz run --all` for one
-project, capturing stdout NDJSON to a dated `.ndjson` log in `D:\pz\logs` and stderr to a
-sibling `.stderr.log` (deleted when empty), prunes logs older than 30 days (both patterns),
-and exits with pz's own exit code (0 ok, 1 node failures, 2 config, 3 fatal — or 3 from
-the wrapper itself if pz.exe is missing or fails to start). Copy
-it from the extracted bundle to a stable path first:
+   ```console
+   schtasks /Create /TN "pz nightly mart" /SC DAILY /ST 03:00 /RU SYSTEM ^
+     /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\pz\run-pz.ps1 -ProjectDir D:\pz\projects\mart"
+   ```
 
-```powershell
-Copy-Item .\run-pz.ps1 C:\pz\
-```
+   `/RU SYSTEM` runs headless with no stored password. The VM's system-assigned managed identity
+   is available to any account, including SYSTEM; prefer a gMSA over a password-bearing account if
+   you need a specific service account.
 
-Then create the scheduled task:
+   Schedule one project per task. Never schedule two tasks over the same project directory at
+   overlapping times: there is no engine-level guard, and concurrent runs read-modify-write the
+   shared `.pz\state\watermarks.json`, so the last writer silently clobbers the other's watermark
+   advancement.
 
-```console
-schtasks /Create /TN "pz nightly mart" /SC DAILY /ST 03:00 /RU SYSTEM ^
-  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\pz\run-pz.ps1 -ProjectDir D:\pz\projects\mart"
-```
+## Verify
 
-Notes:
+1. Right-click the task, choose Run, and confirm the log file appears with its node stream ending
+   in a `run_completed` event. A `retention_swept` event may follow it as the stream's actual last
+   line. See [Run events](/reference/events/) for the full event contract.
+2. Break something so the run fails at run time, for example by pointing an entity at a table that
+   no longer exists upstream. Run again and confirm the task's "Last Run Result" shows exit `1`.
+   Fix the break, then run `pz retry --project D:\pz\projects\<name>` from the project directory.
 
-- `/RU SYSTEM` runs headless without a stored password; the VM's **system-assigned managed
-  identity** is available to any account, including SYSTEM. If you need a specific service
-  account, prefer a gMSA over a password-bearing account.
-- One project per task. Never schedule two tasks over the SAME project directory at
-  overlapping times — there is no engine-level guard: concurrent runs read-modify-write
-  the shared `.pz\state\watermarks.json`, so the last writer silently clobbers the
-  other's watermark advancement.
-- The task's "Last Run Result" shows pz's exit code; `0x1` = some nodes failed (check the
-  log and Azure Monitor, then run `pz retry` in the project directory).
+A typo inside a pipeline's SQL fails validation instead, exit `2`, with nothing run. Both paths
+should be visible in the task's exit code, which is what proves the schedule works unattended.
 
-## 5. Verify end to end
+## Troubleshooting
 
-1. Right-click the task > Run; confirm the log file appears and its node stream ends with a
-   `run_completed` event (a `retention_swept` event may follow it as the stream's actual
-   last line — see `docs/events.md`).
-2. Check Application Insights for the `pz.run.completed` metric (status `success`).
-3. Break something so the run fails at RUNTIME — e.g. point a source dataset's name
-   at a table that no longer exists upstream — run again, and confirm the failure alert
-   fires (nodes fail, exit 1, `pz.run.completed` reports `completed_with_failures`).
-   Note: a typo inside a pipeline's SQL fails validation instead (exit 2, nothing runs,
-   no metric) — that path is caught by the exit code in Task Scheduler, not by the
-   metric alert. Fix, then `pz retry` from the project directory.
+| If you see | Do |
+|---|---|
+| Exit `2` in Task Scheduler's "Last Run Result" | Read the log's first `error` lines: they carry `PZ####` codes naming the file and the fix. Nothing ran, so nothing needs cleanup. |
+| Exit `1` | Run `pz retry --project D:\pz\projects\<name>` to re-run only the failed nodes, reusing staged data where safe. |
+| Exit `3`, or no log file at all | A host-level problem: disk, identity, or the .NET runtime. Set up a missing-run alert, per [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/), to catch total silence. |
+| Two tasks silently disagree on a watermark | You scheduled two tasks against the same project directory with overlapping windows. Reschedule so only one task ever runs against a given project at a time. |
 
-That third step passing is what proves the whole path works unattended.
+## Related
 
-## When it breaks
-
-- `pz` exit 2 (config): the log's first `error` lines carry `PZ####` codes naming file and
-  fix; nothing ran, nothing to clean up.
-- Exit 1 (node failures): `pz retry --project D:\pz\projects\<name>` re-runs only what
-  failed, reusing staged data where safe.
-- Exit 3 / no log at all: host-level problem (disk, identity, .NET). The
-  missing-run alert from the Azure Monitor how-to is what catches total silence.
+- [Secure connection config](/how-to/secure-connection-config/): getting secrets into the task's environment without a stored password.
+- [Move state off the local disk](/how-to/remote-state/): the alternative to local `.pz\state` for a host with no persistent disk.
+- [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/): forwarding `PZ_OTEL_ENDPOINT` telemetry from this task to Application Insights.
+- [CLI reference](/reference/cli/): every `pz` exit code and flag used in the wrapper.
+- [Run events](/reference/events/): the NDJSON event stream the wrapper's log captures.

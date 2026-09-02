@@ -1,16 +1,19 @@
 ---
 title: "Versioning and breaking changes"
-description: "v0.x is a public preview. It is installable, tested, and usable for real work — and its surfaces may still change between minor versions (v0.1 → v0.2)...."
+description: "What pz promises about compatibility during the v0.x preview, which surfaces v1.0 will freeze, and how breaking changes are announced."
+sidebar:
+  order: 12
 ---
 
-`pz` and every first-party package version together, computed by MinVer from git tags
-(`v*`). This page is the public promise behind those numbers: what you can rely on
-during v0.x, and what `v1.0.0` will freeze.
+This page is the compatibility promise behind pz version numbers: what you can rely on during
+v0.x, and what `v1.0.0` will freeze. Read it before upgrading a project across minor versions.
+
+`pz` and every first-party package share one version, computed from git tags (`v*`).
 
 ## What v0.x promises
 
-v0.x is a public preview. It is installable, tested, and usable for real work — and
-its surfaces may still change **between minor versions** (v0.1 → v0.2). Concretely:
+v0.x is a public preview. It is installable, tested, and usable for real work. Its surfaces
+may still change **between minor versions** (v0.1 to v0.2). Concretely:
 
 - **Breaking changes land only at minor version bumps**, never at patches. A patch
   release (v0.1.x) only fixes bugs in already-shipped behavior.
@@ -31,21 +34,21 @@ breaking change without a major version.
 | Frozen surface | Contract lives in |
 |---|---|
 | Connector ABI (the ecosystem's contract) | `Pz.Connectors.Abstractions` + [author-a-connector](/how-to/author-a-connector/) |
-| Project YAML schema (`project.yml`, `connections.yml`) | [project-yml reference](/reference/project-yml/) |
+| Project YAML schema (`project.yml`, `connections.yml`) | [project.yml](/reference/project-yml/) and [connections.yml](/reference/connections-yml/) references |
 | CLI verbs, flags, and exit codes | [CLI reference](/reference/cli/) |
-| NDJSON run-event stream | [events.md](/events/) (already append-only by policy) |
-| Error-code registry (`PZ####`) | reference docs |
-| MCP tool surface and `ToolEnvelope` | [mcp-contract.md](/reference/mcp-contract/) (already append-only by policy) |
+| NDJSON run-event stream | [Run events](/reference/events/) (already append-only by policy) |
+| Error-code registry (`PZ####`) | [Error codes](/reference/error-codes/) |
+| MCP tool surface and `ToolEnvelope` | [MCP contract](/reference/mcp-contract/) (already append-only by policy) |
 
-Two of these — the event stream and the MCP envelope — are already governed by
-append-only stability contracts today, enforced by tests that diff the docs against
-the code. v1.0 extends that discipline to the rest.
+Two of these, the event stream and the MCP envelope, already follow append-only stability
+contracts today. The event stream is checked by tests that diff the documentation against the
+code. v1.0 extends that discipline to the rest.
 
 ## What is never covered
 
-- Internal APIs of non-packable projects (`Pz.Core`, `Pz.Engine`, …) — reference
+- Internal APIs of non-packable projects such as `Pz.Core` and `Pz.Engine`. Reference
   them at your own risk.
-- The exact text of log lines, console rendering, and hints — only the NDJSON
+- The exact text of log lines, console rendering, and hints. Only the NDJSON
   stream is a machine contract.
 - `.pz/` internals other than the documented artifacts (`run_results.json`,
   `plan.json`, `pz.lock.json`).
@@ -55,3 +58,9 @@ the code. v1.0 extends that discipline to the rest.
 Every release gets release notes on the GitHub release for its tag, with breaking
 changes listed first. Deprecations, when possible, warn for at least one minor
 version before removal.
+
+## Related
+
+- [Install pz](/install/): how to upgrade the tool.
+- [Error codes](/reference/error-codes/): the registry this page promises to keep stable.
+- [Run events](/reference/events/): the append-only event contract.

@@ -15,15 +15,34 @@ const bookPages = [
 	'08-monitoring-and-observability',
 	'09-best-practices',
 	'10-meet-pz',
-	'11-pz-limitations',
 ];
+
+// Pages that moved or merged in the 2026-09 documentation revamp.
+const movedPages = {
+	'/concepts/architecture-overview': '/internals/architecture',
+	'/concepts/data-plane': '/internals/data-plane',
+	'/concepts/code-tour': '/internals/code-tour',
+	'/concepts/contributing-internals': '/internals/contributing',
+	'/concepts/project-structure': '/concepts/project-layout',
+	'/concepts/execution-model': '/concepts/how-a-run-works',
+	'/concepts/validation': '/concepts/validation-and-errors',
+	'/events': '/reference/events',
+	'/diagrams': '/internals/diagrams',
+	'/diagrams/01-overview': '/internals/diagrams',
+	'/diagrams/02-compile-dag': '/internals/diagrams',
+	'/diagrams/03-data-plane': '/internals/diagrams',
+	'/diagrams/04-run-lifecycle': '/internals/diagrams',
+	'/diagrams/05-resilience-and-resume': '/internals/diagrams',
+	'/how-to/gcs': '/connectors/gcs',
+};
 
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://pipelinez.dev',
-	redirects: Object.fromEntries(
-		bookPages.map((page) => [`/articles/${page}`, `/book/${page}`])
-	),
+	redirects: {
+		...Object.fromEntries(bookPages.map((page) => [`/articles/${page}`, `/book/${page}`])),
+		...movedPages,
+	},
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
@@ -39,23 +58,114 @@ export default defineConfig({
 				{
 					label: 'Start here',
 					items: [
-						{ label: 'Documentation', link: '/docs/' },
-						{ label: 'Quickstart', link: '/quickstart/' },
-						{ label: 'Guides', link: '/guides/' },
-						{ label: 'Connectors', link: '/connectors/' },
+						{ label: 'Documentation', slug: 'docs' },
+						{ label: 'Install', slug: 'install' },
+						{ label: 'Quickstart', slug: 'quickstart' },
+						{ label: 'Tutorial', slug: 'tutorial' },
 					],
 				},
-				{ label: 'Concepts', items: [{ autogenerate: { directory: 'concepts' } }] },
-				{ label: 'How-to', items: [{ autogenerate: { directory: 'how-to' } }] },
+				{
+					label: 'Concepts',
+					items: [
+						'concepts/key-concepts',
+						'concepts/project-layout',
+						'concepts/connections-and-entities',
+						'concepts/pipelines',
+						'concepts/checks',
+						'concepts/incremental-loads',
+						'concepts/selecting-nodes',
+						'concepts/how-a-run-works',
+						'concepts/delivery-guarantees',
+						'concepts/validation-and-errors',
+						'concepts/state',
+						'concepts/schema-contracts',
+						'concepts/connectors',
+					],
+				},
+				{
+					label: 'How-to guides',
+					items: [
+						{ label: 'All guides', slug: 'guides' },
+						{
+							label: 'Ingest',
+							items: [
+								'how-to/extract-from-http-api',
+								'how-to/capture-changes-with-cdc',
+								'how-to/backfill-in-slices',
+							],
+						},
+						{
+							label: 'Reliability',
+							items: [
+								'how-to/run-checks-and-retry',
+								'how-to/tune-retries',
+								'how-to/throttle-a-source',
+								'how-to/handle-schema-drift',
+								'how-to/schema-drift',
+								'how-to/debug-a-failed-run',
+							],
+						},
+						{
+							label: 'Production',
+							items: [
+								'how-to/secure-connection-config',
+								'how-to/remote-state',
+								'how-to/run-in-ci',
+								'how-to/run-scheduled-on-windows',
+								'how-to/observe-runs-with-azure-monitor',
+								'how-to/inspect-and-validate',
+							],
+						},
+						{ label: 'AI agents', items: ['how-to/use-with-an-ai-agent'] },
+						{ label: 'Extend', items: ['how-to/author-a-connector'] },
+					],
+				},
+				{
+					label: 'Connectors',
+					items: [
+						{ label: 'All connectors', slug: 'connectors' },
+						'connectors/localfiles',
+						'connectors/postgres',
+						'connectors/sqlserver',
+						'connectors/mysql',
+						'connectors/sqlite',
+						'connectors/s3',
+						'connectors/azureblob',
+						'connectors/gcs',
+						'connectors/sftp',
+						'connectors/http',
+					],
+				},
 				{
 					label: 'Reference',
 					items: [
-						{ autogenerate: { directory: 'reference' } },
-						{ label: 'Event stream', link: '/events/' },
-						{ label: 'Versioning', link: '/versioning/' },
+						'reference/cli',
+						'reference/project-yml',
+						'reference/connections-yml',
+						'reference/pipeline-config',
+						'reference/template-functions',
+						'reference/error-codes',
+						'reference/environment-variables',
+						'reference/events',
+						'reference/mcp-contract',
+						'reference/authoring-for-agents',
+						{ label: 'Versioning', slug: 'versioning' },
 					],
 				},
-				{ label: 'Diagrams', items: [{ autogenerate: { directory: 'diagrams' } }] },
+				{
+					label: 'Internals',
+					collapsed: true,
+					items: [
+						'internals/architecture',
+						'internals/data-plane',
+						'internals/execution-internals',
+						'internals/resume-internals',
+						'internals/connector-architecture',
+						'internals/code-tour',
+						'internals/contributing',
+						'internals/diagrams',
+					],
+				},
 				{
 					label: 'Data Pipelines: An Article Series',
 					items: [{ autogenerate: { directory: 'book' } }],

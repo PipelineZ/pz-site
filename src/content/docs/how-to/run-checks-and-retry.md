@@ -1,119 +1,107 @@
 ---
-title: "Run checks and retry failures"
-description: "This article shows you how to run only your data-quality checks with pz test, and how to resume a failed run with pz retry instead of re-running everything."
+title: "Run checks and retry"
+description: "How to run only your data-quality checks with pz test, gate a run behind them, and resume a failed run with pz retry instead of re-running everything."
+sidebar:
+  order: 4
 ---
 
-This article shows you how to run only your data-quality checks with `pz test`, and how to
-resume a failed run with `pz retry` instead of re-running everything.
+This page shows how to run only your data-quality checks with `pz test`, gate a run behind them,
+and resume a failed run with `pz retry`. Read it once you have a project with at least one
+[check](/concepts/checks/) declared.
 
 ## Prerequisites
 
 - A runnable project. Follow the [quickstart](/quickstart/) to scaffold one.
+- At least one pipeline with a `checks:` block in its sidecar config. See
+  [Checks](/concepts/checks/) for the six check types and where they're declared.
 
-## Run only the data-quality checks
+## Steps
 
-To execute just the checks — and only the nodes they depend on — use `pz test`:
+### 1. Run only the checks
 
 ```console
 $ pz test
 ok src_raw__customers 3 rows 38ms
-ok src_raw__orders 5 rows 30ms
 ok stg_orders 3 rows 7ms
 ok orders_enriched 3 rows 6ms
 ok check_orders_enriched_not_null_id_email 0 rows 6ms
 ok check_orders_enriched_unique_id 0 rows 3ms
-run <runId>: 6 succeeded, 0 failed, 0 skipped (demo/.pz/runs/<runId>/run_results.json)
+run 20260902T092011003Z-3b7a: 5 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T092011003Z-3b7a/run_results.json)
 ```
 
-`pz test` executes every ancestor a check depends on, plus the checks themselves. Anything with
-no check downstream is skipped — in the quickstart project that's `order_totals`, all three
-sinks, and the whole products flow (`src_raw__products`, `product_catalog`).
+`pz test` runs every check plus the nodes it depends on: the owning pipeline and its sources.
+Anything with no check downstream is skipped. `pz test` takes `--select` to narrow which checks
+run, but no positional flow name: see [Selecting nodes](/concepts/selecting-nodes/).
 
-> [!WARNING]
-> A failing check can record offending data verbatim in `run_results.json` (and in the
-> `--log-format json` NDJSON output) to help you find the bad data: `not_null`/`unique` record
-> up to 5 offending row values, `accepted_values` records up to 5 distinct offending values, and
-> `custom_sql` records up to 5 rows returned by your query. `row_count` and `freshness` never
-> report row data — only counts and bounds. If that isn't acceptable for your project, opt out
-> with `sample_values: false` on the check (or `engine.check_samples: false` project-wide to
-> suppress it everywhere by default).
+### 2. Gate a run behind checks passing
 
-## Choose a check type
+A check is observational. It fails the run but does not stop its pipeline's sink writes: the
+check and the write are siblings, not a gate in front of a door. See
+[Checks](/concepts/checks/#checks-observe-they-dont-gate) for why. If bad data must never reach a
+destination, chain the two commands yourself:
 
-> [!WARNING]
-> Checks are observational: a failing check fails the run (exit 1) but does **not** block the
-> pipeline's sink writes — the flagged rows still land in the destination in the same run that
-> reports the failure. See
-> [Checks](/concepts/project-structure/#pipelinessql-and-sidecar-configs).
->
-> If bad data must never reach a destination, gate the run yourself: `pz test && pz run`.
-> `pz test` executes the checks and only their required ancestors — no sinks — so the `&&` lets
-> the sinks run only when every check passed. This is sound for incremental sources too:
-> watermarks advance only when every structural sink descendant committed (commit-gated
-> advancement), and a `pz test` run executes no sinks, so the follow-up `pz run` extracts the
-> same window the checks just validated. The cost is a second extraction — for expensive
-> sources weigh it against the guarantee.
-
-`not_null`, `unique`, and `row_count` catch structural problems. Three more types round out
-the vocabulary:
-
-```yaml
-# pipelines/configs/orders_enriched.yml
-pipeline: orders_enriched
-checks:
-  - freshness: { column: updated_at, max_age: 24h }
-  - accepted_values: { column: status, values: [pending, shipped, delivered] }
-  - custom_sql:
-      name: no_negative_totals
-      sql: select * from staging.orders_enriched where total < 0
+```console
+$ pz test && pz run
 ```
 
-- **`freshness`** fails when `max(column)` is older than `max_age` ago — and when the table is
-  empty, because no rows is no evidence of recent data. If emptiness is expected, pair it with
-  `row_count`. The failure message reports the actual max and the bound, never row data.
-  Freshness compares against a UTC cutoff and assumes a UTC-naive `timestamp`/`date` column (the
-  staging default); `timestamptz` columns are converted using the session time zone.
-- **`accepted_values`** fails on any non-NULL value outside the list, and reports up to 5
-  distinct offending values. NULLs pass — add `not_null` if they shouldn't.
-- **`custom_sql`** is the escape hatch: the query returns *violating* rows and the check passes
-  only when it returns none. It runs verbatim (no templating) against the staging database, so
-  target your own pipeline's table `staging.<pipeline>` — the check only orders after its
-  owning pipeline, and referencing other pipelines' tables has undefined ordering. `name`
-  becomes the node name: `check_<pipeline>_<name>`.
+`pz test` writes to no sink, so the load only happens once every check has passed.
 
-Typo'd check types or malformed options fail at compile time with PZ0113 — before any data
-moves.
+### 3. Resume a failed run
 
-## Resume a failed run
-
-To re-execute only what didn't succeed last time, use `pz retry`:
+When `pz run` fails partway through, fix the cause, then resume with `pz retry` instead of
+starting over:
 
 ```console
 $ pz retry
-nothing to retry (run <runId> succeeded)
+ok src_raw__customers 3 rows 41ms
+note: reusing staged data for 1 source load(s)
+ok stg_orders 3 rows 6ms
+ok orders_enriched 3 rows 5ms
+run 20260902T092530118Z-c41f: 3 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T092530118Z-c41f/run_results.json)
 ```
 
 `pz retry` reads the most recent run's `run_results.json` and re-executes only the nodes that
-didn't succeed, plus the ancestors they need. With nothing to fix, it says so and exits cleanly.
+didn't succeed, plus the ancestors they need. Succeeded source loads are not re-extracted: their
+staged tables are copied from the failed run's retained staging database, so the source system
+isn't contacted again for data it already delivered. Sinks that already committed are carried
+forward, which lets a watermark advance once the retry succeeds. `pz retry` takes no `--select`
+or `--vars`: it re-runs the prior intent verbatim.
 
-Succeeded source loads are not re-extracted: their staged tables are copied from the failed
-run's retained staging database, so the source system is never contacted again for data it
-already delivered (`note: reusing staged data for N source load(s)`). Sinks that already
-committed are carried forward, which lets the watermark advance once the retry succeeds. Any
-staged table that can't be reused (staging deleted, `--full-refresh`) falls back to a normal
-re-extraction with a note. See [Delivery guarantees](/concepts/delivery-guarantees/) for
-the exact rules.
+With nothing to fix, it says so and exits cleanly:
 
-A typical failure workflow:
+```console
+$ pz retry
+nothing to retry (run 20260902T092530118Z-c41f succeeded)
+```
 
-1. `pz run` fails on one node; independent nodes still complete.
-2. Fix the broken configuration (or just wait out the outage).
-3. `pz retry` picks up exactly where the failed run left off — committed sinks stay committed,
-   and staged data is reused instead of re-extracted.
+## Verify
 
-## Next steps
+Check the exit code of either command: `0` means every node succeeded, `1` means at least one
+failed. See the full table in the [CLI reference](/reference/cli/#exit-codes).
 
-- [Tune retries per database](/how-to/tune-retries/) — automatic retries for transient failures,
-  before you ever need `pz retry`.
-- [Inspect and validate a project](/how-to/inspect-and-validate/)
-- [CLI reference](/reference/cli/)
+```console
+$ pz test; echo $?
+0
+```
+
+## Troubleshooting
+
+| If you see | Do |
+|---|---|
+| A check fails but the sink still wrote the rows | This is expected: checks are observational. Chain `pz test && pz run` if the write must be gated. |
+| `PZ0113` at compile time | A check's type is misspelled, or its options are malformed. Fix it before any data moves. |
+| `PZ0510` from `pz test` or `pz run` | A check found violating rows. Read the row sample in `run_results.json`, or opt out with `sample_values: false`. |
+| `pz retry` says "nothing to retry" but you expected a resume | The last run already succeeded. Check `pz state show` or `run_results.json` for the run you meant. |
+| A retried node re-extracts everything instead of reusing staged data | The prior run's staging database was deleted (by `pz clean`, for example), or `--full-refresh` was passed. Reuse only applies to the immediately prior run's own staging file. |
+
+## Related
+
+- [Checks](/concepts/checks/): the six check types, where they're declared, and why they don't
+  gate sink writes.
+- [Selecting nodes](/concepts/selecting-nodes/): the `--select` grammar `pz test` accepts.
+- [Debug a failed run](/how-to/debug-a-failed-run/): the full diagnostic ladder for a run that
+  failed, before you reach for `pz retry`.
+- [Tune retries](/how-to/tune-retries/): automatic retries for transient failures, which run
+  before a node ever reaches `pz retry`.
+- [CLI reference](/reference/cli/): every flag on `pz test` and `pz retry`, and the exit code
+  table.

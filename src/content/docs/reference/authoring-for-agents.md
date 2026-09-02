@@ -1,7 +1,13 @@
 ---
-title: "Authoring pz projects as an agent"
-description: "A quick-reference map of the pz authoring surface for an agent working through the pz MCP server's tools. Everything here is convenience, not ground truth:..."
+title: "Authoring for agents"
+description: "The compact authoring contract an AI agent needs to write a valid pz project: files, keys, template calls, and the rules pz enforces."
+sidebar:
+  order: 10
 ---
+
+:::note
+This page is generated from `docs/reference/authoring-for-agents.md` in the pz repository. Edit it there, then run `scripts/sync-from-pz.sh`.
+:::
 
 A quick-reference map of the pz authoring surface for an agent working through the `pz` MCP
 server's tools. Everything here is **convenience, not ground truth**: it exists to help you write
@@ -140,7 +146,7 @@ An entity that appears in neither `connections.yml` nor as a bare name is not an
 `source()`/`sink()` call that names it *is* the declaration. Only an unknown **connection** is an
 error (`PZ0201`).
 
-## The four template functions
+## The template functions
 
 Pipeline SQL is Scriban in sandboxed mode with a small whitelisted function set — no file I/O, no
 network, no wall clock:
@@ -194,16 +200,15 @@ all — the cursor's type is discovered from the stored watermark or, on the fir
 bound expression evaluates to. But the `initial`/`max_window`/`until` trio (written in SQL as a
 `coalesce(...)` floor plus a `least(...)` ceiling, or declared in YAML `sync:`) must be able to
 compute its bounds **before the first extraction** — the cursor has to be typed up front, so the
-entity needs a declared `columns:` contract (`PZ0213`). This is the one gap the 2026-08-12
-schema-inference simplification did not close: a contract-less csv/json dataset with a bounded
-window still needs a hand-written `columns:` map for the cursor column.
+entity needs a declared `columns:` contract (`PZ0213`). A contract-less csv/json entity with a
+bounded window therefore still needs a hand-written `columns:` map for the cursor column.
 
 Declare incrementality **either** in YAML (`sync: { mode: incremental }`) **or** in SQL
 (`watermark()`), never both for the same entity — `PZ0225`.
 
 ## Write modes and the delivery-guarantee consent rule (PZ0214)
 
-`sink()`'s `strategy` is `replace` (default), `append`, or `merge` (needs `keys: [...]`). An
+`sink()`'s `strategy` is `append` (default), `replace`, or `merge` (needs `keys: [...]`). An
 incremental source feeding an `append` sink is **at-least-once** by construction (a re-run or
 retry can re-deliver a slice) — pz refuses that pairing at compile time unless you say so
 explicitly with `duplicates: 'accept'`:
@@ -219,10 +224,54 @@ from {{ source('github', 'issues') }}
 An incremental source feeding `replace` is refused outright (`PZ0335`, no consent escape — a
 partial extraction would silently truncate the target). `merge` is effectively-once regardless.
 
+## Out-of-process connectors (PCP)
+
+Every external (non-builtin) connector package hosts its connector as a separate OS process —
+in-process loading is reserved for builtins — declared in the package's `pz.connector.json`:
+
+- `runtime: "process"` — required for external packages; a package declaring `"dotnet"` (or
+  shipping no manifest, which means the same) is refused with `PZ0360`.
+- `entrypoints` — a RID → package-relative binary path map, e.g.
+  `{"linux-x64": "runtimes/linux-x64/native/pz-mysink", "win-x64": "runtimes/win-x64/native/pz-mysink.exe"}`.
+  Resolved with `RuntimeIdentifierGraph` fallback (a package shipping only `linux-x64` is still
+  reachable from `linux-musl-x64`), and rejected if a path would resolve outside the package
+  directory.
+
+This is packaging-time detail an agent authoring `connections.yml`/pipelines never touches
+directly — the connector's `connector:` name in `connections.yml` and its `ConnectionConfigSchema`/
+`DatasetConfigSchema` (from `pz_connector_reference`) look identical either way.
+
+**`allow_unsigned_extensions:`** — a connection-level key, alongside `connector`/`entities`/
+`max_concurrency`/`rate_limit`/`retry`, default `false`. A native scan/copy that would load an
+unsigned packaged DuckDB extension is refused at plan time (`PZ0359`) unless the connection sets
+`allow_unsigned_extensions: true`.
+
+**PCP error codes:**
+
+| Code | Meaning |
+|---|---|
+| `PZ0354` | No usable entrypoint for this host: unknown `runtime`, no `entrypoints` (or none reachable for this RID), an entrypoint path that is missing or resolves outside the package directory, or a `runtime: "process"` manifest with no `name`. |
+| `PZ0355` | The connector executable failed to spawn (exec error, missing/non-executable binary, or no room for a socket path under the temp root). |
+| `PZ0356` | Handshake with the spawned connector failed: timeout waiting for `Hello`, malformed `Hello`, or a capability/name mismatch against the manifest. |
+| `PZ0357` | Protocol violation during data-plane operations (bad/reused write ticket, malformed Arrow IPC stream). |
+| `PZ0358` | The connector process died unexpectedly mid-operation. |
+| `PZ0359` | An unsigned packaged DuckDB extension was refused for a native scan/copy; set `allow_unsigned_extensions: true` on the connection to allow it. |
+| `PZ0360` | An external connector package declares runtime `"dotnet"` (or ships no manifest) — external connectors are hosted out of process only. Use a `runtime: "process"` (PCP) package or a builtin. |
+
+**`pz connector test <entrypoint-or-package-dir> [--config file.yml]`** — runs black-box PCP
+protocol conformance checks against one out-of-process connector, independent of any pz project.
+The target is a package directory containing `pz.connector.json` or a bare entrypoint binary;
+`--config` names the connection to configure and the `read:`/`write:` dataset(s) to probe (a
+`connection:` block plus optional `read: { dataset: ... }` and/or `write: { output: ..., mode: ...,
+schema_policy: ... }`). Every applicable vector runs regardless of earlier failures, printed as one
+`PASS`/`FAIL`/`SKIP <vector>[: detail]` line each. Exit codes: `0` every applicable vector passed,
+`1` one or more vectors failed, `2` a config/usage problem (bad target, malformed manifest or
+`--config`) meant no vector could even be attempted.
+
 ## Recommended tool loop
 
-1. **Reference** — read this guide and the relevant `docs/concepts/*.md`/`docs/how-to/*.md`
-   resource (`pz://docs/...`), or call `pz_connector_reference` for the connector's exact
+1. **Reference** — read this guide and the relevant documentation page via `pz_docs_list`,
+   `pz_docs_search`, and `pz_docs_get`, or call `pz_connector_reference` for the connector's exact
    connection/dataset option schemas and `pz_project_overview` for what already exists in this
    project (connections, entities, pipelines, the compiled DAG).
 2. **Author** — write or edit `connections.yml`/`pipelines/*.sql` by hand, or use the authoring
