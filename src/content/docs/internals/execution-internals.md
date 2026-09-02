@@ -12,8 +12,8 @@ see [How a run works](/concepts/how-a-run-works/); this page does not repeat it.
 
 <figure class="dgm">
   <a href="/diagrams/02-compile-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>

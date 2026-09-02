@@ -29,8 +29,8 @@ once you know the phases, both make sense at a glance.
 
 <figure class="dgm">
   <a href="/diagrams/04-run-lifecycle.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: load, compile, validate, plan, dispatch nodes in parallel, then report a summary and exit code">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: load, compile, validate, plan, dispatch nodes in parallel, then report a summary and exit code" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
