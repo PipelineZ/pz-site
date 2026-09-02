@@ -1,7 +1,13 @@
 ---
-title: "Run events (`--log-format json` NDJSON contract)"
-description: "Every other field below is specific to that event value. Stability promise: fields are append-only; renaming or removing a field, or an event value, is a..."
+title: "Run events"
+description: "Every event pz emits on the NDJSON stream during a run, field by field, with the stability guarantees for each."
+sidebar:
+  order: 8
 ---
+
+:::note
+This page is generated from `docs/events.md` in the pz repository. Edit it there, then run `scripts/sync-from-pz.sh`.
+:::
 
 `pz run`/`pz test --log-format json` write one JSON object per line (NDJSON) to stdout — one object
 per run event, in the order the engine published them. Every object shares three envelope fields:
@@ -338,7 +344,7 @@ files, and those runs contribute nothing to `bytesFreed` (a row count is not a b
 ## Persisting this stream (`state.events: true`)
 
 **Stdout NDJSON remains the contractual surface described by this whole document, unconditionally.**
-With `state.events: true` (see [Move state off the local disk](/how-to/remote-state/)), the same
+With `state.events: true` (see [Move state off the local disk](https://pipelinez.dev/how-to/remote-state/)), the same
 event stream is *also* persisted into `pz.run_events` — one row per event, ordered by an explicit
 per-run `seq` column rather than insert order, since a batched writer cannot rely on the latter and
 `at`'s millisecond precision has real ties. This is an additional consumer of the existing stream, not

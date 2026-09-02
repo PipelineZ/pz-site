@@ -14,11 +14,12 @@ const SITE = 'https://pipelinez.dev';
 
 /** Sidebar-ish grouping, so an agent reading top-to-bottom meets concepts before how-tos. */
 const GROUPS: Array<{ label: string; match: (id: string) => boolean }> = [
-	{ label: 'Start here', match: (id) => ['docs', 'quickstart', 'getting-started'].includes(id) },
+	{ label: 'Start here', match: (id) => ['docs', 'install', 'quickstart', 'tutorial'].includes(id) },
 	{ label: 'Concepts', match: (id) => id.startsWith('concepts/') },
-	{ label: 'How-to guides', match: (id) => id.startsWith('how-to/') },
-	{ label: 'Reference', match: (id) => id.startsWith('reference/') || ['events', 'performance', 'versioning'].includes(id) },
-	{ label: 'Diagrams', match: (id) => id.startsWith('diagrams/') },
+	{ label: 'How-to guides', match: (id) => id === 'guides' || id.startsWith('how-to/') },
+	{ label: 'Connectors', match: (id) => id === 'connectors' || id.startsWith('connectors/') },
+	{ label: 'Reference', match: (id) => id.startsWith('reference/') || id === 'versioning' },
+	{ label: 'Internals', match: (id) => id.startsWith('internals/') },
 	{ label: 'Book', match: (id) => id === 'book' || id.startsWith('book/') },
 ];
 

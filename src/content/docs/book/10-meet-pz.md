@@ -87,8 +87,7 @@ where status <> 'test'
 INSERT INTO {{ sink('lake', 'orders_curated', format: 'parquet', strategy: 'replace') }}
 select o.id, o.amount, o.status, c.email, c.region
 from {{ ref('stg_orders') }} as o
-join {{ source('crm', 'customers', format: 'csv',
-               columns: { id: 'bigint', email: 'varchar', region: 'varchar' }) }} as c
+join {{ source('crm', 'customers', format: 'csv', columns: { id: 'bigint', email: 'varchar', region: 'varchar' }) }} as c
   on c.id = o.customer_id
 ```
 
@@ -138,7 +137,7 @@ ok check_orders_enriched_unique_id 0 rows 5ms
 ok revenue_by_store 87 rows 19ms
 ok lake.orders_curated 4655 rows 130ms
 ok lake.revenue_by_store 87 rows 40ms
-run <runId>: 9 succeeded, 0 failed, 0 skipped
+run 01J9…: 9 succeeded, 0 failed, 0 skipped (.pz/runs/01J9…/run_results.json)
 ```
 
 Every line is one DAG node finishing. Under the hood, `pz` is a **hub-and-spoke** machine
@@ -266,6 +265,7 @@ being able to touch data by accident.
 | `pz test` | Run only the checks (and what they need) |
 | `pz retry` | Re-run only what failed, reusing safe staged data |
 | `pz ls` / `pz connectors` | List nodes in topological order / list connectors |
+| `pz connector test <package>` | Check that a third-party connector package speaks the protocol correctly |
 | `pz state …` / `pz cdc …` / `pz clean` | Inspect and manage watermarks, CDC positions, and old runs |
 | `pz schema accept` | Accept a drifted source's observed schema as the new baseline |
 | `pz mcp [--allow-run]` | Serve the project to an AI agent over MCP |

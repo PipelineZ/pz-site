@@ -1,63 +1,118 @@
 ---
-title: "Handle schema drift"
-description: "What happens when a source or target table changes shape under a running mart, how each change surfaces, and what to do about it. SQL Server examples; the..."
+title: "Guard against schema changes"
+description: "How to catch a source or target table changing shape under a running project, with a columns: contract, pz validate --connect, and a sink's schema_policy."
+sidebar:
+  order: 7
 ---
 
-What happens when a source or target table changes shape under a running mart, how each
-change surfaces, and what to do about it. SQL Server examples; the mechanics are
-connector-generic.
+This page shows how to catch a source or destination table changing shape out from under a
+running project, using a `columns:` contract, `pz validate --connect`, and a sink's
+`schema_policy`. Read it before a scheduled DDL change, or after a run fails on a missing column.
+
+For contract-less entities, and a run-time complement to the validate-time picture here, see
+[Detect source drift at run time](/how-to/schema-drift/).
 
 ## Prerequisites
 
-- A runnable project with at least one networked source or sink. Follow the
+- A runnable project with at least one networked connection. Follow the
   [quickstart](/quickstart/) to scaffold one.
 
-## Detection surfaces
+## Steps
 
-Two guards exist, at different times:
+### 1. Declare a read contract
 
-- **`pz validate --connect`** (tier 5, opt-in, run it on demand or before deploys): probes
-  every source/sink connection and fetches each declared dataset's schema, comparing it to
-  the dataset's `columns:` contract. All drift findings are reported together, not
-  fail-fast.
-- **Run time**: the source read fails if a referenced column is gone; the sink's
-  `schema_policy: fail_on_change` (the default — `evolve` is rejected by the sqlserver
-  sink) fails the write if the target table's columns no longer match the expected
-  canonical types.
+Name every column an entity expects, and its type, under `read:`:
 
-## Drift classes and what you'll see
+```yaml title="connections.yml"
+crm:
+  connector: postgres
+  entities:
+    orders:
+      read:
+        columns:
+          id: bigint
+          customer_id: bigint
+          updated_at: timestamp
+```
 
-| Change | Surfaces as |
+A contract prunes the read to exactly these columns and types every one, so `pz` never has to
+guess. See [Schema contracts](/concepts/schema-contracts/) for which connectors require it.
+
+### 2. Probe for drift before you deploy
+
+`pz validate --connect` fetches every declared entity's real schema and diffs it against its
+`columns:` contract, all at once rather than stopping at the first mismatch:
+
+```console
+$ pz validate --connect
+error PZ0331: entity 'crm.orders': declared column 'region' is missing from the fetched schema
+```
+
+Run it after a schema change you suspect happened upstream, not only before a first deploy. A
+retype that lands on the same underlying type, `varchar` widening to `varchar(500)`, say, can
+pass silently at run time and only show up under `--connect`.
+
+### 3. Choose a schema_policy for the write side
+
+A write's `schema_policy` says how the sink reconciles an existing target's columns against the
+data it's about to write. It only changes behavior on connectors writing into a pre-existing,
+typed target: today that's `postgres` and `sqlserver`.
+
+```yaml title="connections.yml"
+entities:
+  public.orders_current:
+    write:
+      strategy: merge
+      keys: [order_id]
+      schema_policy: fail_on_change
+```
+
+| Value | Behavior |
 |---|---|
-| Source column **added** | Nothing — extra fetched columns are tolerated by design; contracts prune on read. Add it to `columns:` and your SQL when you want it. |
-| Source column **removed/renamed** | `--connect`: a PZ0331 error — "declared column 'X' … missing from the fetched schema". Run time: the extraction query fails naming the column. |
-| Source column **retyped** | `--connect`: a PZ0331 error naming the declared and fetched types. Run time: values may still widen silently if the new type maps to the same Arrow type — run `--connect` after suspected DDL changes rather than trusting a green run. |
-| Target column missing/retyped | Sink fails with `fail_on_change`: "target column 'X' … has type 'decimal(18,2)', expected 'decimal(38,9)'" — align the target by hand, or drop the table and let the sink recreate it. |
-| Target column **added** (nullable or identity) | Tolerated — the sink inserts an explicit column list; extra target columns (audit timestamps, surrogate identity keys) fill from their defaults. |
+| `fail_on_change` (default) | Compares every declared column by name and type. Any mismatch fails the write, naming the column and both types. |
+| `additive` | Same comparison, but also adds the one soft-delete marker column a CDC merge writes when `on_delete: soft` is set. It adds no other columns. |
+| `evolve` | Recognized, but refused. Both `postgres` and `sqlserver` reject the write with a clean error rather than altering the target's shape. |
 
-## The response playbook
+## Verify
 
-1. **Confirm the drift**: `pz validate --connect --project <dir>` — read every PZ0331
-   line; they aggregate.
-2. **Update the contract**: edit the entity's `columns:` under `entities: <e>: read:` in `connections.yml` and any
-   pipeline SQL that references changed columns.
-3. **Mind the node IDs**: node IDs are content-addressed — editing a source or pipeline
-   changes its ID, so a subsequent `pz retry` treats edited nodes as new (a stale failed
-   node from the old shape won't be retried; run `pz run` for a full pass after schema
-   edits).
-4. **Mind the watermark**: if the drift touched the **cursor column** (renamed/retyped),
-   the stored watermark value may no longer compare correctly against the new column.
-   Run once with `--full-refresh` to re-establish the watermark from a full extract.
-   Merge/replace sinks stay effectively-once under re-extraction; append sinks will
-   duplicate (that's the PZ0214 `write: { duplicates: accept }` consent).
-5. **Align the target last**: for `fail_on_change` failures, apply the matching `ALTER
-   TABLE` by hand (the error names expected canonical types), or drop and let the sink
-   recreate — recreating loses target-side extras like identity values.
+Run `pz validate --connect` again after fixing a contract or aligning a target table. A clean
+pass prints nothing for that entity.
 
-## Limits worth knowing
+## Respond to drift
 
-- Retype drift that lands on the same Arrow type (e.g. `varchar` → `nvarchar`) is
-  invisible at run time and only reported by `--connect`.
-- `--connect` validates datasets that declare a `columns:` contract; a `query:` dataset
-  without one is probed and its fetched schema reported, but nothing is contract-checked —
-  prefer declared contracts on mart-critical datasets.
+1. Confirm it with `pz validate --connect`; every `PZ0331` line aggregates rather than stopping
+   at the first.
+2. Update the entity's `columns:` contract and any pipeline SQL that references changed columns.
+3. If the drift touched the cursor column itself, renamed or retyped, the stored watermark may no
+   longer compare correctly. Run once with `--full-refresh` to re-establish it from a full
+   extract. A `merge`/`replace` sink stays effectively-once under re-extraction; an `append` sink
+   duplicates, which is what `duplicates: 'accept'` already consents to.
+4. For a `fail_on_change` failure, apply the matching `ALTER TABLE` by hand, using the types the
+   error names, or drop the table and let the sink recreate it. Recreating loses target-side
+   extras such as identity values.
+
+Node ids are content-addressed: editing a source or pipeline changes its id, so a stale failed
+node from before the edit isn't something `pz retry` can pick up. Run `pz run` for a full pass
+after a schema-driven edit.
+
+## Troubleshooting
+
+| If you see | Do |
+|---|---|
+| `PZ0331` under `--connect` | A declared column is missing or retyped. Update `columns:`, or align the source. |
+| `PZ0331` at run time on a write | The target table's columns no longer match. Apply the `ALTER TABLE` the error names, or drop and let the sink recreate. |
+| An extraction query failing, naming a column | A source column was removed or renamed. Update `columns:` and any SQL that references it. |
+| A write refusing `schema_policy: evolve` | Neither `postgres` nor `sqlserver` implements automatic evolution. Use `fail_on_change` or `additive` instead. |
+| A retype that never surfaced until `--connect` | A retype landing on the same underlying Arrow type is invisible at run time. Run `--connect` after any suspected upstream DDL change. |
+| A source column added upstream, doing nothing | This is by design: extra fetched columns are tolerated and pruned. Add it to `columns:` when you want it. |
+
+## Related
+
+- [Detect source drift at run time](/how-to/schema-drift/): the run-time gate for entities with
+  no `columns:` contract, and `pz schema accept`.
+- [Schema contracts](/concepts/schema-contracts/): the full `columns:` and `schema_policy` model,
+  and every related error code.
+- [Debug a failed run](/how-to/debug-a-failed-run/): reading a failed write's error message in
+  full.
+- [connections.yml reference](/reference/connections-yml/): every `read:` and `write:` key,
+  including `columns` and `schema_policy`.

@@ -19,12 +19,11 @@ const { variant } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const href = (path: string) => base + path;
 /** Compare against the route, not the link, so a page nested under a section still lights
- * up its top-nav item (e.g. /book/03-… still lights up "Blog", /how-to/gcs/ lights up
- * "Guides"). The connectors concept deep-dive counts as "Connectors" even though it lives
- * under /concepts/ — content, not URL shape, decides. */
+ * up its top-nav item (e.g. /book/03-… still lights up "Blog", /how-to/remote-state/ lights
+ * up "Guides"). Everything else under the docs sidebar counts as "Docs". */
 const path = Astro.url.pathname.slice(base.length) || '/';
 const inGuides = path.startsWith('/guides') || path.startsWith('/how-to');
-const inConnectors = path.startsWith('/connectors') || path.startsWith('/concepts/connectors');
+const inConnectors = path.startsWith('/connectors');
 const inBlog = path.startsWith('/book');
 const inDocs = path !== '/' && !inGuides && !inConnectors && !inBlog;
 

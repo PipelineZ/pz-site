@@ -1,89 +1,111 @@
 ---
 title: "Observe runs with Azure Monitor"
-description: "Azure Monitor does not ingest raw OTLP directly from arbitrary processes, so run an OpenTelemetry Collector on the host as the bridge:"
+description: "How to bridge pz's OpenTelemetry traces and metrics into Azure Monitor with an OpenTelemetry Collector, and alert on failed or missing runs."
+sidebar:
+  order: 14
 ---
 
-`pz run` / `pz test` / `pz retry` export OpenTelemetry traces and metrics over OTLP when an
-endpoint is configured — via `--otel-endpoint <url>` or the `PZ_OTEL_ENDPOINT` environment
-variable. With neither set, telemetry is a zero-cost no-op.
+`pz run`, `pz test`, and `pz retry` export OpenTelemetry traces and metrics over OTLP when an
+endpoint is configured. This guide bridges that telemetry into Azure Monitor so you can see run
+health in Application Insights and alert when a run fails or never happens. Read it once you have
+a project running on a schedule.
 
-Azure Monitor does not ingest raw OTLP directly from arbitrary processes, so run an
-OpenTelemetry Collector on the host as the bridge:
+## Prerequisites
 
-```
-pz (OTLP, http://127.0.0.1:4317) -> otel collector -> Azure Monitor (Application Insights)
-```
+- A project already running on a schedule, for example following
+  [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/).
+- An Application Insights resource and its connection string.
+- Azure Monitor does not ingest raw OTLP directly from arbitrary processes, so this guide runs an
+  OpenTelemetry Collector on the host as the bridge:
 
-## 1. Install the collector on the VM
+  ```
+  pz (OTLP, http://127.0.0.1:4317) -> otel collector -> Azure Monitor (Application Insights)
+  ```
 
-Download the latest `otelcol-contrib` Windows release (the *contrib* distribution — it
-carries the `azuremonitor` exporter) and install it as a Windows service per its README.
+## Steps
 
-Collector config (`C:\otelcol\config.yaml`):
+1. **Install the collector on the host.** Download the latest `otelcol-contrib` release, the
+   *contrib* distribution that carries the `azuremonitor` exporter, and install it as a service
+   per its own README.
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 127.0.0.1:4317
-exporters:
-  azuremonitor:
-    connection_string: "${env:APPLICATIONINSIGHTS_CONNECTION_STRING}"
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      exporters: [azuremonitor]
-    metrics:
-      receivers: [otlp]
-      exporters: [azuremonitor]
-```
+2. **Configure the collector** (`C:\otelcol\config.yaml`):
 
-Set `APPLICATIONINSIGHTS_CONNECTION_STRING` for the collector service to your Application
-Insights resource's connection string. The collector listens on loopback only — nothing
-is exposed off-machine.
+   ```yaml
+   receivers:
+     otlp:
+       protocols:
+         grpc:
+           endpoint: 127.0.0.1:4317
+   exporters:
+     azuremonitor:
+       connection_string: "${env:APPLICATIONINSIGHTS_CONNECTION_STRING}"
+   service:
+     pipelines:
+       traces:
+         receivers: [otlp]
+         exporters: [azuremonitor]
+       metrics:
+         receivers: [otlp]
+         exporters: [azuremonitor]
+   ```
 
-## 2. Point pz at it
+   Set `APPLICATIONINSIGHTS_CONNECTION_STRING` for the collector service to your Application
+   Insights resource's connection string. The collector listens on loopback only, so nothing is
+   exposed off the machine.
 
-Set the endpoint for the scheduled task's environment (see
-[run scheduled on Windows](/how-to/run-scheduled-on-windows/)):
+3. **Point pz at the collector.** Set the endpoint in the scheduled task's environment:
 
-```console
-PZ_OTEL_ENDPOINT=http://127.0.0.1:4317
-```
+   ```console
+   PZ_OTEL_ENDPOINT=http://127.0.0.1:4317
+   ```
 
-## 3. What arrives
+   With neither `--otel-endpoint` nor `PZ_OTEL_ENDPOINT` set, telemetry is a zero-cost no-op. See
+   [Environment variables](/reference/environment-variables/).
 
-- Traces: a `run` root span with per-node `node.<Kind>` child spans (service name `pz`).
-- Metrics (meter `Pz.Engine`): `pz.rows_moved`, `pz.bytes_moved`, `pz.batches`,
-  `pz.node.duration` (tag `pz.node.kind`), and `pz.run.completed` — a counter incremented
-  once per run with tag `pz.run.status` = `success` | `completed_with_failures` | `fatal`.
+4. **Create an alert on failed runs.** In Application Insights > Logs, save this query:
 
-In Application Insights these land in the `customMetrics` table (dimension names under
-`customDimensions`).
+   ```kusto
+   customMetrics
+   | where name == "pz.run.completed"
+   | extend status = tostring(customDimensions["pz.run.status"])
+   | where status != "success"
+   ```
 
-## 4. Alert on failed runs
+   Create an alert rule on it, for example count > 0 over a 15-minute window evaluated every 5
+   minutes, and route it to your action group.
 
-Log-based alert query (Application Insights > Logs):
+5. **Add a second alert for missing runs.** A crashed host or a hung run produces silence, not a
+   `fatal` status, so alert when `customMetrics | where name == "pz.run.completed"` returns zero
+   rows over the window you expect a scheduled run in.
 
-```kusto
-customMetrics
-| where name == "pz.run.completed"
-| extend status = tostring(customDimensions["pz.run.status"])
-| where status != "success"
-```
+## Verify
 
-Create an alert rule on this query (e.g. count > 0 over a 15-minute window, evaluated
-every 5 minutes) and route it to your action group. A second, complementary alert catches
-the run that never reported at all — alert when
-`customMetrics | where name == "pz.run.completed"` returns **zero** rows over the window
-you expect a scheduled run in (a missing-heartbeat alert): a crashed host or a hung run
-produces silence, not a `fatal`.
+Run the project by hand once with `PZ_OTEL_ENDPOINT` set, then check Application Insights for a
+`run` root span with per-node `node.<Kind>` child spans, and a `pz.run.completed` metric with
+`pz.run.status = success` in `customMetrics`.
 
-## Caveats
+## What arrives
 
-- The OTLP exporter flushes on process exit (providers are disposed after the run
-  summary), so short-lived CLI runs still deliver their final events.
-- pz emits no metrics between runs; gaps are normal for schedule-driven workloads. Design
-  alerts around "expected run windows", not continuous signal.
+- **Traces:** a `run` root span (service name `pz`) with per-node `node.<Kind>` child spans.
+- **Metrics** (meter `Pz.Engine`): `pz.rows_moved`, `pz.bytes_moved`, `pz.batches`,
+  `pz.node.duration` (tag `pz.node.kind`), and `pz.run.completed`, a counter incremented once per
+  run with tag `pz.run.status` of `success`, `completed_with_failures`, or `fatal`.
+
+In Application Insights these land in the `customMetrics` table, with dimension names under
+`customDimensions`.
+
+## Troubleshooting
+
+| If you see | Do |
+|---|---|
+| No spans or metrics arrive at all | Confirm `PZ_OTEL_ENDPOINT` is set in the task's environment, not just your interactive shell; the OTLP exporter flushes on process exit, so even a short run should still deliver its final events. |
+| A gap in metrics between expected runs | Normal for schedule-driven workloads. pz emits no metrics between runs. Design alerts around expected run windows, not a continuous signal. |
+| The failed-run alert never fires | Check the `pz.run.status` values you're filtering against `success`; a `fatal` run and a `completed_with_failures` run both count. |
+
+## Related
+
+- [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/): the scheduled task this guide's `PZ_OTEL_ENDPOINT` environment variable is set inside.
+- [Environment variables](/reference/environment-variables/): every variable pz reads, including `PZ_OTEL_ENDPOINT`.
+- [Run events](/reference/events/): the full NDJSON event contract, for logs beyond what traces and metrics carry.
+- [Delivery guarantees](/concepts/delivery-guarantees/): what `completed_with_failures` and `fatal` mean for a run.
+- [CLI reference](/reference/cli/#pz-run): the `--otel-endpoint` flag and its defaults.

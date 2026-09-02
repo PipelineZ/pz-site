@@ -90,8 +90,7 @@ else your team ships.
 <div class="pz-cols">
 
 ```sql title="pipelines/orders_enriched.sql"
-INSERT INTO {{ sink('lake', 'orders_curated',
-    strategy: 'replace', format: 'parquet') }}
+INSERT INTO {{ sink('lake', 'orders_curated', strategy: 'replace', format: 'parquet') }}
 SELECT
     o.id,
     o.amount,
@@ -130,7 +129,7 @@ change gets caught in review, not in production.
 <span class="fname">pipelines/orders_enriched.sql</span>
 <span class="stat"><span class="add">+3</span> <span class="rem">-1</span></span>
 </div>
-<pre><span class="dl ctx"> INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated',</span><span class="dl rem"><span class="mark-rem">-</span>    strategy: 'replace', format: 'parquet') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>    strategy: 'merge', key: ['id'], format: 'parquet') {'}'}{'}'}</span><span class="dl ctx"> SELECT</span><span class="dl ctx">     o.id,</span><span class="dl ctx">     o.amount,</span><span class="dl ctx">     c.email</span><span class="dl ctx"> FROM {'{'}{'{'} ref('stg_orders') {'}'}{'}'} AS o</span><span class="dl ctx"> JOIN {'{'}{'{'} source('raw', 'customers') {'}'}{'}'} AS c</span><span class="dl ctx">     ON c.id = o.customer_id</span><span class="dl add"><span class="mark">+</span>WHERE o.amount &gt; 0</span></pre>
+<pre><span class="dl rem"><span class="mark-rem">-</span>INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated', strategy: 'replace', format: 'parquet') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated', strategy: 'merge', keys: ['id'], format: 'parquet') {'}'}{'}'}</span><span class="dl ctx"> SELECT</span><span class="dl ctx">     o.id,</span><span class="dl ctx">     o.amount,</span><span class="dl ctx">     c.email</span><span class="dl ctx"> FROM {'{'}{'{'} ref('stg_orders') {'}'}{'}'} AS o</span><span class="dl ctx"> JOIN {'{'}{'{'} source('raw', 'customers') {'}'}{'}'} AS c</span><span class="dl ctx">     ON c.id = o.customer_id</span><span class="dl add"><span class="mark">+</span>WHERE o.amount &gt; 0</span></pre>
 <div class="pz-review">
 <span class="pz-avatar">MR</span>
 <div class="pz-review-body">
@@ -163,7 +162,7 @@ verifies every edit, and it's running before you've finished your coffee.
 <div class="pz-term-bar"><i></i><i></i><i></i><span>pz mcp — customer_order_summary.sql</span></div>
 <div class="pz-term-zone">
 <div class="file-tag">pipelines/customer_order_summary.sql</div>
-<pre><span class="kw">insert into</span> {'{'}{'{'} <span class="fn">sink</span>('postgres', 'customer_order_summary', strategy: 'merge', key: ['customer_id']) {'}'}{'}'}
+<pre><span class="kw">insert into</span> {'{'}{'{'} <span class="fn">sink</span>('postgres', 'customer_order_summary', strategy: 'merge', keys: ['customer_id']) {'}'}{'}'}
 <span class="kw">select</span>
     c.id <span class="kw">as</span> customer_id,
     count(o.id) <span class="kw">as</span> order_count,
@@ -174,7 +173,7 @@ verifies every edit, and it's running before you've finished your coffee.
 </div>
 <div class="pz-term-zone">
 <pre><span class="dim">$</span> pz validate
-<span class="ok">ok</span>  customer_order_summary  schema resolved, 2 upstreams
+validation passed (3 pipelines, 2 connections checked)
 <span class="dim">$</span> pz run --all
 <span class="ok">ok</span>  customer_order_summary  <span class="dim">3 rows 18ms</span></pre>
 </div>

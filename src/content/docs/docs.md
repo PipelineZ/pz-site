@@ -1,56 +1,61 @@
 ---
-title: "PipelineZ documentation"
-description: "PipelineZ (pz) is a lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform."
+title: "Documentation"
+description: "The map of the pz documentation: where to start, how the concept pages, how-to guides, connector pages, and reference fit together, and where contributors go."
+sidebar:
+  order: 1
 ---
 
-PipelineZ (`pz`) is a lightweight, developer-first batch data pipeline engine for SQL-based
-ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform. Start with
-the quickstart, then pick the page type you need: how-to guides for tasks, concepts for
-understanding, reference for exact contracts.
+pz is a command-line engine that moves data in batches. You describe a project as SQL files
+plus one YAML file of connections, and pz compiles them into a dependency graph that DuckDB
+executes. This page is the map of the documentation. Pick the row that matches what you need.
 
-## Get started
+## Start here
 
-- [Quickstart: run your first pipeline](/quickstart/)
-- [Key concepts](/concepts/key-concepts/) — DAG, node, source, sink, and the rest of the
-  vocabulary
-- [A code tour for new contributors](/concepts/code-tour/) — follows one `pz run` from the
-  keystroke to the output files, naming the actual classes at every stop, in plain terms
+| If you want to | Read |
+|---|---|
+| Install the tool | [Install pz](/install/) |
+| See a project run in ten minutes | [Quickstart](/quickstart/) |
+| Build a real pipeline step by step | [Tutorial](/tutorial/) |
+| Learn the vocabulary | [Key concepts](/concepts/key-concepts/) |
 
-## How-to guides
+## Learn how pz works
 
-- [Inspect and validate a project](/how-to/inspect-and-validate/)
-- [Handle schema drift](/how-to/handle-schema-drift/)
-- [Detect schema drift at run time](/how-to/schema-drift/)
-- [Run checks and retry failures](/how-to/run-checks-and-retry/)
-- [Secure connection config](/how-to/secure-connection-config/)
-- [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/)
-- [Run scheduled on Windows](/how-to/run-scheduled-on-windows/)
-- [Move state off the local disk](/how-to/remote-state/)
-- [Tune retries per database](/how-to/tune-retries/)
-- [Backfill in bounded slices](/how-to/backfill-in-slices/)
-- [Throttle a struggling source or sink](/how-to/throttle-a-source/)
-- [Extract from an HTTP API](/how-to/extract-from-http-api/)
-- [Use Google Cloud Storage](/how-to/gcs/)
-- [Capture changes with CDC](/how-to/capture-changes-with-cdc/)
-- [Author a connector](/how-to/author-a-connector/)
-- [Use pz with an AI agent](/how-to/use-with-an-ai-agent/)
+The concept pages explain one idea each, in the order you meet them when writing a project.
 
-## Concepts
+- [Project layout](/concepts/project-layout/): the files in a project and what each one does.
+- [Connections and entities](/concepts/connections-and-entities/): the one YAML declaration that describes a place and the things you read from or write to it.
+- [Pipelines](/concepts/pipelines/): SQL files that read with `source()` and `ref()` and load with `sink()`.
+- [Checks](/concepts/checks/): assertions that run inside the graph and gate what gets written.
+- [Incremental loads](/concepts/incremental-loads/): watermarks, bounded windows, change data capture, and merge.
+- [Selecting nodes](/concepts/selecting-nodes/): running part of a project with `--select`.
+- [How a run works](/concepts/how-a-run-works/): compile, plan, execute, and the artifacts a run leaves behind.
+- [Delivery guarantees](/concepts/delivery-guarantees/): what pz promises when something fails halfway.
+- [Validation and errors](/concepts/validation-and-errors/): the five validation tiers and how to read an error.
+- [State](/concepts/state/): the `.pz/` directory, watermarks, and remote state backends.
+- [Schema contracts](/concepts/schema-contracts/): column contracts, drift detection, and schema policy.
+- [Connectors](/concepts/connectors/): builtin and third-party connectors, restore, and lock files.
 
-- [Architecture overview](/concepts/architecture-overview/)
-- [Project structure](/concepts/project-structure/)
-- [The data plane](/concepts/data-plane/)
-- [The execution model](/concepts/execution-model/)
-- [Connectors](/concepts/connectors/)
-- [Delivery guarantees](/concepts/delivery-guarantees/)
-- [Validation and errors](/concepts/validation/)
-- [Contributor internals](/concepts/contributing-internals/)
+## Do a specific task
 
-## Reference
+The [how-to guides](/guides/) are grouped by job: ingest, reliability, production, AI agents,
+and extending pz. Each guide states its goal, prerequisites, steps, and how to verify the result.
 
-- [CLI verbs and exit codes](/reference/cli/)
-- [`project.yml` reference](/reference/project-yml/)
-- [MCP contract reference](/reference/mcp-contract/)
-- [Run events (NDJSON contract)](/events/)
-- [Versioning and breaking changes](/versioning/)
-- [Diagram set](/diagrams/)
+## Look something up
+
+- [Connectors](/connectors/): one reference page per builtin connector, with every key and capability.
+- [CLI](/reference/cli/): every verb, flag, and exit code.
+- [project.yml](/reference/project-yml/) and [connections.yml](/reference/connections-yml/): the complete key sets.
+- [Pipeline config](/reference/pipeline-config/), [template functions](/reference/template-functions/), and [error codes](/reference/error-codes/).
+- [Environment variables](/reference/environment-variables/), [run events](/reference/events/), and the [MCP contract](/reference/mcp-contract/).
+- [Versioning](/versioning/): what stays stable and how breaking changes are announced.
+
+## Contribute to pz
+
+The [Internals](/internals/architecture/) section explains the engine for people who change it:
+architecture, the two-tier data plane, execution and resume internals, the connector ABI, a code
+tour, and the [contributing guide](/internals/contributing/).
+
+## Background reading
+
+[Data Pipelines: An Article Series](/book/) is a ten-part introduction to pipelines in general,
+with the last article showing how pz maps onto each idea.
