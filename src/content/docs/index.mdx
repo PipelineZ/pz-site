@@ -163,15 +163,15 @@ verifies every edit, and it's running before you've finished your coffee.
 <div class="pz-term-bar"><i></i><i></i><i></i><span>pz mcp — customer_order_summary.sql</span></div>
 <div class="pz-term-zone">
 <div class="file-tag">pipelines/customer_order_summary.sql</div>
-<pre><span class="kw">insert into</span> {'{'}{'{'} <span class="fn">sink</span>('postgres', 'customer_order_summary', strategy: 'merge', key: ['customer_id']) {'}'}{'}'}
-<span class="kw">select</span>
-    c.id <span class="kw">as</span> customer_id,
-    count(o.id) <span class="kw">as</span> order_count,
-    sum(o.amount) <span class="kw">as</span> total_amount
-<span class="kw">from</span> {'{'}{'{'} <span class="fn">ref</span>('stg_orders') {'}'}{'}'} <span class="kw">as</span> o
-<span class="kw">join</span> {'{'}{'{'} <span class="fn">source</span>('raw', 'customers') {'}'}{'}'} <span class="kw">as</span> c
-    <span class="kw">on</span> c.id = o.customer_id
-<span class="kw">group by</span> c.id;</pre>
+<pre><span class="kw">INSERT INTO</span> {'{'}{'{'} <span class="fn">sink</span>('postgres', 'customer_order_summary', strategy: 'merge', key: ['customer_id']) {'}'}{'}'}
+<span class="kw">SELECT</span>
+    c.id <span class="kw">AS</span> customer_id,
+    count(o.id) <span class="kw">AS</span> order_count,
+    sum(o.amount) <span class="kw">AS</span> total_amount
+<span class="kw">FROM</span> {'{'}{'{'} <span class="fn">ref</span>('stg_orders') {'}'}{'}'} <span class="kw">AS</span> o
+<span class="kw">JOIN</span> {'{'}{'{'} <span class="fn">source</span>('raw', 'customers') {'}'}{'}'} <span class="kw">AS</span> c
+    <span class="kw">ON</span> c.id = o.customer_id
+<span class="kw">GROUP BY</span> c.id;</pre>
 </div>
 <div class="pz-term-zone">
 <pre><span class="dim">$</span> pz validate
