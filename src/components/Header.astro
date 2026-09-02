@@ -1,6 +1,9 @@
 ---
 /**
- * Starlight's Header with the section nav added to the right group.
+ * Starlight's Header with the section nav (and its "Get Started" CTA) added to the right
+ * group. GitHub is folded into TopNav itself rather than rendered separately here — the
+ * default SocialIcons pill would just duplicate it — but SocialIcons still reaches readers
+ * via MobileMenuFooter below 50rem, so it stays wired up in the Starlight config.
  *
  * Everything else is the upstream component verbatim, including the grid that aligns the
  * search box with the main content column — the nav sits in the third, auto-sized column
@@ -11,7 +14,6 @@ import config from 'virtual:starlight/user-config';
 import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
 import Search from 'virtual:starlight/components/Search';
 import SiteTitle from 'virtual:starlight/components/SiteTitle';
-import SocialIcons from 'virtual:starlight/components/SocialIcons';
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 import TopNav from './TopNav.astro';
 
@@ -31,9 +33,9 @@ const shouldRenderSearch =
 	</div>
 	<div class="sl-hidden md:sl-flex print:hidden right-group">
 		<TopNav variant="header" />
-		<div class="sl-flex social-icons">
-			<SocialIcons />
-		</div>
+		<a class="get-started" href={import.meta.env.BASE_URL.replace(/\/$/, '') + '/quickstart/'}>
+			Get Started
+		</a>
 		<ThemeSelect />
 		<LanguageSelect />
 	</div>
@@ -57,8 +59,7 @@ const shouldRenderSearch =
 		min-width: 0;
 	}
 
-	.right-group,
-	.social-icons {
+	.right-group {
 		gap: 1rem;
 		align-items: center;
 	}
@@ -66,10 +67,24 @@ const shouldRenderSearch =
 	.right-group {
 		gap: 0.75rem;
 	}
-	.social-icons::after {
-		content: '';
-		height: 2rem;
-		border-inline-end: 1px solid var(--sl-color-gray-5);
+
+	.get-started {
+		display: flex;
+		align-items: center;
+		padding: 0.4rem 0.85rem;
+		border-radius: 0.5rem;
+		background: var(--sl-color-accent);
+		color: #0d0d0d;
+		font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+		font-size: var(--sl-text-sm);
+		font-weight: 700;
+		line-height: 1;
+		white-space: nowrap;
+		text-decoration: none;
+		transition: filter 150ms ease;
+	}
+	.get-started:hover {
+		filter: brightness(1.1);
 	}
 
 	@media (min-width: 50rem) {

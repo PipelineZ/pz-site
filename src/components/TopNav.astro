@@ -1,12 +1,15 @@
 ---
 /**
- * The topbar's section nav: a Documentation dropdown and a Book link.
+ * The topbar's section nav: five flat destinations plus GitHub, no dropdown.
  *
  * Rendered twice per page — once in the header (`variant="header"`) and once inside the
  * mobile menu (`variant="mobile"`), because Starlight hides the header's right group below
- * 50rem. The mobile variant flattens the dropdown into headed lists: a disclosure nested
- * inside the already-disclosed mobile menu is a trap, not a convenience.
+ * 50rem. The mobile variant also carries the "Get Started" button, since that CTA has no
+ * other home once the header's right group is hidden; GitHub doesn't need to be repeated
+ * there — it already appears in the mobile menu's own footer (see MobileMenuFooter).
  */
+import { Icon } from '@astrojs/starlight/components';
+
 interface Props {
 	variant: 'header' | 'mobile';
 }
@@ -15,100 +18,50 @@ const { variant } = Astro.props;
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const href = (path: string) => base + path;
-/** Compare against the route, not the link, so /book/03-… still lights up "Book". */
+/** Compare against the route, not the link, so a page nested under a section still lights
+ * up its top-nav item (e.g. /book/03-… still lights up "Blog", /how-to/gcs/ lights up
+ * "Guides"). The connectors concept deep-dive counts as "Connectors" even though it lives
+ * under /concepts/ — content, not URL shape, decides. */
 const path = Astro.url.pathname.slice(base.length) || '/';
-const inBook = path.startsWith('/book');
-/** The splash landing page belongs to neither section, so it highlights neither. */
-const inDocs = !inBook && path !== '/';
+const inGuides = path.startsWith('/guides') || path.startsWith('/how-to');
+const inConnectors = path.startsWith('/connectors') || path.startsWith('/concepts/connectors');
+const inBlog = path.startsWith('/book');
+const inDocs = path !== '/' && !inGuides && !inConnectors && !inBlog;
 
-const DOC_GROUPS = [
-	{
-		label: 'Start here',
-		links: [
-			{ label: 'Documentation home', path: '/docs/' },
-			{ label: 'Quickstart', path: '/quickstart/' },
-			{ label: 'Key concepts', path: '/concepts/key-concepts/' },
-			{ label: 'A code tour', path: '/concepts/code-tour/' },
-		],
-	},
-	{
-		label: 'Concepts',
-		links: [
-			{ label: 'Architecture overview', path: '/concepts/architecture-overview/' },
-			{ label: 'Execution model', path: '/concepts/execution-model/' },
-			{ label: 'The data plane', path: '/concepts/data-plane/' },
-			{ label: 'Connectors', path: '/concepts/connectors/' },
-			{ label: 'Delivery guarantees', path: '/concepts/delivery-guarantees/' },
-		],
-	},
-	{
-		label: 'How-to',
-		links: [
-			{ label: 'Inspect and validate', path: '/how-to/inspect-and-validate/' },
-			{ label: 'Run checks and retry', path: '/how-to/run-checks-and-retry/' },
-			{ label: 'Capture changes with CDC', path: '/how-to/capture-changes-with-cdc/' },
-			{ label: 'Author a connector', path: '/how-to/author-a-connector/' },
-			{ label: 'Use pz with an AI agent', path: '/how-to/use-with-an-ai-agent/' },
-		],
-	},
-	{
-		label: 'Reference',
-		links: [
-			{ label: 'CLI verbs and exit codes', path: '/reference/cli/' },
-			{ label: 'project.yml', path: '/reference/project-yml/' },
-			{ label: 'MCP contract', path: '/reference/mcp-contract/' },
-			{ label: 'Event stream', path: '/events/' },
-			{ label: 'Diagram set', path: '/diagrams/' },
-		],
-	},
+const SECTIONS = [
+	{ label: 'Docs', path: '/docs/', current: inDocs },
+	{ label: 'Guides', path: '/guides/', current: inGuides },
+	{ label: 'Connectors', path: '/connectors/', current: inConnectors },
+	{ label: 'Blog', path: '/book/', current: inBlog },
 ];
+
+const GITHUB_URL = 'https://github.com/PipelineZ/pz';
 ---
 
 {
 	variant === 'header' ? (
 		<nav class="pz-nav" aria-label="Sections">
-			<details class="pz-dd">
-				<summary class="pz-nav-item" aria-current={inDocs ? 'true' : undefined}>
-					Documentation
-					<svg class="pz-chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-						<path d="M1 3.2 5 7 9 3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</summary>
-				<div class="pz-dd-panel">
-					<div class="pz-dd-grid">
-						{DOC_GROUPS.map((group) => (
-							<div class="pz-dd-group">
-								<p class="pz-dd-heading">{group.label}</p>
-								<ul>
-									{group.links.map((link) => (
-										<li>
-											<a href={href(link.path)}>{link.label}</a>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
-					</div>
-					<a class="pz-dd-all" href={href('/docs/')}>
-						Browse all documentation
-						<span aria-hidden="true">&#8594;</span>
-					</a>
-				</div>
-			</details>
-			<a class="pz-nav-item" href={href('/book/')} aria-current={inBook ? 'page' : undefined}>
-				Book
+			{SECTIONS.map((section) => (
+				<a class="pz-nav-item" href={href(section.path)} aria-current={section.current ? 'page' : undefined}>
+					{section.label}
+				</a>
+			))}
+			<a class="pz-nav-item pz-nav-gh" href={GITHUB_URL} rel="me">
+				<Icon name="github" />
+				GitHub
 			</a>
 		</nav>
 	) : (
 		<nav class="pz-nav-mobile" aria-label="Sections">
-			<a class="pz-mobile-section" href={href('/docs/')} aria-current={inDocs ? 'true' : undefined}>
-				<span>Documentation</span>
-				<small>Guides, concepts, and reference</small>
+			<a class="pz-mobile-cta" href={href('/quickstart/')}>
+				Get Started
+				<Icon name="right-arrow" />
 			</a>
-			<a class="pz-mobile-section" href={href('/book/')} aria-current={inBook ? 'page' : undefined}>
-				<span>Book</span>
-				<small>Data Pipelines: An Article Series</small>
-			</a>
+			{SECTIONS.map((section) => (
+				<a class="pz-mobile-section" href={href(section.path)} aria-current={section.current ? 'page' : undefined}>
+					{section.label}
+				</a>
+			))}
 		</nav>
 	)
 }
@@ -138,7 +91,6 @@ const DOC_GROUPS = [
 		color: var(--sl-color-gray-2);
 		text-decoration: none;
 		white-space: nowrap;
-		cursor: pointer;
 		transition: color 150ms ease, background-color 150ms ease;
 	}
 	.pz-nav-item:hover {
@@ -148,114 +100,9 @@ const DOC_GROUPS = [
 	.pz-nav-item[aria-current] {
 		color: var(--sl-color-text-accent);
 	}
-
-	/* Suppress the native disclosure triangle; the chevron below replaces it. */
-	summary.pz-nav-item {
-		list-style: none;
-	}
-	summary.pz-nav-item::-webkit-details-marker {
-		display: none;
-	}
-	.pz-chev {
-		transition: transform 180ms ease;
-		opacity: 0.7;
-	}
-	.pz-dd[open] .pz-chev {
-		transform: rotate(180deg);
-	}
-	.pz-dd[open] > summary.pz-nav-item {
-		color: var(--sl-color-white);
-		background: var(--sl-color-gray-6);
-	}
-
-	.pz-dd {
-		position: relative;
-	}
-	.pz-dd-panel {
-		position: absolute;
-		z-index: var(--sl-z-index-navbar, 10);
-		inset-inline-end: 0;
-		margin-block-start: 0.6rem;
-		width: max-content;
-		max-width: min(40rem, calc(100vw - 2rem));
-		padding: 1.1rem 1.2rem 0.9rem;
-		border: 1px solid var(--sl-color-gray-5);
-		border-radius: 0.85rem;
-		background: var(--sl-color-black);
-		box-shadow: 0 18px 44px -18px rgb(0 0 0 / 0.6);
-		/* A short laptop window must scroll the panel rather than clip its last group. */
-		max-height: calc(100vh - var(--sl-nav-height) - 1.5rem);
-		overflow-y: auto;
-		overscroll-behavior: contain;
-		animation: pz-dd-in 160ms ease-out;
-	}
-	@keyframes pz-dd-in {
-		from {
-			opacity: 0;
-			transform: translateY(-0.35rem);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.pz-dd-panel {
-			animation: none;
-		}
-		.pz-chev {
-			transition: none;
-		}
-	}
-
-	.pz-dd-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(11rem, 1fr));
-		gap: 1rem 2rem;
-	}
-	.pz-dd-heading {
-		margin: 0 0 0.45rem;
-		font-size: 0.7rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--sl-color-text-accent);
-	}
-	.pz-dd-group ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.1rem;
-	}
-	.pz-dd-group a {
-		display: block;
-		padding: 0.3rem 0.5rem;
-		margin-inline: -0.5rem;
-		border-radius: 0.4rem;
-		font-size: var(--sl-text-sm);
-		color: var(--sl-color-gray-2);
-		text-decoration: none;
-		transition: color 120ms ease, background-color 120ms ease;
-	}
-	.pz-dd-group a:hover {
-		color: var(--sl-color-white);
-		background: var(--sl-color-gray-6);
-	}
-
-	.pz-dd-all {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		margin-block-start: 0.9rem;
-		padding-block-start: 0.7rem;
-		border-top: 1px solid var(--sl-color-gray-6);
-		font-size: var(--sl-text-sm);
-		font-weight: 600;
-		color: var(--sl-color-text-accent);
-		text-decoration: none;
-	}
-	.pz-dd-all span {
-		transition: transform 150ms ease;
-	}
-	.pz-dd-all:hover span {
-		transform: translateX(0.2rem);
+	.pz-nav-gh svg {
+		width: 1rem;
+		height: 1rem;
 	}
 
 	/* ---- Mobile menu variant ---- */
@@ -280,24 +127,20 @@ const DOC_GROUPS = [
 		border-color: var(--sl-color-text-accent);
 		color: var(--sl-color-text-accent);
 	}
-	.pz-mobile-section small {
-		font-size: var(--sl-text-xs);
-		font-weight: 400;
-		color: var(--sl-color-gray-3);
+	.pz-mobile-cta {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		padding: 0.7rem 0.75rem;
+		border-radius: 0.6rem;
+		background: var(--sl-color-accent);
+		color: #0d0d0d;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.pz-mobile-cta svg {
+		width: 1rem;
+		height: 1rem;
 	}
 </style>
-
-<script>
-	// A <details> dropdown stays open until something closes it; in a topbar the expected
-	// "something" is a click anywhere else or Escape.
-	for (const dd of document.querySelectorAll<HTMLDetailsElement>('.pz-dd')) {
-		document.addEventListener('click', (event) => {
-			if (dd.open && !dd.contains(event.target as Node)) dd.open = false;
-		});
-		dd.addEventListener('keydown', (event) => {
-			if (event.key !== 'Escape' || !dd.open) return;
-			dd.open = false;
-			dd.querySelector('summary')?.focus();
-		});
-	}
-</script>

@@ -1,0 +1,167 @@
+---
+/**
+ * Site-wide footer, rendered on every page via the PageFrame override (see PageFrame.astro
+ * in this directory) — Starlight's own `Footer` component is the per-page pagination/edit-
+ * link block inside the content column, this is a separate, full site footer below it.
+ *
+ * On pages with a sidebar, the sidebar is a viewport-fixed column (Starlight's own layout),
+ * so this footer is padded to start where the main content column starts rather than
+ * running full-bleed underneath it — the same offset `.main-frame` already uses.
+ */
+import PzWordmark from './PzWordmark.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (path: string) => base + path;
+const GITHUB_URL = 'https://github.com/PipelineZ/pz';
+const year = new Date().getFullYear();
+
+const COLUMNS = [
+	{
+		heading: 'Product',
+		links: [
+			{ label: 'Docs', href: href('/docs/') },
+			{ label: 'Guides', href: href('/guides/') },
+			{ label: 'Connectors', href: href('/connectors/') },
+			{ label: 'Quickstart', href: href('/quickstart/') },
+		],
+	},
+	{
+		heading: 'Resources',
+		links: [
+			{ label: 'Blog', href: href('/book/') },
+			{ label: 'CLI reference', href: href('/reference/cli/') },
+			{ label: 'Diagram set', href: href('/diagrams/') },
+			{ label: 'Versioning', href: href('/versioning/') },
+		],
+	},
+	{
+		heading: 'Community',
+		links: [
+			{ label: 'GitHub', href: GITHUB_URL },
+			{ label: 'Contributor internals', href: href('/concepts/contributing-internals/') },
+			{ label: 'Report an issue', href: `${GITHUB_URL}/issues` },
+		],
+	},
+];
+---
+
+<footer class="pz-footer">
+	<div class="pz-footer-main">
+		<div class="pz-footer-brand">
+			<a href={href('/')} class="pz-footer-logo">
+				<PzWordmark />
+			</a>
+			<p>
+				A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT,
+				powered by DuckDB.
+			</p>
+		</div>
+		{
+			COLUMNS.map((column) => (
+				<div class="pz-footer-col">
+					<p class="pz-footer-heading">{column.heading}</p>
+					<ul>
+						{column.links.map((link) => (
+							<li>
+								<a href={link.href}>{link.label}</a>
+							</li>
+						))}
+					</ul>
+				</div>
+			))
+		}
+	</div>
+	<div class="pz-footer-bottom">
+		<span>© {year} PipelineZ contributors</span>
+		<a href={`${GITHUB_URL}/blob/main/LICENSE`}>MIT Licensed</a>
+	</div>
+</footer>
+
+<style>
+	.pz-footer {
+		border-top: 1px solid var(--sl-color-hairline-shade);
+		background: var(--sl-color-bg-nav);
+		padding: 2.5rem var(--sl-nav-pad-x) 1.5rem;
+		font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+	}
+	@media (min-width: 50rem) {
+		.pz-footer {
+			padding-inline-start: calc(var(--sl-content-inline-start, 0rem) + var(--sl-nav-pad-x));
+		}
+	}
+
+	.pz-footer-main {
+		display: grid;
+		gap: 2rem;
+		grid-template-columns: 1fr;
+		max-width: var(--sl-content-width);
+	}
+	@media (min-width: 45rem) {
+		.pz-footer-main {
+			grid-template-columns: 1.3fr repeat(3, 1fr);
+		}
+	}
+
+	.pz-footer-brand p {
+		margin-top: 0.75rem;
+		max-width: 22rem;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+	}
+	.pz-footer-logo {
+		display: inline-block;
+		text-decoration: none;
+	}
+	/* PzWordmark's own span isn't authored in this template, so scoped
+	   styles can't reach it without :global(). */
+	.pz-footer-logo :global(.pz-wordmark) {
+		font-size: 1.3rem;
+		color: var(--sl-color-white);
+	}
+
+	.pz-footer-heading {
+		margin: 0 0 0.7rem;
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--sl-color-gray-3);
+	}
+	.pz-footer-col ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.55rem;
+	}
+	.pz-footer-col a {
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+		transition: color 150ms ease;
+	}
+	.pz-footer-col a:hover {
+		color: var(--sl-color-text-accent);
+	}
+
+	.pz-footer-bottom {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 1rem;
+		align-items: center;
+		margin-top: 2.25rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--sl-color-gray-6);
+		max-width: var(--sl-content-width);
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-4);
+	}
+	.pz-footer-bottom a {
+		color: var(--sl-color-gray-4);
+		text-decoration: none;
+	}
+	.pz-footer-bottom a:hover {
+		color: var(--sl-color-gray-2);
+	}
+</style>

@@ -1,0 +1,33 @@
+---
+/**
+ * Starlight's own SiteTitle renders a configured logo image; PipelineZ
+ * doesn't have one (see PzWordmark.astro) — this override swaps that image
+ * slot for the text wordmark instead, keeping upstream's link/layout shell.
+ */
+import PzWordmark from './PzWordmark.astro';
+
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title sl-flex">
+	<PzWordmark />
+</a>
+
+<style>
+	@layer starlight.core {
+		.site-title {
+			align-items: center;
+			gap: var(--sl-nav-gap);
+			text-decoration: none;
+			white-space: nowrap;
+			min-width: 0;
+		}
+	}
+	/* PzWordmark's own span isn't authored in this template, so scoped
+	   styles can't reach it without :global(). */
+	.site-title :global(.pz-wordmark) {
+		font-size: 1.2rem;
+		letter-spacing: -0.01em;
+		color: var(--sl-color-white);
+	}
+</style>

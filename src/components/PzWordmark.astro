@@ -1,0 +1,23 @@
+---
+/**
+ * The "PipelineZ" wordmark, set as real text (Bricolage Grotesque, bold)
+ * rather than a vector logo file — the mark is just the product name with
+ * an accent-colored "Z", so plain text gets that color for free from the
+ * theme's own --sl-color-accent token, with no separate SVG asset to keep
+ * in sync when the accent changes (see theme-lab). Callers set size/color
+ * on their own wrapping element; this component only owns the "Z"'s accent
+ * color.
+ */
+---
+
+<span class="pz-wordmark" translate="no">Pipeline<span class="pz-wordmark-z">Z</span></span>
+
+<style>
+	.pz-wordmark {
+		font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+		font-weight: 800;
+	}
+	.pz-wordmark-z {
+		color: var(--sl-color-accent);
+	}
+</style>

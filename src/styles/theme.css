@@ -2,46 +2,54 @@
  * Replaces the default Catppuccin theme with PipelineZ's own palette: a
  * flat, fully achromatic neutral scale (duckdb.org-inspired — their
  * --grey-* tokens have zero saturation, no warm or cool tint at all) and
- * DuckDB's own lemon yellow (hue ~50, #fff100 per duckdb.org/design/manual)
- * as the one saturated accent, used sparingly rather than as an ambient
+ * a lemon-yellow accent (hue 46, hand-tuned from DuckDB's own #fff100 per
+ * duckdb.org/design/manual via theme-lab — see src/pages/theme-lab.astro)
+ * as the one saturated color, used sparingly rather than as an ambient
  * background wash.
  *
- * Only the primitive tokens are set (white/gray-1..7/black, accent-low/
+ * Only the primitive tokens are set (white/gray-1..6/black, accent-low/
  * accent/accent-high) — Starlight derives everything else (bg, text,
  * bg-nav, bg-sidebar, hairlines, ...) from these in its own stylesheet, so
  * overriding the primitives re-themes the whole site without needing to
  * chase every derived variable. Selectors and variable names mirror
  * Starlight's own props.css: https://github.com/withastro/starlight/blob/main/packages/starlight/style/props.css
+ *
+ * The scale runs one step shorter than it used to: this project briefly
+ * had its own extra gray-7 step (lighter than gray-6, for surfaces like
+ * homepage cards that want to read as raised without the extra contrast of
+ * gray-6/gray-5) tacked on past Starlight's native gray-1..6. Rather than
+ * keep a 7th token around, that step's value now IS gray-6, everything
+ * else shifted down to make room, and the old gray-1 (the scale's least-
+ * used, most extreme end) was dropped.
  */
 :root {
 	/* Dark (default) — true near-black #0D0D0D background, true-gray text */
 	--sl-color-white: #f2f2f2;
-	--sl-color-gray-1: #d9d9d9;
-	--sl-color-gray-2: #b2b2b2;
-	--sl-color-gray-3: #808080;
-	--sl-color-gray-4: #4c4c4c;
-	--sl-color-gray-5: #262626;
-	--sl-color-gray-6: #1a1a1a;
+	--sl-color-gray-1: #b2b2b2;
+	--sl-color-gray-2: #808080;
+	--sl-color-gray-3: #4c4c4c;
+	--sl-color-gray-4: #262626;
+	--sl-color-gray-5: #1a1a1a;
+	--sl-color-gray-6: #2b2b2b;
 	--sl-color-black: #0d0d0d;
 
-	--sl-color-accent-low: hsl(48, 45%, 18%);
-	--sl-color-accent: hsl(50, 95%, 50%);
-	--sl-color-accent-high: hsl(50, 95%, 80%);
+	--sl-color-accent-low: hsl(46, 46%, 18%);
+	--sl-color-accent: hsl(46, 96%, 50%);
+	--sl-color-accent-high: hsl(46, 96%, 80%);
 }
 
 :root[data-theme='light'] {
 	/* Light — true near-white #FAFAFA background, true-gray ink */
 	--sl-color-white: #0d0d0d;
-	--sl-color-gray-1: #1a1a1a;
-	--sl-color-gray-2: #333333;
-	--sl-color-gray-3: #666666;
-	--sl-color-gray-4: #999999;
-	--sl-color-gray-5: #cccccc;
-	--sl-color-gray-6: #e6e6e6;
-	--sl-color-gray-7: #f2f2f2;
+	--sl-color-gray-1: #333333;
+	--sl-color-gray-2: #666666;
+	--sl-color-gray-3: #999999;
+	--sl-color-gray-4: #cccccc;
+	--sl-color-gray-5: #e6e6e6;
+	--sl-color-gray-6: #f6f6f6;
 	--sl-color-black: #fafafa;
 
-	--sl-color-accent-high: hsl(45, 90%, 26%);
-	--sl-color-accent: hsl(50, 95%, 50%);
-	--sl-color-accent-low: hsl(50, 75%, 88%);
+	--sl-color-accent-high: hsl(46, 91%, 26%);
+	--sl-color-accent: hsl(46, 96%, 50%);
+	--sl-color-accent-low: hsl(46, 76%, 88%);
 }
