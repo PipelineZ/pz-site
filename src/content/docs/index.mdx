@@ -169,8 +169,9 @@ verifies every edit, and it's running before you've finished your coffee.
     count(o.id) <span class="kw">as</span> order_count,
     sum(o.amount) <span class="kw">as</span> total_amount
 <span class="kw">from</span> {'{'}{'{'} <span class="fn">ref</span>('stg_orders') {'}'}{'}'} <span class="kw">as</span> o
-<span class="kw">join</span> {'{'}{'{'} <span class="fn">source</span>('raw', 'customers') {'}'}{'}'} <span class="kw">as</span> c <span class="kw">on</span> c.id = o.customer_id
-<span class="kw">group by</span> 1</pre>
+<span class="kw">join</span> {'{'}{'{'} <span class="fn">source</span>('raw', 'customers') {'}'}{'}'} <span class="kw">as</span> c
+    <span class="kw">on</span> c.id = o.customer_id
+<span class="kw">group by</span> c.id;</pre>
 </div>
 <div class="pz-term-zone">
 <pre><span class="dim">$</span> pz validate
