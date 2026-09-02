@@ -11,15 +11,30 @@
 	--pz-moss: #7a9950;
 	--pz-slate: #5b87a6;
 	--pz-teal: #3e8f82;
+
+	/* Shared shape + depth vocabulary for every homepage surface. Two radii
+	   only: cards, panels, and windows take --pz-radius; controls and the
+	   small things nested inside a card (bubbles, diagram nodes, buttons)
+	   take --pz-radius-sm, which matches the header's own "Get Started".
+	   Light surfaces (tiles, prompt card) are separated by hairline alone;
+	   the one shadow is reserved for the charcoal "device" surfaces
+	   (terminal, diff) that stay dark on both themes and so need lift. */
+	--pz-radius: 12px;
+	--pz-radius-sm: 0.5rem;
+	--pz-shadow-device: 0 16px 40px -18px rgb(0 0 0 / 0.45);
+	--pz-font-display: 'Geist Variable', var(--sl-font-system);
+	/* Intro copy under a section heading stays a comfortable measure. */
+	--pz-measure: 60ch;
+	--pz-section-gap: clamp(3rem, 6vw, 4.5rem);
 }
 
-/* Hero: display type + soft atmosphere behind the splash page.
-   Font sizes below pin to the values in the approved mockup — Starlight's
-   own hero/heading clamps run a bit larger (looser line-height on the
-   h1, a wider tagline clamp, a taller section h2). */
+/* ---- Hero -------------------------------------------------------------
+   Display type + soft atmosphere behind the splash page. Font sizes pin
+   to the approved mockup — Starlight's own hero/heading clamps run a bit
+   larger (looser line-height on the h1, a taller section h2). */
 [data-has-hero] .hero h1,
 [data-has-hero] .sl-markdown-content h2 {
-	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+	font-family: var(--pz-font-display);
 }
 [data-has-hero] .hero h1 {
 	font-weight: 800;
@@ -27,10 +42,8 @@
 	line-height: 1.03;
 }
 [data-has-hero] .hero .tagline {
-	font-size: 1.02rem;
-}
-[data-has-hero] .sl-markdown-content h2 {
-	font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+	font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+	max-width: 34ch;
 }
 .pz-hero-line { display: block; }
 .pz-hero-flame {
@@ -38,9 +51,9 @@
 }
 [data-has-hero] .hero {
 	/* Flat ground, no ambient color wash — a dot grid is the only texture,
-	   the orange/amber accent is reserved for type and controls. The grid
-	   lives on ::before (not the hero's own background) so it can be masked
-	   to fade out without also fading the heading/tagline/buttons above it. */
+	   the accent is reserved for type and controls. The grid lives on
+	   ::before (not the hero's own background) so it can be masked to fade
+	   out without also fading the heading/tagline/buttons above it. */
 	position: relative;
 }
 [data-has-hero] .hero::before {
@@ -54,136 +67,112 @@
 	mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
 }
 
-/* Terminal window (stays charcoal-dark in both themes, like a real terminal) */
-.pz-term {
-	width: 100%;
-	max-width: 34rem;
-	text-align: left;
-	/* A shade lighter than the darkest page background (true near-black,
-	   #0d0d0d) so the card still reads as a raised surface in dark mode. */
-	background: #1a1a1a;
-	border: 1px solid #333333;
-	border-radius: 12px;
-	box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.55);
-	overflow: hidden;
-	font-family: var(--__sl-font-mono, ui-monospace, monospace);
-	font-size: 0.78rem;
-	line-height: 1.7;
+/* Hero actions: the same button the header already uses for "Get Started",
+   sized up for the hero. Starlight's LinkButton paints its primary with
+   --sl-color-text-accent, which flips to a dark amber on the light theme
+   and loses the brand yellow — so both variants are restyled here. */
+[data-has-hero] .hero .actions {
+	gap: 0.75rem 1rem;
 }
-.pz-term-bar {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0.55rem 0.8rem;
-	background: #050505;
-	border-bottom: 1px solid #262626;
+[data-has-hero] .hero .sl-link-button {
+	font-family: var(--pz-font-display);
+	font-size: var(--sl-text-base);
+	font-weight: 700;
+	line-height: 1;
+	padding: 0.8rem 1.25rem;
+	border-radius: var(--pz-radius-sm);
+	transition: filter 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
-.pz-term-bar i {
-	/* Same Starlight content-spacing rule as .pz-tile (see its comment) —
-	   it targets any adjacent non-inline siblings, and `i` isn't in its
-	   exclusion list, so the 2nd/3rd dot were getting margin-top and
-	   sinking below the first inside the flex row. */
-	margin-top: 0 !important;
-	width: 0.65rem;
-	height: 0.65rem;
-	border-radius: 50%;
-	background: #4c4c4c;
+[data-has-hero] .hero .sl-link-button.primary {
+	background: var(--sl-color-accent);
+	border-color: var(--sl-color-accent);
+	color: #0d0d0d;
 }
-.pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
-.pz-term-bar i:nth-child(2) { background: var(--sl-color-accent); }
-.pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
-.pz-term-bar span {
-	margin-inline-start: 0.5rem;
-	color: #808080;
-	font-size: 0.7rem;
+[data-has-hero] .hero .sl-link-button.primary:hover {
+	color: #0d0d0d;
+	filter: brightness(1.1);
 }
-.pz-term pre {
-	margin: 0;
-	padding: 0.9rem 1rem 1rem;
+[data-has-hero] .hero .sl-link-button.secondary {
 	background: transparent;
-	color: #e6e6e6;
-	white-space: pre-wrap;
-	border: none;
+	border-color: var(--sl-color-gray-4);
+	color: var(--sl-color-white);
 }
-.pz-term .ln {
-	display: block;
-	opacity: 0;
-	animation: pz-line-in 0.3s ease-out forwards;
+[data-has-hero] .hero .sl-link-button.secondary:hover {
+	border-color: var(--sl-color-gray-2);
+	background: var(--sl-color-gray-6);
 }
-.pz-term .ln:nth-child(1)  { animation-delay: 0.15s; }
-.pz-term .ln:nth-child(2)  { animation-delay: 0.55s; }
-.pz-term .ln:nth-child(3)  { animation-delay: 0.75s; }
-.pz-term .ln:nth-child(4)  { animation-delay: 0.95s; }
-.pz-term .ln:nth-child(5)  { animation-delay: 1.15s; }
-.pz-term .ln:nth-child(6)  { animation-delay: 1.35s; }
-.pz-term .ln:nth-child(7)  { animation-delay: 1.55s; }
-.pz-term .ln:nth-child(8)  { animation-delay: 1.75s; }
-.pz-term .ln:nth-child(9)  { animation-delay: 2.0s; }
-.pz-term .ok { color: var(--pz-moss); }
-.pz-term .dim { color: #808080; }
-/* .pz-term stays dark regardless of page theme (see the .pz-diff comment
-   below), so its prompt can't use --sl-color-accent-high directly — that
-   token flips to a dark amber in light theme (meant for light backgrounds)
-   and would go near-invisible here. Darken the theme-invariant accent
-   instead, so it still tracks whatever hue the accent is set to. */
-.pz-term .prompt { color: color-mix(in srgb, var(--sl-color-accent) 80%, black); }
-.pz-term .accent { color: var(--sl-color-accent); }
-.pz-term pre::after {
-	content: '';
-	display: inline-block;
-	width: 0.55em;
-	height: 1.05em;
-	margin-inline-start: 0.15em;
-	vertical-align: text-bottom;
-	background: #e6e6e6;
-	opacity: 0;
-	animation: pz-cursor 1.1s steps(2, start) infinite;
-	animation-delay: 2.4s;
+
+/* Starlight's splash hero reserves up to 10rem of block padding, and the
+   surrounding content-panel adds another 24px of its own on every page —
+   trim both on the homepage so the whole hero (headline + diagram
+   together) sits close under the nav instead of floating in a tall
+   empty band. */
+[data-has-hero] .content-panel {
+	padding-top: 0.5rem;
 }
-@keyframes pz-cursor {
-	from { opacity: 1; }
-	50% { opacity: 0; }
+[data-has-hero] .hero {
+	padding-block: clamp(0.5rem, 2vmin, 1rem) clamp(1.5rem, 4vmin, 2.5rem);
 }
-@keyframes pz-line-in {
-	from { opacity: 0; transform: translateY(3px); }
-	to { opacity: 1; transform: none; }
+/* Copy before diagram at every width. Starlight only reorders the image
+   after the text from 50rem up; below that the diagram would stack above
+   the headline and push the value proposition below the fold on a phone. */
+[data-has-hero] .hero > .hero-html {
+	order: 2;
+	/* Starlight caps the image slot at 70% below 50rem; the stacked diagram
+	   grid needs the full column to keep three legible cards per row. */
+	width: 100%;
+}
+/* Starlight defaults the hero to a 7fr/4fr split with the image capped at
+   25rem — too little room for the hub-and-spoke diagram, which ends up
+   small and pushed into the far right corner. Give it an even split and
+   more headroom; the diagram itself is percentage-based so it just scales
+   up cleanly to fill the extra space rather than needing new geometry. */
+@media (min-width: 50rem) {
+	[data-has-hero] .hero {
+		grid-template-columns: 1fr 1fr;
+		gap: 2.5rem;
+		/* Keep Starlight's default row centering — the artifact centers
+		   the text against the diagram too, so the headline lines up with
+		   the hub, not the top edge of the (much taller) diagram box. */
+	}
+	[data-has-hero] .hero > .hero-html {
+		width: min(100%, 34rem);
+	}
 }
 
 /* Hero hub-and-spoke: DuckDB centered, six connector categories on a ring
    around it, spaced generously. The hero-image slot's width still varies
-   with viewport (see the override below and Starlight's own hero grid),
+   with viewport (see the override above and Starlight's own hero grid),
    so every dimension here is a PERCENTAGE of the box Starlight actually
    hands us (with aspect-ratio locking height to width) rather than a
    fixed rem value — the ring scales cleanly to fill whatever room it
    gets and can't outgrow its slot into the heading at any width.
-   Collapses to a plain stacked grid (spokes hidden) below 28rem, where a
-   ring has no usable room at all. */
-.pz-hub { position: relative; width: 100%; max-width: 32rem; aspect-ratio: 1 / 1; margin: 2rem auto 0; }
+   Collapses to a plain grid (spokes hidden) below 28rem, where a ring
+   has no usable room at all. */
+.pz-hub { position: relative; width: 100%; max-width: 32rem; aspect-ratio: 1 / 1; margin: 1.5rem auto 0; }
 .pz-hub-core {
-	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 22%;
+	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 23%;
 	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.3rem;
-	padding: 0.45rem;
+	padding: 0.5rem;
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
 	background: var(--sl-color-accent-low);
-	border-radius: 16px;
+	border-radius: var(--pz-radius);
 	z-index: 2;
 }
-.pz-hub-core strong { font-size: 0.62rem; color: var(--sl-color-white); font-weight: 700; }
+.pz-hub-core strong { font-size: 0.7rem; color: var(--sl-color-white); font-weight: 700; }
 .pz-duck-badge {
-	flex: none; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: #14110a;
+	flex: none; width: 2rem; height: 2rem; border-radius: 50%; background: #14110a;
 	display: flex; align-items: center; justify-content: center;
 }
-.pz-duck-badge svg { width: 1.1rem; height: 1.1rem; }
+.pz-duck-badge svg { width: 1.15rem; height: 1.15rem; }
 .pz-spoke {
 	/* Length is tuned to reach under the *closest* edge of a .pz-cat box in
 	   every direction, not to the 34% node center used below. The category
 	   boxes are wider than they are tall, so their near edge sits much
 	   closer to the hub on the vertical spokes (top/bottom) than on the
-	   diagonal ones — 21% cleared the diagonal boxes' near edge but landed
-	   ~30px short of the top/bottom boxes, leaving a visible gap. 28% clears
-	   the nearest (vertical) case with a couple px to spare, while still
-	   landing well short of any box's *far* edge, so the overlap stays
-	   hidden behind the (opaque) box on every spoke. */
+	   diagonal ones — 28% clears the nearest (vertical) case with a couple
+	   px to spare, while still landing well short of any box's *far* edge,
+	   so the overlap stays hidden behind the (opaque) box on every spoke. */
 	position: absolute; left: 50%; top: 50%; height: 2px; width: 28%; transform-origin: 0 50%;
 	transform: rotate(var(--a));
 	background: repeating-linear-gradient(90deg, var(--sl-color-accent) 0 6px, transparent 6px 12px);
@@ -193,64 +182,165 @@
 @keyframes pz-spoke-dash { to { background-position: 12px 0; } }
 .pz-cat {
 	position: absolute; left: calc(50% + 34% * cos(var(--a))); top: calc(50% + 34% * sin(var(--a)));
-	transform: translate(-50%, -50%); width: 26%;
-	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.3rem;
+	transform: translate(-50%, -50%); width: 27%;
+	display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.35rem;
 	border: 1px solid var(--sl-color-gray-5);
-	border-radius: 10px;
-	padding: 0.5rem 0.55rem;
+	border-radius: var(--pz-radius-sm);
+	padding: 0.55rem 0.6rem;
 	background: var(--sl-color-gray-6);
 	/* Above .pz-spoke (z-index: 1) so the spoke's reach under the box's near
 	   edge (see .pz-spoke) is always hidden, not painted over the card. */
 	z-index: 2;
 }
-.pz-cat-name { font-size: 0.58rem; color: var(--sl-color-white); font-weight: 700; line-height: 1.15; }
+.pz-cat-name { font-size: 0.66rem; color: var(--sl-color-white); font-weight: 700; line-height: 1.15; }
 .pz-cat-icons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.35rem; }
-.pz-cat-icons svg { height: 18px; width: auto; flex: none; }
+.pz-cat-icons svg { height: 20px; width: auto; flex: none; }
 .pz-cat-dir {
 	font-family: var(--__sl-font-mono, ui-monospace, monospace);
-	font-size: 0.46rem;
+	font-size: 0.56rem;
 	letter-spacing: 0.02em;
-	color: var(--sl-color-gray-3);
+	color: var(--sl-color-gray-2);
 	border: 1px solid var(--sl-color-gray-5);
 	border-radius: 999px;
-	padding: 0.1rem 0.35rem;
+	padding: 0.1rem 0.4rem;
 }
 @media (max-width: 28rem) {
 	.pz-hub {
 		position: static; height: auto; max-width: none; aspect-ratio: auto;
-		display: grid; grid-template-columns: 1fr 1fr;
-		grid-template-areas: "hub hub" "dw cloud" "saas files" "db api";
-		gap: 0.9rem;
+		/* minmax(0, 1fr), not bare 1fr: a bare 1fr track can't shrink below its
+		   content, so the "Data warehouses" column would grow at the third
+		   column's expense and squeeze its icons onto two rows. */
+		display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-areas: "hub hub hub" "dw cloud saas" "files db api";
+		gap: 0.6rem;
+		margin-top: 2rem;
 	}
 	.pz-hub .pz-spoke { display: none; }
-	.pz-hub .pz-hub-core, .pz-hub .pz-cat { position: static; transform: none; left: auto; top: auto; width: 100%; padding: 0.85rem 0.75rem; }
-	.pz-hub .pz-hub-core { grid-area: hub; }
-	.pz-hub-core strong { font-size: 0.78rem; }
-	.pz-cat-name { font-size: 0.78rem; }
-	.pz-cat-icons svg { height: 24px; }
-	.pz-cat-dir { font-size: 0.64rem; padding: 0.15rem 0.5rem; }
+	.pz-hub .pz-hub-core, .pz-hub .pz-cat { position: static; transform: none; left: auto; top: auto; width: 100%; }
+	.pz-hub .pz-hub-core { grid-area: hub; flex-direction: row; gap: 0.6rem; padding: 0.7rem; }
+	.pz-hub .pz-cat { padding: 0.7rem 0.4rem; gap: 0.45rem; }
+	.pz-hub-core strong { font-size: 0.85rem; }
+	.pz-cat-name { font-size: 0.72rem; }
+	.pz-cat-icons { gap: 0.3rem; }
+	.pz-cat-icons svg { height: 20px; }
+	.pz-cat-dir { font-size: 0.58rem; letter-spacing: 0; padding: 0.15rem 0.4rem; white-space: nowrap; }
 	.pz-hub .pz-cat-dw { grid-area: dw; } .pz-hub .pz-cat-cloud { grid-area: cloud; }
 	.pz-hub .pz-cat-saas { grid-area: saas; } .pz-hub .pz-cat-files { grid-area: files; }
 	.pz-hub .pz-cat-db { grid-area: db; } .pz-hub .pz-cat-api { grid-area: api; }
 }
 
-/* Dev-lifecycle: pipeline change shown as a reviewed PR diff */
-.pz-pr-row { display: grid; gap: 2rem; grid-template-columns: 1fr; margin-top: 3rem; align-items: center; }
-@media (min-width: 60rem) { .pz-pr-row { grid-template-columns: 0.85fr 1.15fr; } }
-/* Starlight's content-spacing rule (see the .pz-tile comment above) hits
-   .pz-diff as the row's 2nd child and pushes it out of the centered
-   alignment with .pz-pr-copy. */
-.pz-pr-row > * { margin-top: 0 !important; }
-.pz-pr-copy h3 {
-	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
-	font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; margin-top: 0.5rem;
+/* ---- Section rhythm ---------------------------------------------------
+   Every section owns its own block padding and opens with a hairline, so
+   the spacing between any two sections is identical whatever they contain
+   (a dark terminal, a tile grid, prose). Starlight's flow margins between
+   siblings are cancelled so they can't double up with the padding. */
+.pz-section {
+	margin-top: 0 !important;
+	padding-block: var(--pz-section-gap);
+	border-top: 1px solid var(--sl-color-hairline-light);
 }
-.pz-pr-copy p { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); margin-top: 0.7rem; max-width: 26rem; }
+/* The hero's own content panel already draws a hairline above the first
+   section, and the hero has just paid its bottom padding. */
+.sl-markdown-content > .pz-section:first-child {
+	border-top: 0;
+	padding-top: calc(var(--pz-section-gap) * 0.5);
+}
+/* Starlight wraps every heading in a .sl-heading-wrapper div, so the
+   heading and its intro are matched through that wrapper. */
+.pz-section > .sl-heading-wrapper,
+.pz-why-head > .sl-heading-wrapper,
+.pz-oss-head > .sl-heading-wrapper,
+.pz-section > .sl-heading-wrapper > h2,
+.pz-why-head > .sl-heading-wrapper > h2,
+.pz-oss-head > .sl-heading-wrapper > h2 {
+	margin-top: 0 !important;
+}
+[data-has-hero] .sl-markdown-content h2 {
+	line-height: 1.15;
+}
+[data-has-hero] .sl-markdown-content h2 {
+	font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+	font-weight: 700;
+	letter-spacing: -0.015em;
+	text-wrap: balance;
+}
+/* Intro copy sits close under its heading, at a readable measure. */
+.pz-section > .sl-heading-wrapper + p,
+.pz-why-head > .sl-heading-wrapper + p,
+.pz-oss-head > .sl-heading-wrapper + p {
+	margin-top: 0.75rem !important;
+	max-width: var(--pz-measure);
+	color: var(--sl-color-gray-2);
+}
+
+/* The one inline link style: accent text with an arrow that nudges on
+   hover. Used wherever a section hands off to a page (quickstart, GitHub). */
+.pz-link-arrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-top: 1.5rem;
+	font-family: var(--pz-font-display);
+	font-weight: 600;
+	font-size: var(--sl-text-base);
+	color: var(--sl-color-text-accent);
+	text-decoration: none;
+}
+.pz-link-arrow span {
+	transition: transform 150ms ease;
+}
+.pz-link-arrow:hover {
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+.pz-link-arrow:hover span {
+	transform: translateX(0.2rem);
+}
+
+/* ---- Code showcase grid ---------------------------------------------- */
+.pz-cols {
+	display: grid;
+	gap: 1rem;
+	align-items: stretch;
+}
+@media (min-width: 72rem) {
+	.pz-cols { grid-template-columns: 1fr 1fr; }
+}
+/* Cancel Starlight's flow margin so panels align, and let a grid cell
+   shrink below its code's intrinsic width — otherwise a long SQL line
+   forces the whole page wider than a phone and the body scrolls sideways
+   instead of the code block. */
+.pz-cols > *,
+.pz-pr-row > *,
+.pz-demo > * {
+	margin-top: 0 !important;
+	min-width: 0;
+}
+/* Equal-height code panels: stretch each frame to fill its grid cell */
+.pz-cols .expressive-code,
+.pz-cols .expressive-code figure {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+}
+.pz-cols .expressive-code pre {
+	flex: 1;
+}
+
+/* ---- Dev-lifecycle: pipeline change shown as a reviewed PR diff ------- */
+.pz-pr-row { display: grid; gap: 2rem; grid-template-columns: 1fr; margin-top: 2.5rem; align-items: center; }
+@media (min-width: 60rem) { .pz-pr-row { grid-template-columns: 0.85fr 1.15fr; } }
+.pz-pr-copy h3 {
+	font-family: var(--pz-font-display);
+	font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; margin-top: 0;
+}
+.pz-pr-copy p { font-size: var(--sl-text-base); color: var(--sl-color-gray-2); margin-top: 0.75rem; max-width: 28rem; }
 /* Stays charcoal-dark on both themes, like the terminal (.pz-term) and the
    code blocks (see expressiveCode in astro.config.mjs) — a diff reads like
    code, so it gets the same treatment rather than following the page's
    own light/dark toggle. */
-.pz-diff { background: #1a1a1a; border: 1px solid #333333; border-radius: 12px; overflow: hidden; box-shadow: 0 16px 40px -18px rgb(0 0 0 / 0.35); }
+.pz-diff { background: #1a1a1a; border: 1px solid #333333; border-radius: var(--pz-radius); overflow: hidden; box-shadow: var(--pz-shadow-device); }
 .pz-diff-head {
 	display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
 	padding: 0.65rem 0.9rem;
@@ -294,89 +384,96 @@
 	margin-top: 0.5rem;
 }
 
-/* Live-authoring demo: prompt on the left, generated file + run output
-   (reusing the terminal chrome) on the right */
+/* ---- Live-authoring demo: prompt on the left, generated file + run
+   output (in terminal chrome) on the right ----------------------------- */
 .pz-demo { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 2rem; }
 @media (min-width: 60rem) { .pz-demo { grid-template-columns: 0.85fr 1.15fr; align-items: stretch; } }
-/* Starlight's content-spacing rule (see the .pz-tile comment above) hits
-   .pz-term as the row's 2nd child and drops it below .pz-prompt. */
-.pz-demo > * { margin-top: 0 !important; }
 .pz-prompt {
 	background: var(--sl-color-gray-6);
 	border: 1px solid var(--sl-color-gray-5);
-	border-radius: 12px;
-	box-shadow: 0 16px 40px -18px rgb(0 0 0 / 0.18);
+	border-radius: var(--pz-radius);
 	padding: 1.1rem;
 	display: flex; flex-direction: column; gap: 0.8rem; justify-content: center;
 }
-.pz-bubble { background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-5); border-radius: 10px; padding: 0.75rem 0.9rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-1); }
-.pz-bubble-tag { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.65rem; color: var(--sl-color-gray-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.35rem; }
+.pz-bubble { background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-5); border-radius: var(--pz-radius-sm); padding: 0.75rem 0.9rem; font-size: var(--sl-text-sm); color: var(--sl-color-gray-1); }
+.pz-bubble-tag { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.7rem; color: var(--sl-color-gray-2); margin-bottom: 0.35rem; }
 .pz-bubble-you { border-color: color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5)); }
+
+/* Terminal window (stays charcoal-dark in both themes, like a real terminal) */
+.pz-term {
+	width: 100%;
+	text-align: left;
+	/* A shade lighter than the darkest page background (true near-black,
+	   #0d0d0d) so the card still reads as a raised surface in dark mode. */
+	background: #1a1a1a;
+	border: 1px solid #333333;
+	border-radius: var(--pz-radius);
+	box-shadow: var(--pz-shadow-device);
+	overflow: hidden;
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: 0.78rem;
+	line-height: 1.7;
+}
+.pz-term-bar {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.55rem 0.8rem;
+	background: #050505;
+	border-bottom: 1px solid #262626;
+}
+.pz-term-bar i {
+	/* Same Starlight content-spacing rule as .pz-tile (see its comment) —
+	   it targets any adjacent non-inline siblings, and `i` isn't in its
+	   exclusion list, so the 2nd/3rd dot were getting margin-top and
+	   sinking below the first inside the flex row. */
+	margin-top: 0 !important;
+	width: 0.65rem;
+	height: 0.65rem;
+	border-radius: 50%;
+	background: #4c4c4c;
+}
+.pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
+.pz-term-bar i:nth-child(2) { background: var(--sl-color-accent); }
+.pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
+.pz-term-bar span {
+	margin-inline-start: 0.5rem;
+	color: #808080;
+	font-size: 0.7rem;
+}
+.pz-term pre {
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	color: #e6e6e6;
+	white-space: pre-wrap;
+	border: none;
+}
 .pz-term-zone { padding: 0.85rem 1rem; }
 .pz-term-zone + .pz-term-zone { border-top: 1px solid #262626; }
-.pz-term .pz-term-zone pre { padding: 0; }
 .pz-term .file-tag { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.68rem; color: #808080; margin-bottom: 0.4rem; }
 .pz-term .kw { color: var(--sl-color-accent); }
 .pz-term .fn { color: #7fb3e6; }
-@media (prefers-reduced-motion: reduce) { .pz-spoke { animation: none; } }
+.pz-term .ok { color: var(--pz-moss); }
+.pz-term .dim { color: #808080; }
+/* The blinking cursor belongs to the shell pane only — the generated file
+   above it is a file view, not a prompt. */
+.pz-term-zone:last-child pre::after {
+	content: '';
+	display: inline-block;
+	width: 0.55em;
+	height: 1.05em;
+	margin-inline-start: 0.15em;
+	vertical-align: text-bottom;
+	background: #e6e6e6;
+	animation: pz-cursor 1.1s steps(2, start) infinite;
+}
+@keyframes pz-cursor {
+	from { opacity: 1; }
+	50% { opacity: 0; }
+}
 
-/* Section rhythm + code showcase grid */
-.pz-section { margin-top: 4rem; }
-/* Starlight's splash hero reserves up to 10rem of block padding, and the
-   surrounding content-panel adds another 24px of its own on every page —
-   trim both on the homepage so the whole hero (headline + diagram
-   together) sits close under the nav instead of floating in a tall
-   empty band. */
-[data-has-hero] .content-panel {
-	padding-top: 0.5rem;
-}
-[data-has-hero] .hero {
-	padding-block: clamp(0.5rem, 2vmin, 1rem) 0;
-}
-/* Starlight defaults the hero to a 7fr/4fr split with the image capped at
-   25rem — too little room for the hub-and-spoke diagram, which ends up
-   small and pushed into the far right corner. Give it an even split and
-   more headroom; the diagram itself is percentage-based so it just scales
-   up cleanly to fill the extra space rather than needing new geometry. */
-@media (min-width: 50rem) {
-	[data-has-hero] .hero {
-		grid-template-columns: 1fr 1fr;
-		gap: 2.5rem;
-		/* Keep Starlight's default row centering — the artifact centers
-		   the text against the diagram too, so the headline lines up with
-		   the hub, not the top edge of the (much taller) diagram box. */
-	}
-	[data-has-hero] .hero > .hero-html {
-		width: min(100%, 34rem);
-	}
-}
-[data-has-hero] .hero + * .pz-section:first-child,
-.pz-section:first-of-type {
-	margin-top: 2.5rem;
-}
-.pz-cols {
-	display: grid;
-	gap: 1rem;
-	align-items: stretch;
-}
-@media (min-width: 72rem) {
-	.pz-cols { grid-template-columns: 1fr 1fr; }
-}
-.pz-cols > * {
-	margin-top: 0 !important; /* cancel Starlight's flow margin so panels align */
-}
-/* Equal-height code panels: stretch each frame to fill its grid cell */
-.pz-cols .expressive-code,
-.pz-cols .expressive-code figure {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	width: 100%;
-}
-.pz-cols .expressive-code pre {
-	flex: 1;
-}
-/* Why-pz bento: each tile leads with a real artifact */
+/* ---- Why PipelineZ: four tiles, one per claim ------------------------- */
 .pz-bento {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
@@ -386,15 +483,6 @@
 }
 @media (max-width: 55rem) { .pz-bento { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 32rem) { .pz-bento { grid-template-columns: 1fr; } }
-/* Heading + subtitle sit centered above the card row (see the reference
-   mockup) rather than left-aligned like the rest of the page's sections. */
-.pz-why-head {
-	max-width: 34rem;
-	margin-inline: auto;
-	text-align: center;
-}
-.pz-why-head h2 { margin-top: 0 !important; }
-.pz-why-head p { margin-top: 0.6rem !important; color: var(--sl-color-gray-2); }
 .pz-tile {
 	/* Starlight's own content-spacing rule (`.sl-markdown-content :not(...) +
 	   :not(...)`) adds margin-top between adjacent block siblings — including
@@ -404,31 +492,22 @@
 	display: flex;
 	flex-direction: column;
 	height: 100%;
-	gap: 0.7rem;
-	padding: 1.4rem 1.4rem 1.5rem;
+	gap: 0.6rem;
+	padding: 1.4rem;
 	border: 1px solid var(--sl-color-gray-5);
-	border-radius: 14px;
+	border-radius: var(--pz-radius);
 	background: var(--sl-color-gray-6);
-	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.pz-tile:hover {
-	transform: translateY(-3px);
-	border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-gray-5));
-	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--sl-color-accent) 40%, transparent);
 }
 .pz-tile p { margin: 0 !important; }
 .pz-tile p:not(.pz-tile-title) {
 	font-size: var(--sl-text-sm);
+	line-height: 1.6;
 	color: var(--sl-color-gray-2);
-	/* Reserve room for the longest description (~3 lines) so all four tiles
-	   match height even when stacked to one column, where each card is its
-	   own grid row and can no longer stretch to match its neighbors. */
-	min-height: 3.9rem;
-	flex: 1;
 }
 .pz-tile-icon {
-	width: 2.75rem;
-	height: 2.75rem;
+	width: 2.25rem;
+	height: 2.25rem;
+	margin-bottom: 0.4rem;
 	fill: none;
 	stroke: var(--sl-color-accent);
 	stroke-width: 1.6;
@@ -436,93 +515,61 @@
 	stroke-linejoin: round;
 }
 .pz-tile-title {
-	font-weight: 600;
-	font-size: 1.05rem;
+	font-family: var(--pz-font-display);
+	font-weight: 700;
+	font-size: 1.1rem;
+	line-height: 1.2;
 	color: var(--sl-color-white);
 }
 
-/* Closing CTA under the feature grid — an outline pill, not a filled
-   button, so it reads as secondary next to the header's "Get Started". */
-.pz-why-cta {
-	display: flex;
-	width: fit-content;
-	align-items: center;
-	gap: 0.45rem;
-	margin: 2.25rem auto 0;
-	padding: 0.6rem 1.15rem;
-	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-gray-5));
-	border-radius: 999px;
-	font-weight: 600;
-	font-size: var(--sl-text-sm);
-	color: var(--sl-color-text-accent);
-	text-decoration: none;
-	transition: border-color 0.18s ease, transform 0.18s ease;
-}
-.pz-why-cta span {
-	transition: transform 150ms ease;
-}
-.pz-why-cta:hover {
-	border-color: var(--sl-color-accent);
-}
-.pz-why-cta:hover span {
-	transform: translateX(0.2rem);
-}
-
-/* Built-with-open-source: the whole section is one horizontal strip — heading block on the
-   left, the dependency row (OssMarquee.astro) filling the rest — wrapping to a stacked
-   layout only once it can't fit that. */
+/* ---- Built with open source: heading block on the left, the dependency
+   row (OssMarquee.astro) filling the rest, stacking only once it can't fit. */
 .pz-oss-strip {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 2rem;
-	margin-top: 1.5rem;
+	gap: 2rem 3rem;
 }
 .pz-oss-head {
-	flex: 1 1 18rem;
+	flex: 1 1 16rem;
 	max-width: 22rem;
 }
-.pz-oss-head h2 { margin-top: 0 !important; }
-.pz-oss-head p { margin-top: 0.6rem !important; font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+.pz-oss-head > .sl-heading-wrapper + p { font-size: var(--sl-text-base); }
 .pz-oss-accent { color: var(--sl-color-text-accent); }
-.pz-oss-repo {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	margin-top: 0.85rem;
-	font-weight: 600;
-	font-size: var(--sl-text-sm);
-	color: var(--sl-color-text-accent);
-	text-decoration: none;
-}
-.pz-oss-repo span {
-	transition: transform 150ms ease;
-}
-.pz-oss-repo:hover span {
-	transform: translateX(0.2rem);
-}
+/* Let the logo row give up width to the heading block instead of sizing to
+   its own content and squeezing the heading into a narrow column. */
+.pz-oss-strip > .pz-oss-row-list { flex: 1 1 40rem; min-width: 0; }
+.pz-oss-strip .pz-oss-item { padding-inline: 0.5rem; }
+.pz-oss-head .pz-link-arrow { margin-top: 1rem; }
 
-/* Closing CTA band around the series link */
-.pz-cta {
-	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
-	background: color-mix(in srgb, var(--sl-color-accent) 9%, transparent);
-	border-radius: 16px;
-	padding: 1.5rem;
-	margin-bottom: 3rem;
-}
+/* ---- Closing hand-off to the article series --------------------------- */
+.pz-cta { margin-top: 1.5rem; }
 .pz-cta .sl-link-card {
-	border: 0;
-	background: transparent;
+	border: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+	border-radius: var(--pz-radius);
 	box-shadow: none;
-	padding: 0.5rem;
+	padding: 1.25rem 1.5rem;
+	transition: border-color 150ms ease;
+}
+.pz-cta .sl-link-card:hover {
+	background: var(--sl-color-gray-6);
+	border-color: var(--sl-color-gray-3);
+}
+.pz-cta .sl-link-card .title {
+	font-family: var(--pz-font-display);
+	font-weight: 700;
+}
+.pz-cta .sl-link-card .description {
+	max-width: var(--pz-measure);
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.pz-term .ln { animation: none; opacity: 1; }
-	.pz-term pre::after { animation: none; opacity: 1; }
-	.pz-tile { transition: none; }
-	.pz-why-cta,
-	.pz-why-cta span { transition: none; }
+	.pz-spoke { animation: none; }
+	.pz-term-zone:last-child pre::after { animation: none; }
+	.pz-link-arrow span,
+	.pz-cta .sl-link-card,
+	[data-has-hero] .hero .sl-link-button { transition: none; }
 }
 
 /* Excalidraw diagrams: one PNG per theme, swapped with the site theme.

@@ -204,13 +204,9 @@ export default defineConfig({
 				SocialIcons: './src/components/SocialIcons.astro',
 			},
 			customCss: [
-				// The default export only varies weight (opsz pinned to its default
-				// instance); `standard.css` carries the full [opsz,wdth,wght] variable
-				// font, which is what actually gives the display headings their
-				// character at large sizes — Bricolage Grotesque's optical-size axis
-				// is a big part of its look, and browsers apply it automatically via
-				// `font-optical-sizing: auto` (the default) once it's present.
-				'@fontsource-variable/bricolage-grotesque/standard.css',
+				// Geist carries the display voice (hero, headings, nav, wordmark);
+				// body text stays on Starlight's system stack.
+				'@fontsource-variable/geist',
 				'./src/styles/theme.css',
 				'./src/styles/landing.css',
 			],
