@@ -8,7 +8,8 @@
 # snapshot to src/content/versions/v0.4.json, and copies the diagrams those pages use into
 # public/diagrams/v0.4/. Commit everything the script lists.
 # On failure after versions.json has been edited, the script restores versions.json and
-# removes any partial snapshot so the working tree is left clean.
+# removes everything the build created (docs copy, sidebar JSON, diagram copies) with
+# git clean, so the working tree is left as it was.
 set -euo pipefail
 
 SITE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,24 +48,29 @@ rollback() {
   if [[ $failed -ne 0 ]]; then
     echo "freeze-version: rollback incomplete; run 'git status' and clean up by hand" >&2
   fi
+  return $failed
+}
+
+# Prints why the freeze stopped, after undoing whatever the build left behind.
+fail() {
+  if rollback; then
+    echo "freeze-version: $1; versions.json restored, nothing to commit" >&2
+  else
+    echo "freeze-version: $1; see the rollback message above" >&2
+  fi
+  exit 1
 }
 
 if ! (cd "$SITE" && npx astro build); then
-  rollback
-  echo "freeze-version: build failed; versions.json restored, nothing to commit" >&2
-  exit 1
+  fail "build failed"
 fi
 
 if [[ ! -d "$SITE/src/content/docs/$slug" || ! -f "$SITE/src/content/versions/$slug.json" ]]; then
-  rollback
-  echo "freeze-version: the build did not create the snapshot for $slug; versions.json restored" >&2
-  exit 1
+  fail "the build did not create the snapshot for $slug"
 fi
 
 if ! "$SITE/scripts/check-versions.sh"; then
-  rollback
-  echo "freeze-version: snapshot check failed; versions.json restored, nothing to commit" >&2
-  exit 1
+  fail "snapshot check failed"
 fi
 
 cat <<MSG
