@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { readFileSync } from 'node:fs';
 import starlightVersions from 'starlight-versions';
+import sections from './src/plugins/sections.ts';
 
 // Archived documentation versions, newest first. The freeze script appends to this file;
 // see README.md "Releasing a new minor". Empty means the site has a single, current version.
@@ -76,6 +77,7 @@ export default defineConfig({
 							}),
 						]
 					: []),
+				sections(),
 			],
 			sidebar: [
 				{
@@ -201,8 +203,6 @@ export default defineConfig({
 				SiteTitle: './src/components/SiteTitle.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 			},
-			// Splits the sidebar: /book/* shows only the series, everywhere else only the docs.
-			routeMiddleware: './src/starlightRouteData.ts',
 			customCss: [
 				// The default export only varies weight (opsz pinned to its default
 				// instance); `standard.css` carries the full [opsz,wdth,wght] variable
