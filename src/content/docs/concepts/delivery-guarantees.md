@@ -31,8 +31,8 @@ retry is usually cheap, and why `--full-refresh` is the one command that is neve
 
 <figure class="dgm">
   <a href="/diagrams/05-resilience-and-resume.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume.png" alt="Resilience: containment tiers from one request up to one run, the records that survive a failure, and the delivery-guarantee matrix">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume.png" alt="Resilience: containment tiers from one request up to one run, the records that survive a failure, and the delivery-guarantee matrix" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>

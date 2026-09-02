@@ -13,8 +13,8 @@ links to the page that explains its content in prose.
 
 <figure class="dgm">
   <a href="/diagrams/01-overview.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/01-overview.png" alt="Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/01-overview-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/01-overview.png" alt="Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/01-overview-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -27,8 +27,8 @@ lays out the eight phases every verb shares. Explained in [Architecture](/intern
 
 <figure class="dgm">
   <a href="/diagrams/02-compile-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -41,8 +41,8 @@ verbatim. Explained in [Execution internals](/internals/execution-internals/).
 
 <figure class="dgm">
   <a href="/diagrams/03-data-plane.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/03-data-plane.png" alt="The data plane: native scan versus streamed Arrow batches, chosen per edge">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/03-data-plane-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/03-data-plane.png" alt="The data plane: native scan versus streamed Arrow batches, chosen per edge" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/03-data-plane-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -56,8 +56,8 @@ how much data a single run claims (full load, incremental, or a bounded window).
 
 <figure class="dgm">
   <a href="/diagrams/04-run-lifecycle.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: topological dispatch, one typed event stream, and retry semantics">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle.png" alt="Run lifecycle: topological dispatch, one typed event stream, and retry semantics" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/04-run-lifecycle-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -70,8 +70,8 @@ semantics down to exit codes. Explained in [Execution internals](/internals/exec
 
 <figure class="dgm">
   <a href="/diagrams/05-resilience-and-resume.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume.png" alt="Resilience: four containment tiers, the progress records that survive a failure, and the delivery-guarantee matrix">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume.png" alt="Resilience: four containment tiers, the progress records that survive a failure, and the delivery-guarantee matrix" />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/05-resilience-and-resume-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>

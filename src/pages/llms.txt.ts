@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
+import { isArchivedId } from '../versions';
 
 /**
  * /llms.txt — the machine-readable index of this site, per the llmstxt.org convention.
@@ -27,8 +28,9 @@ const urlFor = (id: string) => (id === 'docs' ? `${SITE}/docs/` : `${SITE}/${id}
 
 export const GET: APIRoute = async () => {
 	const docs = await getCollection('docs');
-	// The splash landing page is not documentation; it would only add a contentless entry.
-	const pages = docs.filter((d) => d.id !== 'index');
+	// The splash landing page is not documentation; archived versions describe old releases.
+	// Agents get the current version only.
+	const pages = docs.filter((d) => d.id !== 'index' && !isArchivedId(d.id));
 
 	const lines: string[] = [
 		'# PipelineZ (pz)',

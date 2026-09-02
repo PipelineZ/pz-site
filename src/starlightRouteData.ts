@@ -10,6 +10,9 @@ import type { SidebarEntry } from '@astrojs/starlight/route-data';
  *
  * A group counts as the book when it contains a link into /book/ — content, not a label,
  * decides, so renaming the sidebar group cannot silently un-split the two sections.
+ *
+ * Registered by `src/plugins/sections.ts` with `order: 'post'`, so it runs after
+ * starlight-versions has picked the sidebar of the version being read.
  */
 const isBookEntry = (entry: SidebarEntry): boolean =>
 	entry.type === 'link' ? entry.href.startsWith('/book') : entry.entries.some(isBookEntry);

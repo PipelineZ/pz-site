@@ -77,7 +77,7 @@ against the tool's own published input schema, so the error message names the
 offending argument and the expected
 type — `invalid params for 'pz_validate': argument 'connect' expects boolean,
 got string` — instead of the protocol SDK's generic "An error occurred invoking
-'<tool>'." text an agent cannot self-correct from.
+'`<tool>`'." text an agent cannot self-correct from.
 
 The same guarantee holds one layer further in. A tool handler that throws an exception no
 handler-level catch classified comes back as a normal `PZ0609` envelope carrying the
@@ -211,7 +211,7 @@ are the project's existing codes (`PZ01xx`–`PZ05xx`), unchanged.
 | `PZ0606` | A localfiles `path:`/`root:`/`base_dir:` — in the existing config or in a proposed authoring block — resolves outside the project directory. `pz mcp` operates only on files inside the project (the same posture PZ0602 takes for `../` in mutation targets), so every tool that touches the project refuses uniformly; the plain CLI remains paths-are-trusted. The containment check is lexical, a guard for steering agents, not a symlink-proof security boundary. |
 | `PZ0607` | The documentation tools could not reach the documentation site. The message names the URL that failed; the `next_step` points at `PZ_DOCS_URL` for a mirror. Only `pz_docs_*` can raise this — every other tool works offline. |
 | `PZ0608` | A documentation request the catalog cannot answer as asked: `pz_docs_get` with a slug no published page carries, or `pz_docs_search` with an empty query. Distinct from `PZ0607` on purpose — "the site is unreachable" and "that page does not exist" need different fixes. |
-| `PZ0609` | A tool handler failed with an exception no handler-level catch classified. The backstop that keeps "no silent failures" true across the MCP boundary: without it the SDK answers its own "An error occurred invoking '<tool>'." with the exception text discarded, leaving an agent nothing to act on and `pz mcp` — which wires no logger — no server-side trace either. The message carries the exception's type and text; the `next_step` says to report it. **A `PZ0609` is a `pz` defect, not a bad argument.** |
+| `PZ0609` | A tool handler failed with an exception no handler-level catch classified. The backstop that keeps "no silent failures" true across the MCP boundary: without it the SDK answers its own "An error occurred invoking '`<tool>`'." with the exception text discarded, leaving an agent nothing to act on and `pz mcp` — which wires no logger — no server-side trace either. The message carries the exception's type and text; the `next_step` says to report it. **A `PZ0609` is a `pz` defect, not a bad argument.** |
 
 ## Related
 

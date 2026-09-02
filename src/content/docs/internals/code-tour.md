@@ -32,8 +32,8 @@ fast, observable, and resumable.
 
 <figure class="dgm">
   <a href="/diagrams/concepts/01-project-to-run.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run.png" alt="The three phases of a pz run: a project of connections.yml and pipeline SQL, then pz compile rendering templates and recording DAG edges from source, ref and sink calls, then pz run executing through a DuckDB staging file.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run.png" alt="The three phases of a pz run: a project of connections.yml and pipeline SQL, then pz compile rendering templates and recording DAG edges from source, ref and sink calls, then pz run executing through a DuckDB staging file." />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -144,8 +144,8 @@ below it. If you remember one rule about where code lives, remember this diagram
 
 <figure class="dgm">
   <a href="/diagrams/concepts/02-layering.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the ten in-repo connectors compile against.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the ten in-repo connectors compile against." />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -238,8 +238,8 @@ The compiled DAG for the example project looks like this (this is what `pz compi
 
 <figure class="dgm">
   <a href="/diagrams/concepts/03-sample-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag.png" alt="The dependency graph the sample template compiles to, coloured by node kind, with a table showing which SQL file declared each node.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag.png" alt="The dependency graph the sample template compiles to, coloured by node kind, with a table showing which SQL file declared each node." />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>
@@ -371,8 +371,8 @@ wrapping so an executor exception becomes a `Failed` result instead of killing t
 
 <figure class="dgm">
   <a href="/diagrams/concepts/04-execution-sequence.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence.png" alt="A sequence diagram of one run: the orchestrator hands each ready node to the kind-dispatching executor, which routes it to the SourceLoad, Pipeline or SinkWrite executor, all of which talk to the same DuckDB staging database.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence-dark.png" alt="" aria-hidden="true">
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence.png" alt="A sequence diagram of one run: the orchestrator hands each ready node to the kind-dispatching executor, which routes it to the SourceLoad, Pipeline or SinkWrite executor, all of which talk to the same DuckDB staging database." />
+    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
 </figure>

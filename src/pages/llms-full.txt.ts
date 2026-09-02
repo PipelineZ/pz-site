@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
+import { isArchivedId } from '../versions';
 
 /**
  * /llms-full.txt — every documentation page's full markdown in one file.
@@ -17,8 +18,9 @@ const urlFor = (id: string) => (id === 'docs' ? `${SITE}/docs/` : `${SITE}/${id}
 
 export const GET: APIRoute = async () => {
 	const docs = await getCollection('docs');
+	// Current version only, as in llms.txt: `pz mcp` must never serve an archived page as current.
 	const pages = docs
-		.filter((d) => d.id !== 'index')
+		.filter((d) => d.id !== 'index' && !isArchivedId(d.id))
 		.sort((a, b) => a.id.localeCompare(b.id));
 
 	const chunks: string[] = [
