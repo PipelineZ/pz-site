@@ -19,6 +19,8 @@ Deploys to GitHub Pages on push to `main` (`.github/workflows/deploy.yml`).
 
 ## Documentation versions
 
+Step-by-step release procedure: [docs/releasing-documentation.md](docs/releasing-documentation.md).
+
 Root pages describe the latest released pz minor. Older minors are archived under
 `src/content/docs/vX.Y/` and served at `/vX.Y/`, with a version dropdown in the header.
 `versions.json` lists the archives; `scripts/check-versions.sh` fails the deploy if that list
