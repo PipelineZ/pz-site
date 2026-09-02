@@ -28,7 +28,7 @@ const shouldRenderSearch =
 	<div class="title-wrapper sl-flex">
 		<SiteTitle />
 	</div>
-	<div class="sl-flex print:hidden">
+	<div class="search-wrapper sl-flex print:hidden">
 		{shouldRenderSearch && <Search />}
 	</div>
 	<div class="sl-hidden md:sl-flex print:hidden right-group">
@@ -57,6 +57,35 @@ const shouldRenderSearch =
 		padding: 0.25rem;
 		margin: -0.25rem;
 		min-width: 0;
+	}
+
+	/* Collapse Starlight's search box down to just the magnifier icon —
+	   drop the expanded border/background/placeholder-label look at every
+	   breakpoint, including the desktop "wide box" variant. */
+	.search-wrapper :global(button[data-open-modal]) {
+		border: 0;
+		background-color: transparent;
+		padding: 0;
+		width: auto;
+		max-width: none;
+	}
+	.search-wrapper :global(button[data-open-modal] > span),
+	.search-wrapper :global(button[data-open-modal] > kbd) {
+		display: none;
+	}
+	/* The search column still spans all the free space between the title
+	   and the right group (see the grid comment below) — push the icon to
+	   the end of that space so it sits right before the "Docs" link
+	   instead of stranded next to the title. */
+	.search-wrapper {
+		justify-content: flex-end;
+	}
+
+	/* Starlight's dialog reserves a 15rem min-height sized for its old
+	   wide search box; drop it now that the trigger is icon-only so the
+	   dialog hugs its actual content instead. */
+	:global(site-search dialog) {
+		min-height: unset;
 	}
 
 	.right-group {
