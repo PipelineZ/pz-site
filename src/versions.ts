@@ -4,8 +4,9 @@ import versionsFile from '../versions.json';
  * The archived documentation versions, newest first, as listed in `versions.json`.
  *
  * `versions.json` is the single source of truth: the freeze script appends to it, the CI guard
- * checks it against the committed snapshots, and `astro.config.mjs` registers the version
- * plugin from it. Site code reads it through here so nothing else parses the file.
+ * checks it against the committed snapshots, and `astro.config.mjs` reads it directly at
+ * config time (it runs before this module exists to Vite); all other site code reads it
+ * through here.
  */
 export interface DocsVersion {
 	/** URL segment and directory name, e.g. `v0.4`. */

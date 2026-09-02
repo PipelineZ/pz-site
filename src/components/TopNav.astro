@@ -9,14 +9,13 @@
  * there — it already appears in the mobile menu's own footer (see MobileMenuFooter).
  */
 import { Icon } from '@astrojs/starlight/components';
+import { splitVersion } from '../versions';
 
 interface Props {
 	variant: 'header' | 'mobile';
 }
 
 const { variant } = Astro.props;
-
-import { splitVersion } from '../versions';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 /** Compare against the route, not the link, so a page nested under a section still lights

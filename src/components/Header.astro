@@ -16,12 +16,19 @@ import Search from 'virtual:starlight/components/Search';
 import SiteTitle from 'virtual:starlight/components/SiteTitle';
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 import TopNav from './TopNav.astro';
+import { splitVersion } from '../versions';
 
 /**
  * Render the `Search` component if Pagefind is enabled or the default search component has been overridden.
  */
 const shouldRenderSearch =
 	config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+// A reader inside an archived version (/v0.4/…) gets that version's quickstart, like the
+// section links in TopNav; the mobile "Get Started" in TopNav already behaves this way.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { version } = splitVersion(Astro.url.pathname.slice(base.length) || '/');
+const quickstart = base + (version ? `/${version}` : '') + '/quickstart/';
 ---
 
 <div class="header">
@@ -33,7 +40,7 @@ const shouldRenderSearch =
 	</div>
 	<div class="sl-hidden md:sl-flex print:hidden right-group">
 		<TopNav variant="header" />
-		<a class="get-started" href={import.meta.env.BASE_URL.replace(/\/$/, '') + '/quickstart/'}>
+		<a class="get-started" href={quickstart}>
 			Get Started
 		</a>
 		<ThemeSelect />

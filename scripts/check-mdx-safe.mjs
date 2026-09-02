@@ -50,7 +50,7 @@ for (const file of files) {
 		await processor.process(readFileSync(file, 'utf8'));
 	} catch (error) {
 		failures++;
-		console.log(`${relative(root, file)}: ${error.message.split('\n')[0]}`);
+		console.log(`${relative(root, file)}: ${String(error instanceof Error ? error.message : error).split('\n')[0]}`);
 	}
 }
 
