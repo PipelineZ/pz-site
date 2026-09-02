@@ -59,6 +59,13 @@ Every release gets release notes on the GitHub release for its tag, with breakin
 changes listed first. Deprecations, when possible, warn for at least one minor
 version before removal.
 
+## Documentation versions
+
+The pages at the root of this site describe the latest released minor. Each earlier minor keeps
+its documentation at `/vX.Y/`, for example `/v0.4/reference/cli/`. Use the version dropdown in
+the site header to switch; an archived page shows a notice with a link back to the latest one.
+Patch releases update the current pages in place.
+
 ## Related
 
 - [Install pz](/install/): how to upgrade the tool.
