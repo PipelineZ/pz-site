@@ -5,7 +5,8 @@
 #   scripts/freeze-version.sh v0.4
 # Adds the version to versions.json and runs a build, during which starlight-versions copies
 # every versioned page into src/content/docs/v0.4/, rewrites its links, and writes the sidebar
-# snapshot to src/content/versions/v0.4.json. Commit all three.
+# snapshot to src/content/versions/v0.4.json, and copies the diagrams those pages use into
+# public/diagrams/v0.4/. Commit everything the script lists.
 # On failure after versions.json has been edited, the script restores versions.json and
 # removes any partial snapshot so the working tree is left clean.
 set -euo pipefail
@@ -39,8 +40,13 @@ fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 EOF
 
 rollback() {
-  git -C "$SITE" checkout -- versions.json
-  rm -rf "$SITE/src/content/docs/$slug" "$SITE/src/content/versions/$slug.json"
+  # The tree was clean when we started, so every untracked path is build output.
+  local failed=0
+  git -C "$SITE" checkout -- versions.json || failed=1
+  git -C "$SITE" clean -fd -- . >/dev/null || failed=1
+  if [[ $failed -ne 0 ]]; then
+    echo "freeze-version: rollback incomplete; run 'git status' and clean up by hand" >&2
+  fi
 }
 
 if ! (cd "$SITE" && npx astro build); then
@@ -63,8 +69,13 @@ fi
 
 cat <<MSG
 
-Snapshot for $slug is ready. Review it, then commit:
+Snapshot for $slug is ready. It consists of:
+MSG
+git -C "$SITE" status --porcelain
+cat <<MSG
 
-  git add versions.json src/content/docs/$slug src/content/versions/$slug.json
+Review it, then commit everything above:
+
+  git add -A
   git commit -m "docs: freeze $slug"
 MSG
