@@ -1,6 +1,12 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { readFileSync } from 'node:fs';
+import starlightVersions from 'starlight-versions';
+
+// Archived documentation versions, newest first. The freeze script appends to this file;
+// see README.md "Releasing a new minor". Empty means the site has a single, current version.
+const { versions } = JSON.parse(readFileSync(new URL('./versions.json', import.meta.url), 'utf8'));
 
 // The series moved from /articles/ to /book/; these keep every published link alive.
 const bookPages = [
@@ -42,6 +48,7 @@ export default defineConfig({
 	redirects: {
 		...Object.fromEntries(bookPages.map((page) => [`/articles/${page}`, `/book/${page}`])),
 		...movedPages,
+		...Object.fromEntries(versions.map((v) => [`/${v.slug}`, `/${v.slug}/docs`])),
 	},
 	integrations: [
 		starlight({
@@ -53,6 +60,22 @@ export default defineConfig({
 			expressiveCode: { themes: ['github-dark'] },
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/PipelineZ/pz' },
+			],
+			plugins: [
+				// The plugin refuses an empty version list, and a dropdown with only "Latest" says
+				// nothing, so it is registered only once the first minor has been frozen.
+				...(versions.length > 0
+					? [
+							starlightVersions({
+								current: { label: 'Latest', redirect: 'same-page' },
+								// Landing on the archive's root (redirected to /vX.Y/docs/ above) beats a 404
+								// when the page being read did not exist in that version.
+								versions: versions.map((v) => ({ ...v, redirect: 'root' })),
+								// Not release-bound, so never copied: the landing page and the book series.
+								exclude: ['index.mdx', 'book/**'],
+							}),
+						]
+					: []),
 			],
 			sidebar: [
 				{
