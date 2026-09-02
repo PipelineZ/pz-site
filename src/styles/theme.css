@@ -58,7 +58,7 @@
 
 /* starlight-versions dropdown: match the top nav's face and weight. */
 starlight-version-select select {
-	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
+	font-family: 'Geist Variable', var(--sl-font-system);
 	font-weight: 600;
 	font-size: var(--sl-text-sm);
 }

@@ -6,6 +6,13 @@ hero:
   title: '<span class="pz-hero-line">Data ingestion</span><span class="pz-hero-line pz-hero-flame">for the future.</span>'
   tagline: >-
     Write SQL. Review it like code. Run it in milliseconds.
+  actions:
+    - text: Get Started
+      link: /quickstart/
+      variant: primary
+    - text: Read the docs
+      link: /docs/
+      variant: secondary
   image:
     html: |-
         <div class="pz-hub" role="img" aria-label="Databases, cloud storage, files, SaaS, data warehouses, and APIs flowing into a central DuckDB staging engine">
@@ -79,6 +86,8 @@ hero:
 
 import { LinkCard, Steps } from '@astrojs/starlight/components';
 import OssMarquee from '../../components/OssMarquee.astro';
+
+export const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 <div class="pz-section">
 ## A pipeline is a file in your repo.
@@ -212,8 +221,6 @@ developer-friendly experience.
 		<p>YAML and SQL. Local first. Great DX from development to production.</p>
 	</div>
 </div>
-
-<a class="pz-why-cta" href={import.meta.env.BASE_URL + '/docs/'}>Explore the docs<span aria-hidden="true">&#8594;</span></a>
 </div>
 
 <div class="pz-section">
@@ -244,6 +251,8 @@ developer-friendly experience.
    ```
 
 </Steps>
+
+<a class="pz-link-arrow" href={base + '/quickstart/'}>Continue with the quickstart<span aria-hidden="true">&#8594;</span></a>
 </div>
 
 <div class="pz-section">
@@ -254,7 +263,7 @@ developer-friendly experience.
 PipelineZ is 100% built with open-source projects we love. We believe in
 transparency, community, and open data.
 
-<a class="pz-oss-repo" href="https://github.com/PipelineZ/pz">View the source on GitHub<span aria-hidden="true">&#8594;</span></a>
+<a class="pz-link-arrow" href="https://github.com/PipelineZ/pz">View the source on GitHub<span aria-hidden="true">&#8594;</span></a>
 </div>
 
 <OssMarquee />
@@ -268,7 +277,7 @@ transparency, community, and open data.
 <LinkCard
 	title="Data Pipelines: An Article Series"
 	description="A 10-part, beginner-friendly article series: nine vendor-neutral articles on pipeline fundamentals built around one running example, then one on how pz maps onto every one of them."
-	href={import.meta.env.BASE_URL + '/book/'}
+	href={base + '/book/'}
 />
 </div>
 </div>
