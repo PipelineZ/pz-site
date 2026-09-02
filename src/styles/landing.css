@@ -1,13 +1,12 @@
 /* ---- Landing page ---------------------------------------------------- */
 
-/* Brand tile accents — DuckDB's own lemon yellow (#fff100, per
-   duckdb.org/design/manual) into a deeper gold for the flow gradient,
-   plus four hues chosen to sit alongside it without competing (see
-   assets/brand/). Used as-is in both themes, same as the mark's own
-   gradient. */
+/* Brand tile accents — semantic red/green (diff add/remove, terminal
+   traffic lights) plus two unused hues held in reserve (see assets/brand/).
+   The brand yellow/gold pair that used to live here was dropped in favor of
+   theme.css's own --sl-color-accent(-low|-high) — using the same variable
+   Starlight itself derives from means the whole site (this CSS included)
+   re-themes from one place instead of drifting out of sync with it. */
 :root {
-	--pz-yellow: #fff100;
-	--pz-gold: #e8b800;
 	--pz-rust: #c4451c;
 	--pz-moss: #7a9950;
 	--pz-slate: #5b87a6;
@@ -35,17 +34,24 @@
 }
 .pz-hero-line { display: block; }
 .pz-hero-flame {
-	background: linear-gradient(135deg, var(--pz-yellow), var(--pz-gold));
-	-webkit-background-clip: text;
-	background-clip: text;
-	color: transparent;
+	color: var(--sl-color-accent);
 }
-[data-has-hero] .main-frame {
+[data-has-hero] .hero {
 	/* Flat ground, no ambient color wash — a dot grid is the only texture,
-	   the orange/amber accent is reserved for type and controls. */
+	   the orange/amber accent is reserved for type and controls. The grid
+	   lives on ::before (not the hero's own background) so it can be masked
+	   to fade out without also fading the heading/tagline/buttons above it. */
+	position: relative;
+}
+[data-has-hero] .hero::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
 	background: radial-gradient(circle 1px at 1px 1px, var(--sl-color-gray-5) 1px, transparent 0);
 	background-size: 26px 26px;
-	background-attachment: local;
+	-webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+	mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
 }
 
 /* Terminal window (stays charcoal-dark in both themes, like a real terminal) */
@@ -73,13 +79,18 @@
 	border-bottom: 1px solid #262626;
 }
 .pz-term-bar i {
+	/* Same Starlight content-spacing rule as .pz-tile (see its comment) —
+	   it targets any adjacent non-inline siblings, and `i` isn't in its
+	   exclusion list, so the 2nd/3rd dot were getting margin-top and
+	   sinking below the first inside the flex row. */
+	margin-top: 0 !important;
 	width: 0.65rem;
 	height: 0.65rem;
 	border-radius: 50%;
 	background: #4c4c4c;
 }
 .pz-term-bar i:nth-child(1) { background: var(--pz-rust); }
-.pz-term-bar i:nth-child(2) { background: var(--pz-yellow); }
+.pz-term-bar i:nth-child(2) { background: var(--sl-color-accent); }
 .pz-term-bar i:nth-child(3) { background: var(--pz-moss); }
 .pz-term-bar span {
 	margin-inline-start: 0.5rem;
@@ -92,6 +103,7 @@
 	background: transparent;
 	color: #e6e6e6;
 	white-space: pre-wrap;
+	border: none;
 }
 .pz-term .ln {
 	display: block;
@@ -109,8 +121,13 @@
 .pz-term .ln:nth-child(9)  { animation-delay: 2.0s; }
 .pz-term .ok { color: var(--pz-moss); }
 .pz-term .dim { color: #808080; }
-.pz-term .prompt { color: var(--pz-gold); }
-.pz-term .accent { color: var(--pz-yellow); }
+/* .pz-term stays dark regardless of page theme (see the .pz-diff comment
+   below), so its prompt can't use --sl-color-accent-high directly — that
+   token flips to a dark amber in light theme (meant for light backgrounds)
+   and would go near-invisible here. Darken the theme-invariant accent
+   instead, so it still tracks whatever hue the accent is set to. */
+.pz-term .prompt { color: color-mix(in srgb, var(--sl-color-accent) 80%, black); }
+.pz-term .accent { color: var(--sl-color-accent); }
 .pz-term pre::after {
 	content: '';
 	display: inline-block;
@@ -158,7 +175,16 @@
 }
 .pz-duck-badge svg { width: 1.1rem; height: 1.1rem; }
 .pz-spoke {
-	position: absolute; left: 50%; top: 50%; height: 2px; width: 21%; transform-origin: 0 50%;
+	/* Length is tuned to reach under the *closest* edge of a .pz-cat box in
+	   every direction, not to the 34% node center used below. The category
+	   boxes are wider than they are tall, so their near edge sits much
+	   closer to the hub on the vertical spokes (top/bottom) than on the
+	   diagonal ones — 21% cleared the diagonal boxes' near edge but landed
+	   ~30px short of the top/bottom boxes, leaving a visible gap. 28% clears
+	   the nearest (vertical) case with a couple px to spare, while still
+	   landing well short of any box's *far* edge, so the overlap stays
+	   hidden behind the (opaque) box on every spoke. */
+	position: absolute; left: 50%; top: 50%; height: 2px; width: 28%; transform-origin: 0 50%;
 	transform: rotate(var(--a));
 	background: repeating-linear-gradient(90deg, var(--sl-color-accent) 0 6px, transparent 6px 12px);
 	animation: pz-spoke-dash 0.9s linear infinite;
@@ -173,6 +199,9 @@
 	border-radius: 10px;
 	padding: 0.5rem 0.55rem;
 	background: var(--sl-color-gray-6);
+	/* Above .pz-spoke (z-index: 1) so the spoke's reach under the box's near
+	   edge (see .pz-spoke) is always hidden, not painted over the card. */
+	z-index: 2;
 }
 .pz-cat-name { font-size: 0.58rem; color: var(--sl-color-white); font-weight: 700; line-height: 1.15; }
 .pz-cat-icons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.35rem; }
@@ -208,42 +237,53 @@
 /* Dev-lifecycle: pipeline change shown as a reviewed PR diff */
 .pz-pr-row { display: grid; gap: 2rem; grid-template-columns: 1fr; margin-top: 3rem; align-items: center; }
 @media (min-width: 60rem) { .pz-pr-row { grid-template-columns: 0.85fr 1.15fr; } }
+/* Starlight's content-spacing rule (see the .pz-tile comment above) hits
+   .pz-diff as the row's 2nd child and pushes it out of the centered
+   alignment with .pz-pr-copy. */
+.pz-pr-row > * { margin-top: 0 !important; }
 .pz-pr-copy h3 {
 	font-family: 'Bricolage Grotesque Variable', var(--sl-font-system);
 	font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; margin-top: 0.5rem;
 }
 .pz-pr-copy p { font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); margin-top: 0.7rem; max-width: 26rem; }
-.pz-diff { background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-5); border-radius: 12px; overflow: hidden; box-shadow: 0 16px 40px -18px rgb(0 0 0 / 0.35); }
+/* Stays charcoal-dark on both themes, like the terminal (.pz-term) and the
+   code blocks (see expressiveCode in astro.config.mjs) — a diff reads like
+   code, so it gets the same treatment rather than following the page's
+   own light/dark toggle. */
+.pz-diff { background: #1a1a1a; border: 1px solid #333333; border-radius: 12px; overflow: hidden; box-shadow: 0 16px 40px -18px rgb(0 0 0 / 0.35); }
 .pz-diff-head {
 	display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
 	padding: 0.65rem 0.9rem;
-	border-bottom: 1px solid var(--sl-color-gray-5);
-	background: var(--sl-color-gray-6);
+	border-bottom: 1px solid #333333;
+	background: #141414;
 }
-.pz-diff-head .fname { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.75rem; color: var(--sl-color-gray-1); }
+.pz-diff-head .fname { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.75rem; color: #cccccc; }
 .pz-diff-head .stat { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.72rem; }
 .pz-diff-head .stat .add { color: var(--pz-moss); }
 .pz-diff-head .stat .rem { color: var(--pz-rust); }
 .pz-diff pre { margin: 0; padding: 0.8rem 0; font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.76rem; line-height: 1.65; }
 .pz-diff .dl { display: block; padding: 0 1rem; white-space: pre-wrap; }
-.pz-diff .dl.add { background: color-mix(in srgb, var(--pz-moss) 14%, transparent); color: var(--sl-color-white); }
+.pz-diff .dl.add { background: color-mix(in srgb, var(--pz-moss) 14%, transparent); color: #f2f2f2; }
 .pz-diff .dl.rem {
 	background: color-mix(in srgb, var(--pz-rust) 14%, transparent);
-	color: var(--sl-color-gray-2);
+	color: #b2b2b2;
 	text-decoration: line-through;
 	text-decoration-color: color-mix(in srgb, var(--pz-rust) 60%, transparent);
 }
-.pz-diff .dl.ctx { color: var(--sl-color-gray-2); }
+.pz-diff .dl.ctx { color: #b2b2b2; }
 .pz-diff .mark { color: var(--pz-moss); }
 .pz-diff .mark-rem { color: var(--pz-rust); }
-.pz-review { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.8rem 0.9rem; border-top: 1px solid var(--sl-color-gray-5); }
+.pz-review { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.8rem 0.9rem; border-top: 1px solid #333333; }
 .pz-avatar {
 	flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%;
 	background: var(--sl-color-accent-low); color: var(--sl-color-accent-high);
 	font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.65rem; font-weight: 700;
 	display: flex; align-items: center; justify-content: center;
 }
-.pz-review-body { font-size: var(--sl-text-sm); color: var(--sl-color-gray-1); }
+.pz-review-body { font-size: var(--sl-text-sm); color: #d9d9d9; }
+/* Starlight's inline-code chip follows the site theme (light bg in light
+   mode) — override it here since it sits on the always-dark review card. */
+.pz-review-body code { background-color: #262626; color: #f2f2f2; }
 .pz-review-chip {
 	display: inline-flex; align-items: center; gap: 0.35rem;
 	font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.68rem; color: var(--pz-moss);
@@ -258,6 +298,9 @@
    (reusing the terminal chrome) on the right */
 .pz-demo { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 2rem; }
 @media (min-width: 60rem) { .pz-demo { grid-template-columns: 0.85fr 1.15fr; align-items: stretch; } }
+/* Starlight's content-spacing rule (see the .pz-tile comment above) hits
+   .pz-term as the row's 2nd child and drops it below .pz-prompt. */
+.pz-demo > * { margin-top: 0 !important; }
 .pz-prompt {
 	background: var(--sl-color-gray-6);
 	border: 1px solid var(--sl-color-gray-5);
@@ -273,7 +316,7 @@
 .pz-term-zone + .pz-term-zone { border-top: 1px solid #262626; }
 .pz-term .pz-term-zone pre { padding: 0; }
 .pz-term .file-tag { font-family: var(--__sl-font-mono, ui-monospace, monospace); font-size: 0.68rem; color: #808080; margin-bottom: 0.4rem; }
-.pz-term .kw { color: var(--pz-yellow); }
+.pz-term .kw { color: var(--sl-color-accent); }
 .pz-term .fn { color: #7fb3e6; }
 @media (prefers-reduced-motion: reduce) { .pz-spoke { animation: none; } }
 
@@ -333,96 +376,136 @@
 .pz-cols .expressive-code pre {
 	flex: 1;
 }
-.pz-kicker {
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
-	font-size: 0.7rem;
-	font-weight: 600;
-	color: var(--sl-color-accent-high);
-}
-
-/* Kicker dash */
-.pz-kicker::before {
-	content: '';
-	display: inline-block;
-	width: 1.4rem;
-	height: 2px;
-	background: currentColor;
-	vertical-align: middle;
-	margin-inline-end: 0.5rem;
-	border-radius: 1px;
-}
-
 /* Why-pz bento: each tile leads with a real artifact */
 .pz-bento {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
+	align-items: stretch;
 	gap: 1rem;
-	margin-top: 1.5rem;
+	margin-top: 2rem;
 }
 @media (max-width: 55rem) { .pz-bento { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 32rem) { .pz-bento { grid-template-columns: 1fr; } }
+/* Heading + subtitle sit centered above the card row (see the reference
+   mockup) rather than left-aligned like the rest of the page's sections. */
+.pz-why-head {
+	max-width: 34rem;
+	margin-inline: auto;
+	text-align: center;
+}
+.pz-why-head h2 { margin-top: 0 !important; }
+.pz-why-head p { margin-top: 0.6rem !important; color: var(--sl-color-gray-2); }
 .pz-tile {
+	/* Starlight's own content-spacing rule (`.sl-markdown-content :not(...) +
+	   :not(...)`) adds margin-top between adjacent block siblings — including
+	   these tiles, which already space themselves via the grid's own `gap`.
+	   Cancel it, or every tile but the first drifts down out of alignment. */
+	margin-top: 0 !important;
 	display: flex;
 	flex-direction: column;
-	gap: 0.6rem;
-	padding: 1.15rem 1.25rem 1.25rem;
+	height: 100%;
+	gap: 0.7rem;
+	padding: 1.4rem 1.4rem 1.5rem;
 	border: 1px solid var(--sl-color-gray-5);
 	border-radius: 14px;
-	background: color-mix(in srgb, var(--pz-card) 4%, var(--sl-color-bg));
+	background: var(--sl-color-gray-6);
 	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .pz-tile:hover {
 	transform: translateY(-3px);
-	border-color: color-mix(in srgb, var(--pz-card) 55%, var(--sl-color-gray-5));
-	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--pz-card) 60%, transparent);
+	border-color: color-mix(in srgb, var(--sl-color-accent) 55%, var(--sl-color-gray-5));
+	box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--sl-color-accent) 40%, transparent);
 }
 .pz-tile p { margin: 0 !important; }
 .pz-tile p:not(.pz-tile-title) {
 	font-size: var(--sl-text-sm);
 	color: var(--sl-color-gray-2);
+	/* Reserve room for the longest description (~3 lines) so all four tiles
+	   match height even when stacked to one column, where each card is its
+	   own grid row and can no longer stretch to match its neighbors. */
+	min-height: 3.9rem;
 	flex: 1;
 }
+.pz-tile-icon {
+	width: 2.75rem;
+	height: 2.75rem;
+	fill: none;
+	stroke: var(--sl-color-accent);
+	stroke-width: 1.6;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
 .pz-tile-title {
-	display: flex;
-	align-items: center;
-	gap: 0.55rem;
 	font-weight: 600;
 	font-size: 1.05rem;
 	color: var(--sl-color-white);
 }
-.pz-tile-title i {
-	width: 0.6rem;
-	height: 0.6rem;
-	border-radius: 3px;
-	background: var(--pz-card);
-	box-shadow: 0 0 10px color-mix(in srgb, var(--pz-card) 65%, transparent);
+
+/* Closing CTA under the feature grid — an outline pill, not a filled
+   button, so it reads as secondary next to the header's "Get Started". */
+.pz-why-cta {
+	display: flex;
+	width: fit-content;
+	align-items: center;
+	gap: 0.45rem;
+	margin: 2.25rem auto 0;
+	padding: 0.6rem 1.15rem;
+	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 45%, var(--sl-color-gray-5));
+	border-radius: 999px;
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-text-accent);
+	text-decoration: none;
+	transition: border-color 0.18s ease, transform 0.18s ease;
 }
-.pz-proof {
-	display: block;
-	white-space: pre-wrap;
-	word-break: break-word;
-	font-family: var(--__sl-font-mono, ui-monospace, monospace);
-	font-size: var(--sl-text-xs);
-	color: var(--sl-color-gray-2);
-	background: color-mix(in srgb, var(--pz-card) 8%, var(--sl-color-black));
-	border: 1px solid color-mix(in srgb, var(--pz-card) 25%, transparent);
-	border-radius: 8px;
-	padding: 0.55rem 0.75rem;
+.pz-why-cta span {
+	transition: transform 150ms ease;
 }
-.pz-proof b {
-	font-weight: 500;
-	color: var(--pz-card);
+.pz-why-cta:hover {
+	border-color: var(--sl-color-accent);
+}
+.pz-why-cta:hover span {
+	transform: translateX(0.2rem);
+}
+
+/* Built-with-open-source: the whole section is one horizontal strip — heading block on the
+   left, the dependency row (OssMarquee.astro) filling the rest — wrapping to a stacked
+   layout only once it can't fit that. */
+.pz-oss-strip {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2rem;
+	margin-top: 1.5rem;
+}
+.pz-oss-head {
+	flex: 1 1 18rem;
+	max-width: 22rem;
+}
+.pz-oss-head h2 { margin-top: 0 !important; }
+.pz-oss-head p { margin-top: 0.6rem !important; font-size: var(--sl-text-sm); color: var(--sl-color-gray-2); }
+.pz-oss-accent { color: var(--sl-color-text-accent); }
+.pz-oss-repo {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-top: 0.85rem;
+	font-weight: 600;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-text-accent);
+	text-decoration: none;
+}
+.pz-oss-repo span {
+	transition: transform 150ms ease;
+}
+.pz-oss-repo:hover span {
+	transform: translateX(0.2rem);
 }
 
 /* Closing CTA band around the series link */
 .pz-cta {
 	border: 1px solid color-mix(in srgb, var(--sl-color-accent) 35%, var(--sl-color-gray-5));
-	background:
-		linear-gradient(135deg,
-			color-mix(in srgb, var(--pz-gold) 10%, transparent),
-			color-mix(in srgb, var(--pz-yellow) 8%, transparent) 60%,
-			color-mix(in srgb, var(--pz-gold) 8%, transparent));
+	background: color-mix(in srgb, var(--sl-color-accent) 9%, transparent);
 	border-radius: 16px;
 	padding: 1.5rem;
 	margin-bottom: 3rem;
@@ -438,6 +521,8 @@
 	.pz-term .ln { animation: none; opacity: 1; }
 	.pz-term pre::after { animation: none; opacity: 1; }
 	.pz-tile { transition: none; }
+	.pz-why-cta,
+	.pz-why-cta span { transition: none; }
 }
 
 /* Excalidraw diagrams: one PNG per theme, swapped with the site theme.

@@ -27,9 +27,11 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'PipelineZ',
-			logo: { src: './src/assets/pz-logo.svg', alt: 'PipelineZ', replacesTitle: true },
 			description:
 				'A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform.',
+			// Code blocks read better dark — keep them that way on both themes
+			// rather than following the site's own light/dark toggle.
+			expressiveCode: { themes: ['github-dark'] },
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/PipelineZ/pz' },
 			],
@@ -39,6 +41,8 @@ export default defineConfig({
 					items: [
 						{ label: 'Documentation', link: '/docs/' },
 						{ label: 'Quickstart', link: '/quickstart/' },
+						{ label: 'Guides', link: '/guides/' },
+						{ label: 'Connectors', link: '/connectors/' },
 					],
 				},
 				{ label: 'Concepts', items: [{ autogenerate: { directory: 'concepts' } }] },
@@ -59,7 +63,9 @@ export default defineConfig({
 			],
 			components: {
 				Header: './src/components/Header.astro',
+				PageFrame: './src/components/PageFrame.astro',
 				Sidebar: './src/components/Sidebar.astro',
+				SiteTitle: './src/components/SiteTitle.astro',
 				SocialIcons: './src/components/SocialIcons.astro',
 			},
 			// Splits the sidebar: /book/* shows only the series, everywhere else only the docs.
