@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Archives the current documentation as one minor version.
 #
-# Run on release day for the OUTGOING minor, before merging the next minor's docs:
+# Run on `main`, on release day, for the OUTGOING minor, before merging the next minor's docs:
 #   scripts/freeze-version.sh v0.4
 # Adds the version to versions.json and runs a build, during which starlight-versions copies
 # every versioned page into src/content/docs/v0.4/, rewrites its links, and writes the sidebar
 # snapshot to src/content/versions/v0.4.json. Commit all three.
+# On failure after versions.json has been edited, the script restores versions.json and
+# removes any partial snapshot so the working tree is left clean.
 set -euo pipefail
 
 SITE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,13 +38,28 @@ data.versions.unshift({ slug, label: slug });
 fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 EOF
 
-(cd "$SITE" && npx astro build)
+rollback() {
+  git -C "$SITE" checkout -- versions.json
+  rm -rf "$SITE/src/content/docs/$slug" "$SITE/src/content/versions/$slug.json"
+}
 
-if [[ ! -d "$SITE/src/content/docs/$slug" || ! -f "$SITE/src/content/versions/$slug.json" ]]; then
-  echo "freeze-version: the build did not create the snapshot for $slug" >&2
+if ! (cd "$SITE" && npx astro build); then
+  rollback
+  echo "freeze-version: build failed; versions.json restored, nothing to commit" >&2
   exit 1
 fi
-"$SITE/scripts/check-versions.sh"
+
+if [[ ! -d "$SITE/src/content/docs/$slug" || ! -f "$SITE/src/content/versions/$slug.json" ]]; then
+  rollback
+  echo "freeze-version: the build did not create the snapshot for $slug; versions.json restored" >&2
+  exit 1
+fi
+
+if ! "$SITE/scripts/check-versions.sh"; then
+  rollback
+  echo "freeze-version: snapshot check failed; versions.json restored, nothing to commit" >&2
+  exit 1
+fi
 
 cat <<MSG
 
