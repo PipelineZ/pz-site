@@ -15,8 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Check archived documentation versions
         run: scripts/check-versions.sh
+      - name: Check pages parse as MDX (version freeze safety)
+        run: node scripts/check-mdx-safe.mjs
       - uses: withastro/action@v6
         with:
           node-version: 22
