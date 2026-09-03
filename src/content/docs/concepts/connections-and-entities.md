@@ -149,5 +149,5 @@ on the `sink()` call in the pipeline that writes it.
 - [Key concepts](/concepts/key-concepts/): connection, entity, and connector defined.
 - [Pipelines](/concepts/pipelines/): the `source()` and `sink()` calls that read the other surface.
 - [Project layout](/concepts/project-layout/): where `connections.yml` sits in a project.
-- [Connectors](/concepts/connectors/): the ten builtin connectors and their own config keys.
+- [Connectors](/concepts/connectors/): the fifteen builtin connectors and their own config keys.
 - [`connections.yml` reference](/reference/connections-yml/): every reserved key and option, in full.

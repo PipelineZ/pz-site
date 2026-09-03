@@ -41,7 +41,7 @@ If the shell cannot find `pz`, the global tools folder is not on your `PATH`. On
 it is `~/.dotnet/tools`; on Windows it is `%USERPROFILE%\.dotnet\tools`. Add it and open a new
 shell.
 
-All ten builtin connectors are inside the binary. You install nothing else to read local files,
+All fifteen builtin connectors are inside the binary. You install nothing else to read local files,
 PostgreSQL, SQL Server, MySQL, SQLite, S3, Azure Blob Storage, Google Cloud Storage, HTTP
 endpoints, or SFTP. Third-party connectors are NuGet packages that `pz restore` downloads per
 project. See [Connectors](/connectors/).

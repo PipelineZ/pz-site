@@ -8,7 +8,7 @@ sidebar:
 This guide walks through building, testing, and packaging a `pz` [connector](/concepts/connectors/):
 a source and/or sink implementation, plus the manifest handshake that lets `pz` reject an
 incompatible package before running any of its code. Read it if you need `pz` to read from or
-write to a system none of the ten builtin connectors cover.
+write to a system none of the fifteen builtin connectors cover.
 
 :::note
 `pz`'s fifteen builtin connectors (`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`,
