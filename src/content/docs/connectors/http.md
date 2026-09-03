@@ -2,7 +2,7 @@
 title: "HTTP API"
 description: "Reference for the http connector: connection and auth keys, the raw and columns:-contract landing modes, all three pagination strategies, incremental extraction, and the write-side sink options."
 sidebar:
-  order: 15
+  order: 16
 ---
 
 The `http` connector pulls a JSON REST API's `GET` responses into a project, and can push a

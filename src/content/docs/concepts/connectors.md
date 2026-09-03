@@ -29,10 +29,10 @@ or write runs.
 
 ### Builtin versus third-party
 
-Fourteen connectors ship inside the `pz` binary and need no extra setup: `localfiles`,
+Fifteen connectors ship inside the `pz` binary and need no extra setup: `localfiles`,
 `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`, `duckdb`,
-`ducklake`, `motherduck`, `quack`, and `sftp`. Naming one as `connector:` in `connections.yml` is
-enough.
+`ducklake`, `motherduck`, `quack`, `iceberg`, and `sftp`. Naming one as `connector:` in
+`connections.yml` is enough.
 
 Anything else is a third-party connector: a NuGet package declared in `project.yml`.
 

@@ -11,8 +11,9 @@ incompatible package before running any of its code. Read it if you need `pz` to
 write to a system none of the ten builtin connectors cover.
 
 :::note
-`pz`'s fourteen builtin connectors (`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`,
-`gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `sftp`) are compiled directly into the CLI from the `pz` repository:
+`pz`'s fifteen builtin connectors (`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`,
+`gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `iceberg`, `sftp`)
+are compiled directly into the CLI from the `pz` repository:
 there is no plugin-loading step, and no isolation boundary, for them. Every other, genuinely
 external connector must instead run out of process, speaking the PCP wire protocol, because pz
 refuses to load external connector code in-process. The ABI this guide walks through, and the

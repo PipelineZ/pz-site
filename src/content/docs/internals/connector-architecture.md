@@ -227,7 +227,7 @@ both directions:
 var localFiles = new LocalFilesConnector();
 registry.AddSource("localfiles", localFiles);
 registry.AddSink("localfiles", localFiles);
-// ... postgres, s3, sqlserver, azureblob, gcs, http, mysql, sqlite, duckdb, ducklake, quack, motherduck, sftp
+// ... postgres, s3, sqlserver, azureblob, gcs, http, mysql, sqlite, duckdb, ducklake, quack, motherduck, iceberg, sftp
 ```
 
 `GatedOperations` today is declared by `http`, `sftp`, `azureblob`, and `gcs`. `files_per_partition`
