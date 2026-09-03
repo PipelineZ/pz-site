@@ -109,9 +109,9 @@ See [Project layout](/concepts/project-layout/).
 ## Connector
 
 A connector is a plugin that teaches `pz` how to talk to a kind of system: local files,
-Postgres, S3-compatible storage, and so on. Ten connectors ship built into the `pz` tool:
-`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`, and
-`sftp`. Anything else is a NuGet package that `pz restore` pins and runs as its own process.
+Postgres, S3-compatible storage, and so on. Fourteen connectors ship built into the `pz` tool:
+`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`,
+`duckdb`, `ducklake`, `motherduck`, `quack`, and `sftp`. Anything else is a NuGet package that `pz restore` pins and runs as its own process.
 
 See [Connectors](/concepts/connectors/).
 

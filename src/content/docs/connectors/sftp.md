@@ -2,7 +2,7 @@
 title: "SFTP"
 description: "Reference for the sftp connector: connection and auth keys, read and write options, path templating, partitioned writes, and declared capabilities for reading and writing files over SFTP."
 sidebar:
-  order: 10
+  order: 14
 ---
 
 The `sftp` connector reads and writes csv, parquet, and json files over SFTP. There is no native

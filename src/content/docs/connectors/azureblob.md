@@ -2,7 +2,7 @@
 title: "Azure Blob Storage"
 description: "Reference for the azureblob connector: the five auth modes, connection and option keys, path templating, partitioned writes, and declared capabilities for Azure Blob Storage and ADLS Gen2."
 sidebar:
-  order: 8
+  order: 12
 ---
 
 The `azureblob` connector reads and writes Azure Blob Storage and ADLS Gen2. Reads are

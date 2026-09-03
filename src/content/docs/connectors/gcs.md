@@ -2,7 +2,7 @@
 title: "Google Cloud Storage"
 description: "Reference for the gcs connector: HMAC vs service-account/ADC auth, which mode reads and which only writes, connection and option keys, path templating, and declared capabilities."
 sidebar:
-  order: 9
+  order: 13
 ---
 
 The `gcs` connector reads and writes Google Cloud Storage. Its `auth` mode decides which data
