@@ -148,12 +148,13 @@ the [connections.yml reference](/reference/connections-yml/).
   token, the MotherDuck token, and storage credentials each ride a DuckDB secret or session
   setting. A failed attach names only a path, a URI, or a database.
 - **A read of a missing catalog file is refused at plan time** for the `duckdb` and `sqlite`
-  catalogs, for the same reason as the [duckdb](/connectors/duckdb/) connector. A server catalog
-  has no local file to check.
+  catalogs, for the same reason as the [duckdb](/connectors/duckdb/) connector, and with the same
+  deferral for a reader outside the run's selection. A server catalog has no local file to check.
 - **Use one connection per catalog file.** Two connections naming the same `duckdb` or `sqlite`
   catalog file cannot both attach it in one session.
-- **Merge does not collapse duplicate keys within a batch.** Deduplicate in the pipeline SQL that
-  feeds a merge write.
+- **Duplicate keys within a merge batch collapse to one survivor**, as on the
+  [duckdb](/connectors/duckdb/) connector: the generated `MERGE INTO` keys the staged side unique
+  first, and the engine warns with [`PZ0522`](/reference/error-codes/).
 - **One MotherDuck token per run.** A `motherduck` catalog shares the rule described on the
   [MotherDuck connector](/connectors/motherduck/) page.
 
@@ -170,7 +171,7 @@ the [connections.yml reference](/reference/connections-yml/).
 | [`PZ0209`](/reference/error-codes/) | A `strategy: merge` write declares no `keys:`. |
 | [`PZ0311`](/reference/error-codes/) | A setup statement failed at run time: a secret, a session setting, or the attach. |
 | [`PZ0312`](/reference/error-codes/) | `engine.force_universal` is set on a `ducklake` entity. |
-| [`PZ0353`](/reference/error-codes/) | A read names a catalog file that does not exist yet, or declares both `version` and `timestamp`. |
+| [`PZ0353`](/reference/error-codes/) | A read the run executes names a catalog file that does not exist yet, or declares both `version` and `timestamp`. |
 | [`PZ0606`](/reference/error-codes/) | Under `pz mcp`, `path` or a local `data_path` resolves outside the project directory. |
 
 ## Related
