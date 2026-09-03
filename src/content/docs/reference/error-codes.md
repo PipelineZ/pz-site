@@ -91,7 +91,7 @@ Raised planning a node's execution tier, including capability checks and DuckDB 
 
 | Code | Name | Meaning | Where it surfaces |
 |---|---|---|---|
-| `PZ0311` | NativeSetupFailed | A DuckDB native-scan setup statement failed. | Running a node on the native tier |
+| `PZ0311` | NativeSetupFailed | A DuckDB native setup statement failed: an extension load, a secret, a session setting, or an attach. The message never includes a credential. | Running a node on the native tier |
 | `PZ0312` | NativePathRequired | A dataset option needs the universal read path, but its connector supports only the native path. | Compiling the DAG, planning execution |
 | `PZ0313` | WindowCapabilityMissing | A dataset declares `max_window`, but its connector does not declare bounded-window support. | Planning execution |
 | `PZ0314` | TemplatingCapabilityMissing | A date-templated `path`, or a write's `partition_by`, needs a capability its connector does not declare. | Planning execution |
@@ -100,7 +100,7 @@ Raised planning a node's execution tier, including capability checks and DuckDB 
 | `PZ0317` | PacingUnsupported | An instance declares `rate_limit:`, but its connector does not support pacing. | Planning execution |
 | `PZ0318` | RateLimitConfigInvalid | A `rate_limit:` block is malformed, out of bounds, or declared under `read:`/`write:` instead of the connection. | Loading connections.yml, rendering pipeline SQL |
 | `PZ0319` | PartitionIdentityInvalid | A connector declared stable partition ids but a planned partition lacks one, or declared checkpointable reads without stable partition ids. | Planning execution, running a node |
-| `PZ0353` | NativeScanContractMismatch | A native-scan source's declared `columns:` contract disagrees with the file it reads. | Planning execution |
+| `PZ0353` | NativePathContractMismatch | A native-path source refused the read at plan time: its declared `columns:` contract disagrees with what it reads, its file does not exist yet, or its options conflict. | Planning execution |
 | `PZ0359` | UnsignedExtensionRefused | A native scan needs an unsigned DuckDB extension, and the connection does not set `allow_unsigned_extensions: true`. | Planning execution |
 
 ## 032x: Restore and lock

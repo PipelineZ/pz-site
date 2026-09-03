@@ -1,12 +1,12 @@
 ---
 title: "Connectors"
-description: "A capability matrix for the ten builtin pz connectors, plus how to add a third-party connector and test a connection."
+description: "A capability matrix for the fourteen builtin pz connectors, plus how to add a third-party connector and test a connection."
 sidebar:
   order: 1
 ---
 
 A [connector](/concepts/connectors/) is the code that reads or writes one kind of place: a
-database, an object store, a filesystem, or an API. `pz` ships ten builtin connectors, and every
+database, an object store, a filesystem, or an API. `pz` ships fourteen builtin connectors, and every
 one of them can act as a read connection, a write connection, or both in the same project.
 
 ## Capability matrix
@@ -22,6 +22,10 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 | [sqlserver](/connectors/sqlserver/) | ✓ | ✓ | – | ✓ | ✓ | ✓ | – |
 | [mysql](/connectors/mysql/) | ✓ | ✓ | ✓ | ✓ | – | – | – |
 | [sqlite](/connectors/sqlite/) | ✓ | ✓ | ✓ | ✓ | – | – | – |
+| [duckdb](/connectors/duckdb/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
+| [ducklake](/connectors/ducklake/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
+| [motherduck](/connectors/motherduck/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
+| [quack](/connectors/quack/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [s3](/connectors/s3/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
 | [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
 | [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
@@ -33,10 +37,12 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 not read.
 :::
 
-Database connectors have no file format: `postgres`, `sqlserver`, `mysql`, and `sqlite` move rows,
-not files. `mysql` and `sqlite` run on the native tier only, so declaring
-`engine.force_universal` for one of their entities fails with
-[`PZ0312`](/reference/error-codes/).
+Database connectors have no file format: `postgres`, `sqlserver`, `mysql`, `sqlite`, `duckdb`,
+`ducklake`, `motherduck`, and `quack` move rows, not files. `mysql`, `sqlite`, and the four
+DuckDB-family connectors (`duckdb`, `ducklake`, `motherduck`, `quack`) run on the native tier
+only, so declaring `engine.force_universal` for one of their entities fails with
+[`PZ0312`](/reference/error-codes/). `quack`'s merge is a whole-table rewrite rather than a keyed
+upsert; its page explains what that costs.
 
 ## Third-party connectors
 

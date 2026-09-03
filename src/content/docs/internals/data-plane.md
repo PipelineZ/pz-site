@@ -36,7 +36,12 @@ buffer manager:
 On the native tier, the connector returns a DuckDB SQL fragment plus setup statements, for
 example `read_parquet('s3://bucket/path/*.parquet')` and a `CREATE SECRET` statement. Data
 never enters .NET memory; DuckDB pulls directly, or pushes via `COPY TO`. The connector's job
-reduces to configuration translation, and this is the fastest possible path. A connector
+reduces to configuration translation, and this is the fastest possible path. Setup statements
+run once per run, not once per node: the engine keys them by exact statement text, so every
+node that needs the same extension load, secret, session setting, or attach shares one execution,
+concurrent nodes await the one in flight, and a statement that failed is re-issued when the node
+retries. MotherDuck depends on this, since its extension accepts a token only before its first
+attach. A connector
 declares this on the read side with `ConnectorCapabilities.NativeScan`
 (`ISource.TryGetNativeScan`) and on the write side with `NativeCopy` (`ISink.TryGetNativeCopy`).
 
@@ -97,6 +102,10 @@ call that would only fail once the run reached it:
 |---|---|---|
 | `mysql` | Yes (DuckDB `mysql` extension is the whole data plane) | Yes |
 | `sqlite` | Yes (DuckDB `sqlite` extension is the whole data plane) | Yes |
+| `duckdb` | Yes (the engine's own session attaches the file) | Yes |
+| `ducklake` | Yes (DuckDB `ducklake` extension is the whole data plane) | Yes |
+| `motherduck` | Yes (DuckDB `motherduck` extension is the whole data plane) | Yes |
+| `quack` | Yes (DuckDB `quack` extension is the whole data plane) | Yes |
 | `s3` | No, but native both directions; `force_universal` still refused | No |
 | `azureblob` | Yes | No, writes run either tier (`partition_by` fan-out needs the universal tier) |
 | `gcs` | Only under `hmac` auth; `service_account`/`adc` are write-only, universal-tier | No |
