@@ -88,10 +88,11 @@ The connector does not declare `Transactional`: commit semantics belong to Mothe
   Use one token per project.
 - **The token never appears in an error.** It rides a session setting, not the attach string. A
   wrong token fails as a permanent, redacted error that names only `md:<database>`.
-- **Keep each merge batch key-unique.** MotherDuck matches every staged row on its own against the
-  target as it stood before the statement. Duplicates of a key the target already holds all update
-  it, and which value survives is not defined. Duplicates of a key the target lacks are all
-  inserted. Deduplicate in the pipeline SQL that feeds a merge write.
+- **Duplicate keys within a merge batch collapse to one survivor.** MotherDuck matches every staged
+  row on its own against the target as it stood before the statement, so the generated `MERGE INTO`
+  keys the staged side unique first. Which duplicate survives is not defined; the engine warns with
+  [`PZ0522`](/reference/error-codes/) so the pipeline can deduplicate deterministically when a
+  specific row must win.
 - `pz validate --connect` reports the connection as not checked. There is no offline probe; the
   first run authenticates.
 

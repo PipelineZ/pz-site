@@ -87,13 +87,18 @@ the [connections.yml reference](/reference/connections-yml/).
   point the run at a copy.
 - **A read of a missing file is refused at plan time.** Attaching a path that does not exist would
   create an empty database and read zero rows, which is indistinguishable from a typo in `path`.
-  Run a write against that `path` first, or fix the connection.
+  Run a write against that `path` first, or fix the connection. The refusal applies to nodes the
+  run executes: when one flow of a project writes the file and another reads it, `pz run <writer>`
+  records the reader as refused and deferred in `plan.json` and runs, so the project bootstraps in
+  one place. `pz run --all` on the fresh file still refuses, because the reader would execute.
 - **Use one connection per file.** Two connections that name the same file each try their own
   attach, and DuckDB refuses to attach one file twice in a session. Put the file's reads and writes
   on the same connection.
-- **Merge does not collapse duplicate keys within a batch.** Every staged row is matched against the
-  target on its own, so two staged rows with the same key both land. Deduplicate in the pipeline
-  SQL that feeds a merge write.
+- **Duplicate keys within a merge batch collapse to one survivor.** DuckDB's `MERGE INTO` matches
+  every staged row on its own against the target as it stood before the statement, so the generated
+  statement keys the staged side unique first. Which duplicate survives is not defined; the engine
+  warns with [`PZ0522`](/reference/error-codes/) so the pipeline can deduplicate deterministically
+  when a specific row must win.
 - `pz validate --connect` checks an existing file for the DuckDB header, reports a missing file as
   will-be-created, and fails on a missing parent directory.
 
@@ -102,7 +107,7 @@ the [connections.yml reference](/reference/connections-yml/).
 | [`PZ0209`](/reference/error-codes/) | A `strategy: merge` write declares no `keys:`. |
 | [`PZ0311`](/reference/error-codes/) | The attach failed at run time, for example because another process holds the file. |
 | [`PZ0312`](/reference/error-codes/) | `engine.force_universal` is set on a `duckdb` entity. |
-| [`PZ0353`](/reference/error-codes/) | A read names a file that does not exist yet. |
+| [`PZ0353`](/reference/error-codes/) | A read the run executes names a file that does not exist yet. |
 | [`PZ0606`](/reference/error-codes/) | Under `pz mcp`, `path` resolves outside the project directory. |
 
 ## Related
