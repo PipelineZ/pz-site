@@ -164,6 +164,7 @@ export default defineConfig({
 						'connectors/gcs',
 						'connectors/sftp',
 						'connectors/http',
+						'connectors/external',
 					],
 				},
 				{

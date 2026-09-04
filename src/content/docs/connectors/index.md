@@ -63,6 +63,9 @@ isolation boundary a builtin connector runs inside. See
 [Connectors: the plugin architecture](/concepts/connectors/) for how that isolation works, and
 [Author a connector](/how-to/author-a-connector/) to write your own.
 
+For connectors published and maintained by the PipelineZ org itself, see
+[Approved external connectors](/connectors/external/).
+
 ## Test a connection
 
 `pz validate --connect` is how you check that a connection in `connections.yml` is actually
