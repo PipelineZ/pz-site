@@ -1,6 +1,6 @@
 ---
 title: "Apache Iceberg"
-description: "Reference for the iceberg connector: the four catalogs (rest, glue, s3_tables, files) and their keys, optional S3-compatible storage credentials, namespace rules, time-travel reads, and the write-mode snapshot semantics."
+description: "Reference for the iceberg connector: the four catalogs (rest, glue, s3_tables, files) and their keys, optional S3 or Azure storage credentials, namespace rules, time-travel reads, and the write-mode snapshot semantics."
 sidebar:
   order: 11
 ---
@@ -122,6 +122,58 @@ off (`access_delegation_mode 'none'`): the keys are the data-plane credential th
 them, a REST catalog is expected to vend storage credentials (Polaris, S3 Tables, Glue, and R2 all
 do).
 
+### Optional: Azure storage (`storage: azure`)
+
+```yaml title="connections.yml"
+lake:
+  connector: iceberg
+  catalog: rest
+  endpoint: https://lakekeeper.internal/catalog
+  warehouse: adls-wh                     # a NAME, as for every catalog
+  token: ${LAKE_TOKEN}
+  storage: azure                         # the tables' data files live on Azure Blob / ADLS Gen2
+  storage_auth: service_principal        # or connection_string | account_key | credential_chain
+  storage_tenant_id: ${AZ_TENANT}
+  storage_client_id: ${AZ_CLIENT}
+  storage_client_secret: ${AZ_SECRET}
+  storage_account_name: mylakeaccount
+
+raw:
+  connector: iceberg
+  catalog: files
+  root: "abfss://lake@mylakeaccount.dfs.core.windows.net/warehouse/"   # az://, azure:// or abfss://
+  storage_auth: credential_chain         # storage: azure is inferred from the root's scheme
+  storage_account_name: mylakeaccount
+  storage_chain: cli;env                 # optional
+```
+
+`storage` selects the key family: `s3` (the default, the keys above) or `azure`. Under `azure`
+the keys mirror the azureblob connector's `auth` methods field-for-field, prefixed `storage_`
+because `client_id`/`client_secret` already name a REST catalog's OAuth2 pair here:
+
+| `storage_auth` | required | optional |
+|---|---|---|
+| `connection_string` | `storage_connection_string` | — |
+| `account_key` | `storage_account_name`, `storage_account_key` | `storage_endpoint` (a custom Blob endpoint, e.g. Azurite) |
+| `service_principal` | `storage_tenant_id`, `storage_client_id`, `storage_client_secret`, `storage_account_name` | — |
+| `credential_chain` | `storage_account_name` | `storage_chain` (e.g. `cli;env`; managed identity is a link in the chain) |
+
+Every S3 key is refused under `azure` and every Azure key under `s3`; `storage: azure` is refused
+on `glue`/`s3_tables`. A `files` root with an Azure scheme infers `storage: azure` and needs a
+`storage_auth` (nothing vends credentials for a bare root); a `rest` catalog may omit
+`storage_auth`, in which case the catalog is expected to vend Azure SAS credentials. The
+connection loads DuckDB's `azure` extension and, when a method is declared, builds a `type azure`
+secret — scoped to a `files` root, unscoped on a catalog — and switches the REST catalog's
+credential vending off exactly as explicit S3 keys do.
+
+**Status of writes on Azure.** The `azure` extension DuckDB 1.5.5 installs implements the
+directory and write operations the iceberg extension's insert needs, but DuckDB's own
+documentation still lists REST catalogs as supported on S3, S3 Tables and GCS only, and no local
+emulator can host an Azure-backed catalog (Azurite has no ADLS/DFS endpoint). This connector's CI
+therefore proves `files` reads over `az://` (Azurite) and ships REST writes on Azure as
+extension-supported but unproven, run only when a real catalog's endpoint is supplied through
+environment variables.
+
 ### Entities and namespaces
 
 The entity is `namespace.table` — an Iceberg table always lives in a namespace, so a bare `table`
@@ -235,8 +287,8 @@ datasets get a clear refusal. Plain `pz validate`, `pz run`, and the `on_source_
 - **Credentials never ride the attach string.** A bearer token or OAuth2 client pair builds a
   `type iceberg` DuckDB secret the attach references by name; AWS catalogs sign with a `type s3`
   secret (explicit keys, or `provider credential_chain`); storage keys build a `type s3` secret
-  scoped as described above. A failed attach echoes only the warehouse and the endpoint, never a
-  credential.
+  scoped as described above, or a `type azure` secret under `storage: azure`. A failed attach
+  echoes only the warehouse and the endpoint, never a credential.
 - **First use needs network access** to install the DuckDB `iceberg` and `httpfs` extensions (and
   `aws` for a credential-chain AWS catalog); the extension repository is consulted only when an
   extension is not yet installed.
