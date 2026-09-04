@@ -41,7 +41,7 @@ this level passes straight through to the connector, flat, not nested under a `c
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `connector` | string | required (`PZ0101`) | Which connector handles this connection: `localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `sftp`, or a restored package. |
+| `connector` | string | required (`PZ0101`) | Which connector handles this connection: `localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `iceberg`, `sftp`, or a restored package. |
 | `entities` | map of entity name to `{read, write}` | empty | The entities declared at this connection. See below. |
 | `max_concurrency` | integer, >= 1 | unbounded (`engine.threads` still governs) | Caps how many of this connection's nodes the dispatcher runs concurrently. |
 | `rate_limit` | map | none | Request pacing for this connection. See below. Instance-level only; declaring it under `read:` is `PZ0318`. |
@@ -181,7 +181,8 @@ connector's own page lists its full set:
 [sqlserver](/connectors/sqlserver/), [azureblob](/connectors/azureblob/),
 [gcs](/connectors/gcs/), [http](/connectors/http/), [mysql](/connectors/mysql/),
 [sqlite](/connectors/sqlite/), [duckdb](/connectors/duckdb/), [ducklake](/connectors/ducklake/),
-[motherduck](/connectors/motherduck/), [quack](/connectors/quack/), [sftp](/connectors/sftp/). An
+[motherduck](/connectors/motherduck/), [quack](/connectors/quack/), [iceberg](/connectors/iceberg/),
+[sftp](/connectors/sftp/). An
 option a connector does not
 recognize is `PZ0301`.
 

@@ -158,6 +158,7 @@ export default defineConfig({
 						'connectors/ducklake',
 						'connectors/motherduck',
 						'connectors/quack',
+						'connectors/iceberg',
 						'connectors/s3',
 						'connectors/azureblob',
 						'connectors/gcs',

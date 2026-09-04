@@ -144,7 +144,7 @@ below it. If you remember one rule about where code lives, remember this diagram
 
 <figure class="dgm">
   <a href="/diagrams/concepts/02-layering.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the ten in-repo connectors compile against." />
+    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the fifteen in-repo connectors compile against." />
     <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true" />
   </a>
   <figcaption>Click the diagram to open it full size.</figcaption>
@@ -161,7 +161,7 @@ In plain terms:
 | `src/Pz.PackageManagement` | Resolves connector NuGet packages, writes `pz.lock.json`, and hosts every non-builtin connector out-of-process over PCP, spawned, handshaken, and driven over a control socket, never loaded into this process. | `ProcessHosting/`, `Restore/` |
 | `src/Pz.Connectors.Abstractions` | The interfaces every connector implements (`ISourceConnector`, `ISink`, …). The contract of the ecosystem, changes here are additive-only. | the interfaces themselves |
 | `src/Pz.Diagnostics` | One typed event stream that both the console renderer and the NDJSON log are views of, plus OpenTelemetry plumbing. | `Events/RunEvent.cs` |
-| `connectors/` | The ten first-party connectors, each also a worked example of the ABI. | `connectors/Pz.Connector.LocalFiles` |
+| `connectors/` | The fifteen first-party connectors, each also a worked example of the ABI. | `connectors/Pz.Connector.LocalFiles` |
 
 ## 4. Every command walks the same eight phases
 
@@ -258,8 +258,8 @@ for the full tier list.
 
 ### Phase 4: restore-check, are the connectors here?
 
-Connectors are plugins. The ten first-party ones (LocalFiles, Postgres, S3, SqlServer,
-AzureBlob, Gcs, Http, MySql, Sqlite, Sftp) are built into the `pz` tool itself, project-referenced and
+Connectors are plugins. The fifteen first-party ones (LocalFiles, Postgres, S3, SqlServer,
+AzureBlob, Gcs, Http, MySql, Sqlite, Sftp, DuckDb, DuckLake, Quack, MotherDuck, Iceberg) are built into the `pz` tool itself, project-referenced and
 compiled straight in; third-party ones are NuGet packages that `pz restore` downloads into
 `.pz/packages` and pins in `pz.lock.json`.
 

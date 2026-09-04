@@ -127,13 +127,13 @@ letting it fail or silently degrade at run time.
 
 ## Hosting model
 
-**Builtins stay in-process.** The ten first-party connectors (LocalFiles, Postgres, S3,
-SqlServer, AzureBlob, Gcs, Http, MySql, Sqlite, Sftp) are project-referenced straight into
+**Builtins stay in-process.** The fifteen first-party connectors (LocalFiles, Postgres, S3,
+SqlServer, AzureBlob, Gcs, Http, MySql, Sqlite, Sftp, DuckDb, DuckLake, Quack, MotherDuck, Iceberg) are project-referenced straight into
 `Pz.Cli` and compiled into the same assembly as the host. `BuiltinConnectors.CreateRegistry()`
 (`Pz.Cli/BuiltinConnectors.cs`) `new`s each one up directly and registers it as both source and
 sink where it implements both. There is no plugin-loading step and no isolation boundary for
 them; they ship from this repository under the same review and CI as the engine itself.
-`BuiltinConnectors.PackageIds` names the ten package ids so that a project declaring one of them
+`BuiltinConnectors.PackageIds` names the fifteen package ids so that a project declaring one of them
 never triggers NuGet resolution, the lock file, or drift checking.
 
 **Every other connector runs out-of-process, over PCP.** A restored package must declare
@@ -219,7 +219,7 @@ yet; a source connector in Rust means implementing the wire protocol directly.
 
 ## The builtin registry
 
-`BuiltinConnectors.CreateRegistry()` wires the ten first-party connectors into the CLI's
+`BuiltinConnectors.CreateRegistry()` wires the fifteen first-party connectors into the CLI's
 in-process `ConnectorRegistry`, one `AddSource`/`AddSink` pair per connector that implements
 both directions:
 
@@ -227,7 +227,7 @@ both directions:
 var localFiles = new LocalFilesConnector();
 registry.AddSource("localfiles", localFiles);
 registry.AddSink("localfiles", localFiles);
-// ... postgres, s3, sqlserver, azureblob, gcs, http, mysql, sqlite, duckdb, ducklake, quack, motherduck, sftp
+// ... postgres, s3, sqlserver, azureblob, gcs, http, mysql, sqlite, duckdb, ducklake, quack, motherduck, iceberg, sftp
 ```
 
 `GatedOperations` today is declared by `http`, `sftp`, `azureblob`, and `gcs`. `files_per_partition`

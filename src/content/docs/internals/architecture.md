@@ -74,7 +74,7 @@ Layering is strictly downward: a project may only reference the ones below it in
 | `Pz.Mcp` | The `pz mcp` server: typed tools for introspection, verification, authoring, and docs. Run-triggering tools require `--allow-run`. |
 | `Pz.State.Http` | A pluggable state backend: keyed watermark/sync-state storage over a server's run-scoped HTTP endpoints. |
 | `Pz.State.SqlServer` | A pluggable state backend over SQL Server, with schema creation, migration, and batched run-artifact persistence. |
-| `connectors/` | The ten first-party connectors: LocalFiles, Postgres, S3, SqlServer, AzureBlob, Gcs, Http, MySql, Sqlite, Sftp. |
+| `connectors/` | The fifteen first-party connectors: LocalFiles, Postgres, S3, SqlServer, AzureBlob, Gcs, Http, MySql, Sqlite, Sftp, DuckDb, DuckLake, Quack, MotherDuck, Iceberg. |
 
 The **Abstractions assembly is the contract of the whole ecosystem**. It changes under a
 strict additive-only compatibility policy: growth happens through new optional capability

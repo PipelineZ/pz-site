@@ -8,11 +8,12 @@ sidebar:
 This guide walks through building, testing, and packaging a `pz` [connector](/concepts/connectors/):
 a source and/or sink implementation, plus the manifest handshake that lets `pz` reject an
 incompatible package before running any of its code. Read it if you need `pz` to read from or
-write to a system none of the ten builtin connectors cover.
+write to a system none of the fifteen builtin connectors cover.
 
 :::note
-`pz`'s fourteen builtin connectors (`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`,
-`gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `sftp`) are compiled directly into the CLI from the `pz` repository:
+`pz`'s fifteen builtin connectors (`localfiles`, `postgres`, `s3`, `sqlserver`, `azureblob`,
+`gcs`, `http`, `mysql`, `sqlite`, `duckdb`, `ducklake`, `motherduck`, `quack`, `iceberg`, `sftp`)
+are compiled directly into the CLI from the `pz` repository:
 there is no plugin-loading step, and no isolation boundary, for them. Every other, genuinely
 external connector must instead run out of process, speaking the PCP wire protocol, because pz
 refuses to load external connector code in-process. The ABI this guide walks through, and the

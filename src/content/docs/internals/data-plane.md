@@ -106,6 +106,7 @@ call that would only fail once the run reached it:
 | `ducklake` | Yes (DuckDB `ducklake` extension is the whole data plane) | Yes |
 | `motherduck` | Yes (DuckDB `motherduck` extension is the whole data plane) | Yes |
 | `quack` | Yes (DuckDB `quack` extension is the whole data plane) | Yes |
+| `iceberg` | Yes (DuckDB `iceberg` extension is the whole data plane) | Yes |
 | `s3` | No, but native both directions; `force_universal` still refused | No |
 | `azureblob` | Yes | No, writes run either tier (`partition_by` fan-out needs the universal tier) |
 | `gcs` | Only under `hmac` auth; `service_account`/`adc` are write-only, universal-tier | No |

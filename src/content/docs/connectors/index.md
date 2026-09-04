@@ -1,12 +1,12 @@
 ---
 title: "Connectors"
-description: "A capability matrix for the fourteen builtin pz connectors, plus how to add a third-party connector and test a connection."
+description: "A capability matrix for the fifteen builtin pz connectors, plus how to add a third-party connector and test a connection."
 sidebar:
   order: 1
 ---
 
 A [connector](/concepts/connectors/) is the code that reads or writes one kind of place: a
-database, an object store, a filesystem, or an API. `pz` ships fourteen builtin connectors, and every
+database, an object store, a filesystem, or an API. `pz` ships fifteen builtin connectors, and every
 one of them can act as a read connection, a write connection, or both in the same project.
 
 ## Capability matrix
@@ -26,6 +26,7 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 | [ducklake](/connectors/ducklake/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [motherduck](/connectors/motherduck/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [quack](/connectors/quack/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
+| [iceberg](/connectors/iceberg/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [s3](/connectors/s3/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
 | [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
 | [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
@@ -38,9 +39,9 @@ not read.
 :::
 
 Database connectors have no file format: `postgres`, `sqlserver`, `mysql`, `sqlite`, `duckdb`,
-`ducklake`, `motherduck`, and `quack` move rows, not files. `mysql`, `sqlite`, and the four
-DuckDB-family connectors (`duckdb`, `ducklake`, `motherduck`, `quack`) run on the native tier
-only, so declaring `engine.force_universal` for one of their entities fails with
+`ducklake`, `motherduck`, `quack`, and `iceberg` move rows, not files. `mysql`, `sqlite`, the four
+DuckDB-family connectors (`duckdb`, `ducklake`, `motherduck`, `quack`), and `iceberg` run on the
+native tier only, so declaring `engine.force_universal` for one of their entities fails with
 [`PZ0312`](/reference/error-codes/). `quack`'s merge is a whole-table rewrite rather than a keyed
 upsert; its page explains what that costs.
 
