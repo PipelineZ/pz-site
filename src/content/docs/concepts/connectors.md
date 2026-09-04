@@ -48,6 +48,10 @@ writes `pz.lock.json` at the project root so every machine restores the exact sa
 Commit `pz.lock.json`, never `.pz/`. `pz run` refuses to start if `pz.lock.json` no longer
 matches `project.yml`'s declared connectors, unless `--no-lock-check` is passed.
 
+Anyone can publish a third-party connector; [Approved external connectors](/connectors/external/)
+lists the ones published and maintained by the PipelineZ org itself, held to the same bar as a
+builtin.
+
 ### Out-of-process execution
 
 A builtin connector runs inside the same `pz` process as everything else. A restored, third-party
