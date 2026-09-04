@@ -56,6 +56,16 @@
 	--sl-color-accent-low: hsl(46, 76%, 88%);
 }
 
+/* Prose hyperlinks: Starlight's default paints them accent-colored at rest
+ * and flips to white on hover — the accent is meant to sit sparingly, so
+ * invert that: normal text color at rest, accent only on hover. */
+.sl-markdown-content a:not(:where(.not-content *)) {
+	color: var(--sl-color-white);
+}
+.sl-markdown-content a:hover:not(:where(.not-content *)) {
+	color: var(--sl-color-text-accent);
+}
+
 /* starlight-versions dropdown: match the top nav's face and weight. */
 starlight-version-select select {
 	font-family: 'Geist Variable', var(--sl-font-system);
