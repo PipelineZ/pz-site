@@ -187,11 +187,16 @@ option a connector does not
 recognize is `PZ0301`.
 
 On the file-place connectors (localfiles, s3, gcs, azureblob, sftp), `format` is one of `csv`,
-`tsv`, `parquet`, or `json`, and two format-scoped options ride alongside it: `delimiter` (csv
-only, one ASCII character other than a quote, newline, or carriage return; defaults to `,`; tsv is
-fixed to tab) and `layout` (json only, `ndjson` default or `array`, one top-level JSON array,
-native-tier only). An option on the wrong format, or a bad value, is `PZ0362`. See each
-connector's own page for its full option table.
+`tsv`, `parquet`, `json`, `xlsx`, or `avro`, and four format-scoped options ride alongside it:
+`delimiter` (csv only, one ASCII character other than a quote, newline, or carriage return;
+defaults to `,`; tsv is fixed to tab), `layout` (json only, `ndjson` default or `array`, one
+top-level JSON array, native-tier only), `sheet` (xlsx only, defaults to the workbook's first
+sheet), and `header` (xlsx only, boolean, defaults to `true`; `false` yields DuckDB's generated
+`A1`/`B1`… column names). `xlsx` and `avro` are native-tier only — sftp and any managed/universal
+write path refuse them — and `avro` is read only. An option on the wrong format, or a bad value,
+is `PZ0362`. See each connector's own page for its full option table, and [DuckDB
+extensions](/concepts/connections-and-entities/#duckdb-extensions) for xlsx/avro's first-use
+download.
 
 ## Same option in YAML and in the call
 

@@ -6,8 +6,9 @@ sidebar:
 ---
 
 The `azureblob` connector reads and writes Azure Blob Storage and ADLS Gen2. Reads are
-native-only: every read compiles to a DuckDB `read_parquet`/`read_csv`/`read_json` scan over the
-`azure` extension. Writes go two ways: an unpartitioned write is a native `COPY`; a
+native-only: every read compiles to a DuckDB
+`read_parquet`/`read_csv`/`read_json`/`read_xlsx`/`read_avro` scan over the `azure` extension
+(`avro` read only). Writes go two ways: an unpartitioned write is a native `COPY`; a
 `partition_by` write runs on the universal tier through the Azure Storage SDK.
 
 ## Connection
@@ -43,11 +44,13 @@ documented in [connections.yml reference](/reference/connections-yml/).
 |---|---|---|---|
 | `scheme` | No | `az` | `az`, `azure`, or `abfss`. Picks blob-container listing (`az`/`azure`) or ADLS Gen2 directory listing (`abfss`). |
 | `container` | Yes | — | Blob container (or ADLS filesystem) name. |
-| `path` | Yes | — | Blob name or glob, relative to the container. Supports calendar tokens (see below). |
-| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, or `json`. |
-| `columns` | Required for csv/tsv/json | — | Column-to-type contract. Parquet reads its schema from the file footer instead. |
+| `path` | Yes | — | Blob name or glob, relative to the container. Supports calendar tokens (see below), except `xlsx`: it reads exactly one workbook, so a glob or date-templated `path` matching more than one blob is `PZ0361`. |
+| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro`. |
+| `columns` | Required for csv/tsv/json | — | Column-to-type contract. Parquet reads its schema from the file footer instead. For xlsx/avro a declared contract is applied as a cast around the read (a declared numeric type replaces `read_xlsx`'s default `DOUBLE`) and prunes to just those columns; with no contract both infer from the file. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). Reads are native-only here, so both layouts read fine. |
+| `sheet` | No | the workbook's first sheet | xlsx only. Sheet name to read. |
+| `header` | No | `true` | xlsx only. Boolean; `false` yields DuckDB's generated `A1`/`B1`/… column names. |
 
 ```yaml title="connections.yml"
 lake:
@@ -70,10 +73,15 @@ lake:
 |---|---|---|---|
 | `container` | Yes | — | Destination container. |
 | `path` | No | `""` | Destination prefix, relative to the container. Must carry calendar tokens if `partition_by` is set. |
-| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. |
+| `format` | Yes | — | `csv`, `tsv`, `parquet`, `json`, or `xlsx`. No default: every write must declare it. `avro` is read-only; writing it is `PZ0361`. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one blob per calendar folder, rendered from `path`'s tokens. Universal tier only. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` is native-only: it works on an unpartitioned write's native `COPY`, but a `partition_by` write's managed SDK writer refuses it with `PZ0361`. |
+| `sheet` | No | the workbook's first sheet | xlsx only. Sheet name to write. |
+| `header` | No | `true` | xlsx only. Whether the first row carries column names. |
+
+`xlsx` is native-only, like `layout: array`: it writes fine on an unpartitioned write's native
+`COPY`, but a `partition_by` output has no native tier to carry it and is refused with `PZ0361`.
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for a blob
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,
@@ -92,7 +100,7 @@ carries matching tokens.
 
 | Flag | Meaning |
 |---|---|
-| `NativeScan` | Reads compile to a native DuckDB scan. |
+| `NativeScan` | Reads compile to a native DuckDB scan (`read_csv`/`read_parquet`/`read_json`/`read_xlsx`/`read_avro`). |
 | `NativeCopy` | An unpartitioned write compiles to a native DuckDB `COPY`. |
 | `ReplaceWrites` | Supports `strategy: replace`. |
 | `BoundedWindow` | Honors an entity's upper watermark bound. |
@@ -108,10 +116,15 @@ carries matching tokens.
 - The schema peek `pz validate --connect` uses to fetch a live csv schema parses with the
   resolved `delimiter` (comma by default) instead of auto-detecting it — a semicolon-delimited
   file labelled `format: csv` needs `delimiter: ";"` for the peek to agree with the native read.
+- `xlsx` and `avro` run through DuckDB's `excel`/`avro` extensions, installed and loaded on first
+  use — see [DuckDB extensions](/concepts/connections-and-entities/#duckdb-extensions) for the
+  one-time network download this needs.
 
 ## Related
 
 - [Connections.yml reference](/reference/connections-yml/) for the shared `read:`/`write:` keys.
+- [Connections and entities](/concepts/connections-and-entities/#duckdb-extensions) for the DuckDB
+  extensions xlsx/avro need.
 - [Amazon S3](/connectors/s3/) and [Google Cloud Storage](/connectors/gcs/) for the other
   object-store connectors.
 - [Secure connection config](/how-to/secure-connection-config/) for keeping credentials out of the
