@@ -81,10 +81,10 @@ raw:
 ```
 
 On a file-place connector (`localfiles` above, or `s3`/`gcs`/`azureblob`/`sftp`), `format` is one
-of `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro` (`avro` is read only); `delimiter` (csv
-only), `layout` (json only, `ndjson` or `array`), `sheet`, and `header` (both xlsx only) ride
-alongside it as their own format-scoped options — see each connector's own page for the full
-table.
+of `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro` (`avro` is read only; `xlsx` write is
+localfiles-only — the other three read it fine but refuse to write it); `delimiter` (csv only),
+`layout` (json only, `ndjson` or `array`), `sheet`, and `header` (both xlsx only) ride alongside
+it as their own format-scoped options — see each connector's own page for the full table.
 
 An entity that needs no options at all can be a bare key: `dbo.orders:` with nothing under it.
 An entity doesn't have to appear in `connections.yml` at all. A `source()` or `sink()` call that
