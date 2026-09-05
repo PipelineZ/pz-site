@@ -17,7 +17,7 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 
 | Connector | Read | Write | Native DuckDB tier | Incremental | CDC | Merge | Formats |
 |---|---|---|---|---|---|---|---|
-| [localfiles](/connectors/localfiles/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
+| [localfiles](/connectors/localfiles/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx, avro (read) |
 | [postgres](/connectors/postgres/) | ✓ | ✓ | – | ✓ | ✓ | ✓ | – |
 | [sqlserver](/connectors/sqlserver/) | ✓ | ✓ | – | ✓ | ✓ | ✓ | – |
 | [mysql](/connectors/mysql/) | ✓ | ✓ | ✓ | ✓ | – | – | – |
@@ -27,10 +27,10 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 | [motherduck](/connectors/motherduck/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [quack](/connectors/quack/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
 | [iceberg](/connectors/iceberg/) | ✓ | ✓ | ✓ | ✓ | – | ✓ | – |
-| [s3](/connectors/s3/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
-| [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
-| [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, parquet, json |
-| [sftp](/connectors/sftp/) | ✓ | ✓ | – | ✓ | – | – | csv, parquet, json |
+| [s3](/connectors/s3/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
+| [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
+| [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
+| [sftp](/connectors/sftp/) | ✓ | ✓ | – | ✓ | – | – | csv, tsv, parquet, json |
 | [http](/connectors/http/) | ✓ | ✓ | – | ✓ | – | ✓ | json |
 
 :::note

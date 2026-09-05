@@ -51,11 +51,13 @@ Only reachable under `auth: hmac`. Shared keys (`columns`, `sync`, `retry` under
 | Key | Meaning |
 |---|---|
 | `bucket` | Object bucket. Defaults to the connection's `root` bucket. |
-| `path` | Object key, relative to the resolved prefix. Defaults to `<entity>.<format>`. Supports globs and calendar tokens (see below). |
-| `format` | `csv`, `tsv`, `parquet`, or `json`. Defaults to `parquet`. |
-| `columns` | Column-to-type contract. With no contract, csv/tsv/json auto-detect their schema. |
+| `path` | Object key, relative to the resolved prefix. Defaults to `<entity>.<format>`. Supports globs and calendar tokens (see below), except `xlsx`: it reads exactly one workbook, so `path` must name a single object — a glob or date-templated `path` matching more than one object is `PZ0361` ("xlsx reads one workbook per entity; 'path:' must name a single file, not a glob"). |
+| `format` | `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro`. Defaults to `parquet`. |
+| `columns` | Column-to-type contract. With no contract, csv/tsv/json/xlsx auto-detect their schema. For xlsx/avro the contract is applied as a cast around the read, so a declared numeric type replaces `read_xlsx`'s default `DOUBLE`. |
 | `delimiter` | csv only, one ASCII character other than a quote, newline, or carriage return. Defaults to `,`. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | json only. `ndjson` (default, newline-delimited) or `array` (one top-level JSON array). Reads are `hmac`-only, so both layouts read natively here. |
+| `sheet` | xlsx only. Sheet name to read. Defaults to the workbook's first sheet. |
+| `header` | xlsx only. Boolean, defaults to `true`; `false` yields DuckDB's generated `A1`/`B1`/… column names, so a declared `columns:` contract must use those names too. |
 
 ```yaml title="connections.yml"
 lake:
@@ -76,7 +78,7 @@ lake:
 |---|---|---|---|
 | `bucket` | No | The connection's `root` bucket | Destination bucket. |
 | `path` | No | `""` | Destination prefix, relative to the resolved root. |
-| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. |
+| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. `avro` is read-only; writing it is `PZ0361`. `xlsx` write is localfiles-only (DuckDB's excel writer aborts the whole process on a failed remote write); writing it here, under any `auth` mode, is `PZ0361` too. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one object per calendar folder. Only under `service_account`/`adc`; refused under `hmac`, since fan-out needs the SDK write tier. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` is native-only: it works under `hmac`'s native `COPY`, but the `service_account`/`adc` managed SDK writer refuses it with `PZ0361`. |
@@ -111,10 +113,19 @@ timestamp value using the same tokens.
   `files_per_partition`) fails with `PZ0312`: `hmac` reads have no universal path at all.
 - Any other S3-compatible store, not just GCS, stays reachable through the `s3` connector's own
   `endpoint` override.
+- `xlsx` and `avro` run through DuckDB's `excel`/`avro` extensions, installed and loaded on first
+  use under `hmac` — see [DuckDB extensions](/concepts/connections-and-entities/#duckdb-extensions)
+  for the one-time network download this needs.
+- `xlsx` reads under `hmac` fine, but only `localfiles` can write one: "xlsx write is
+  localfiles-only; DuckDB's excel writer aborts the whole process when a remote write fails, so
+  gcs refuses it -- write the workbook with the localfiles connector, or choose parquet, csv or
+  json."
 
 ## Related
 
 - [Connections.yml reference](/reference/connections-yml/) for the shared `read:`/`write:` keys.
+- [Connections and entities](/concepts/connections-and-entities/#duckdb-extensions) for the DuckDB
+  extensions xlsx/avro need.
 - [Amazon S3](/connectors/s3/) and [Azure Blob Storage](/connectors/azureblob/) for the other
   object-store connectors.
 - [Secure connection config](/how-to/secure-connection-config/) for keeping keys out of the
