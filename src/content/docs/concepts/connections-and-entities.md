@@ -81,13 +81,23 @@ raw:
 ```
 
 On a file-place connector (`localfiles` above, or `s3`/`gcs`/`azureblob`/`sftp`), `format` is one
-of `csv`, `tsv`, `parquet`, or `json`; `delimiter` (csv only) and `layout` (json only, `ndjson` or
-`array`) ride alongside it as their own format-scoped options — see each connector's own page for
-the full table.
+of `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro` (`avro` is read only); `delimiter` (csv
+only), `layout` (json only, `ndjson` or `array`), `sheet`, and `header` (both xlsx only) ride
+alongside it as their own format-scoped options — see each connector's own page for the full
+table.
 
 An entity that needs no options at all can be a bare key: `dbo.orders:` with nothing under it.
 An entity doesn't have to appear in `connections.yml` at all. A `source()` or `sink()` call that
 names an entity `connections.yml` never mentions is not an error: the call declares it.
+
+### DuckDB extensions
+
+`xlsx` (read and write) and `avro` (read only) run through DuckDB's `excel` and `avro`
+extensions, which are not in DuckDB's base binary — DuckDB installs and loads one the first time
+a pipeline touches its format. That first use, on a given machine and DuckDB version, needs
+network access to download it into `~/.duckdb/extensions/<version>/<platform>/`; every run after
+that is offline. An install attempted with no network available fails as `PZ0311`, naming the
+extension it could not fetch.
 
 ### Two surfaces, one declaration
 
