@@ -80,6 +80,11 @@ raw:
           email: varchar
 ```
 
+On a file-place connector (`localfiles` above, or `s3`/`gcs`/`azureblob`/`sftp`), `format` is one
+of `csv`, `tsv`, `parquet`, or `json`; `delimiter` (csv only) and `layout` (json only, `ndjson` or
+`array`) ride alongside it as their own format-scoped options — see each connector's own page for
+the full table.
+
 An entity that needs no options at all can be a bare key: `dbo.orders:` with nothing under it.
 An entity doesn't have to appear in `connections.yml` at all. A `source()` or `sink()` call that
 names an entity `connections.yml` never mentions is not an error: the call declares it.

@@ -102,6 +102,8 @@ Raised planning a node's execution tier, including capability checks and DuckDB 
 | `PZ0319` | PartitionIdentityInvalid | A connector declared stable partition ids but a planned partition lacks one, or declared checkpointable reads without stable partition ids. | Planning execution, running a node |
 | `PZ0353` | NativePathContractMismatch | A native-path connector refused the read or write at plan time: a declared `columns:` contract disagrees with what it reads, its file does not exist yet, or its options conflict. Raised only for a node the run executes; on a node outside the run's selection the refusal is recorded in `plan.json` instead. | Planning execution |
 | `PZ0359` | UnsignedExtensionRefused | A native scan needs an unsigned DuckDB extension, and the connection does not set `allow_unsigned_extensions: true`. | Planning execution |
+| `PZ0361` | FileFormatUnsupported | A file-place connector (localfiles, s3, gcs, azureblob, sftp) was asked for a `format:` it does not support: an unknown name, `format` missing where the connector has no default, a read-only format asked to write, or a native-only format/option (json `layout: array`) asked on a connector or tier with no native path. The "supported:" set in the message is `csv, json, parquet, tsv`. | Planning execution |
+| `PZ0362` | FileFormatOptionInvalid | A format-scoped option is declared on a format that does not admit it (`delimiter` on tsv or parquet, `layout` on csv or parquet), or carries an invalid value (a multi-character or quote/newline/carriage-return `delimiter`, a `layout` other than `ndjson`/`array`). | Planning execution |
 
 ## 032x: Restore and lock
 

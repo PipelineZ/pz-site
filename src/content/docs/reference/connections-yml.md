@@ -186,6 +186,13 @@ connector's own page lists its full set:
 option a connector does not
 recognize is `PZ0301`.
 
+On the file-place connectors (localfiles, s3, gcs, azureblob, sftp), `format` is one of `csv`,
+`tsv`, `parquet`, or `json`, and two format-scoped options ride alongside it: `delimiter` (csv
+only, one ASCII character other than a quote, newline, or carriage return; defaults to `,`; tsv is
+fixed to tab) and `layout` (json only, `ndjson` default or `array`, one top-level JSON array,
+native-tier only). An option on the wrong format, or a bad value, is `PZ0362`. See each
+connector's own page for its full option table.
+
 ## Same option in YAML and in the call
 
 Every read or write option can be declared here, under `entities: <name>: read:`/`write:`, or as
