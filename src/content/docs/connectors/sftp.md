@@ -5,7 +5,7 @@ sidebar:
   order: 15
 ---
 
-The `sftp` connector reads and writes csv, parquet, and json files over SFTP. There is no native
+The `sftp` connector reads and writes csv, tsv, parquet, and json files over SFTP. There is no native
 DuckDB path for SFTP, so every read and write runs on the universal Arrow tier: SSH.NET streams
 files through managed format readers and writers.
 
@@ -39,9 +39,11 @@ documented in [connections.yml reference](/reference/connections-yml/).
 | Key | Required | Default | Meaning |
 |---|---|---|---|
 | `path` | No | `<entity>.<format>` | Remote path or glob, relative to `root`. Supports calendar tokens (see below). |
-| `format` | No | `csv` | `csv`, `parquet`, or `json`. |
-| `columns` | Required for json | — | Column-to-type contract. json has no schema inference; csv without a contract reports every header column as `varchar`; parquet reads its footer. |
+| `format` | No | `csv` | `csv`, `tsv`, `parquet`, or `json`. |
+| `columns` | Required for json | — | Column-to-type contract. json has no schema inference; csv/tsv without a contract reports every header column as `varchar`; parquet reads its footer. |
 | `files_per_partition` | No | `1` | How many matched files load into each partition. |
+| `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) is the only layout this connector reads; `array` is native-tier only and is refused here with `PZ0361`. |
 
 ```yaml title="connections.yml"
 lake:
@@ -64,9 +66,11 @@ lake:
 
 | Key | Required | Default | Meaning |
 |---|---|---|---|
-| `format` | No | `parquet` | `csv`, `parquet`, or `json`. |
+| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, or `json`. |
 | `path` | No | `<entity>` | Destination directory, relative to `root`. Must carry calendar tokens if `partition_by` is set. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one file per calendar folder, rendered from `path`'s tokens. |
+| `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) is the only layout this connector writes; `array` is native-tier only and is refused here with `PZ0361`. |
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for a file
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,
@@ -96,6 +100,8 @@ folder per row from its timestamp value using the same tokens.
   validation.
 - A json entity always needs a `columns` contract. There is no managed NDJSON schema inference for
   this connector.
+- csv reads parse with the resolved `delimiter` (comma by default) instead of auto-detecting it —
+  a semicolon-delimited file labelled `format: csv` needs `delimiter: ";"`.
 
 ## Related
 

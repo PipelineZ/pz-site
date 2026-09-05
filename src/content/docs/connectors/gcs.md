@@ -52,8 +52,10 @@ Only reachable under `auth: hmac`. Shared keys (`columns`, `sync`, `retry` under
 |---|---|
 | `bucket` | Object bucket. Defaults to the connection's `root` bucket. |
 | `path` | Object key, relative to the resolved prefix. Defaults to `<entity>.<format>`. Supports globs and calendar tokens (see below). |
-| `format` | `csv`, `parquet`, or `json`. Defaults to `parquet`. |
-| `columns` | Column-to-type contract. With no contract, csv/json auto-detect their schema. |
+| `format` | `csv`, `tsv`, `parquet`, or `json`. Defaults to `parquet`. |
+| `columns` | Column-to-type contract. With no contract, csv/tsv/json auto-detect their schema. |
+| `delimiter` | csv only, one ASCII character other than a quote, newline, or carriage return. Defaults to `,`. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | json only. `ndjson` (default, newline-delimited) or `array` (one top-level JSON array). Reads are `hmac`-only, so both layouts read natively here. |
 
 ```yaml title="connections.yml"
 lake:
@@ -74,8 +76,10 @@ lake:
 |---|---|---|---|
 | `bucket` | No | The connection's `root` bucket | Destination bucket. |
 | `path` | No | `""` | Destination prefix, relative to the resolved root. |
-| `format` | Yes | — | `csv`, `parquet`, or `json`. No default: every write must declare it. |
+| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one object per calendar folder. Only under `service_account`/`adc`; refused under `hmac`, since fan-out needs the SDK write tier. |
+| `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` is native-only: it works under `hmac`'s native `COPY`, but the `service_account`/`adc` managed SDK writer refuses it with `PZ0361`. |
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for an object
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,

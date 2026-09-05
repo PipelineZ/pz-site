@@ -44,8 +44,10 @@ documented in [connections.yml reference](/reference/connections-yml/).
 | `scheme` | No | `az` | `az`, `azure`, or `abfss`. Picks blob-container listing (`az`/`azure`) or ADLS Gen2 directory listing (`abfss`). |
 | `container` | Yes | — | Blob container (or ADLS filesystem) name. |
 | `path` | Yes | — | Blob name or glob, relative to the container. Supports calendar tokens (see below). |
-| `format` | No | `parquet` | `csv`, `parquet`, or `json`. |
-| `columns` | Required for csv/json | — | Column-to-type contract. Parquet reads its schema from the file footer instead. |
+| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, or `json`. |
+| `columns` | Required for csv/tsv/json | — | Column-to-type contract. Parquet reads its schema from the file footer instead. |
+| `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). Reads are native-only here, so both layouts read fine. |
 
 ```yaml title="connections.yml"
 lake:
@@ -68,8 +70,10 @@ lake:
 |---|---|---|---|
 | `container` | Yes | — | Destination container. |
 | `path` | No | `""` | Destination prefix, relative to the container. Must carry calendar tokens if `partition_by` is set. |
-| `format` | Yes | — | `csv`, `parquet`, or `json`. No default: every write must declare it. |
+| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one blob per calendar folder, rendered from `path`'s tokens. Universal tier only. |
+| `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` is native-only: it works on an unpartitioned write's native `COPY`, but a `partition_by` write's managed SDK writer refuses it with `PZ0361`. |
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for a blob
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,
@@ -101,6 +105,9 @@ carries matching tokens.
   `files_per_partition`) fails with `PZ0312`: reads have no universal path at all.
 - A `partition_by` output declines the native `COPY` path even when the format would otherwise
   qualify, because a single `COPY` cannot fan out by row value.
+- The schema peek `pz validate --connect` uses to fetch a live csv schema parses with the
+  resolved `delimiter` (comma by default) instead of auto-detecting it — a semicolon-delimited
+  file labelled `format: csv` needs `delimiter: ";"` for the peek to agree with the native read.
 
 ## Related
 
