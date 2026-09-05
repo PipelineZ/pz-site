@@ -42,12 +42,12 @@ lake:
 | Key | Required | Default | Meaning |
 |---|---|---|---|
 | `format` | No | `csv` | `csv`, `tsv`, `parquet`, `json` (NDJSON), `xlsx`, or `avro`. |
-| `path` | No | `<entity>.<format>` | File or glob path, relative to `root`. `xlsx` reads exactly one workbook: a glob or date-templated path matching more than one file is `PZ0361`. |
+| `path` | No | `<entity>.<format>` | File or glob path, relative to `root`. `xlsx` reads exactly one workbook: `path` must name a single file, not a glob — a glob or date-templated path matching more than one file is `PZ0361` ("xlsx reads one workbook per entity; 'path:' must name a single file, not a glob"). |
 | `columns` | Conditional | – | Column name to type map. Required for csv/tsv on the universal tier; required for json only when `pz validate --connect` needs to fetch a schema. Parquet infers its schema from the file footer and never needs it. For xlsx/avro, a declared contract is applied as a cast around the read (so numbers come back as the declared type rather than `read_xlsx`'s default `DOUBLE`) and prunes to just those columns; with no contract, both infer from the file. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` works on the native tier; a read forced onto the universal tier (`engine.force_universal`) refuses it with `PZ0361`. |
 | `sheet` | No | the workbook's first sheet | xlsx only. Sheet name to read. |
-| `header` | No | `true` | xlsx only. `true` treats row 1 as column names; `false` yields DuckDB's generated `A1`, `B1`, … names. |
+| `header` | No | `true` | xlsx only. `true` treats row 1 as column names; `false` yields DuckDB's generated `A1`, `B1`, … names, so a declared `columns:` contract must use those names too. |
 
 The shared keys `columns`, `sync`, and `retry` under `read:` work the same for every connector.
 `rate_limit` belongs on the connection, not under `read:`. See the

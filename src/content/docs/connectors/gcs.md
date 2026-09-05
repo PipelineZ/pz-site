@@ -51,13 +51,13 @@ Only reachable under `auth: hmac`. Shared keys (`columns`, `sync`, `retry` under
 | Key | Meaning |
 |---|---|
 | `bucket` | Object bucket. Defaults to the connection's `root` bucket. |
-| `path` | Object key, relative to the resolved prefix. Defaults to `<entity>.<format>`. Supports globs and calendar tokens (see below), except `xlsx`: it reads exactly one workbook, so a glob or date-templated `path` matching more than one object is `PZ0361`. |
+| `path` | Object key, relative to the resolved prefix. Defaults to `<entity>.<format>`. Supports globs and calendar tokens (see below), except `xlsx`: it reads exactly one workbook, so `path` must name a single object — a glob or date-templated `path` matching more than one object is `PZ0361` ("xlsx reads one workbook per entity; 'path:' must name a single file, not a glob"). |
 | `format` | `csv`, `tsv`, `parquet`, `json`, `xlsx`, or `avro`. Defaults to `parquet`. |
 | `columns` | Column-to-type contract. With no contract, csv/tsv/json/xlsx auto-detect their schema. For xlsx/avro the contract is applied as a cast around the read, so a declared numeric type replaces `read_xlsx`'s default `DOUBLE`. |
 | `delimiter` | csv only, one ASCII character other than a quote, newline, or carriage return. Defaults to `,`. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | json only. `ndjson` (default, newline-delimited) or `array` (one top-level JSON array). Reads are `hmac`-only, so both layouts read natively here. |
 | `sheet` | xlsx only. Sheet name to read. Defaults to the workbook's first sheet. |
-| `header` | xlsx only. Boolean, defaults to `true`; `false` yields DuckDB's generated `A1`/`B1`/… column names. |
+| `header` | xlsx only. Boolean, defaults to `true`; `false` yields DuckDB's generated `A1`/`B1`/… column names, so a declared `columns:` contract must use those names too. |
 
 ```yaml title="connections.yml"
 lake:
@@ -78,16 +78,10 @@ lake:
 |---|---|---|---|
 | `bucket` | No | The connection's `root` bucket | Destination bucket. |
 | `path` | No | `""` | Destination prefix, relative to the resolved root. |
-| `format` | Yes | — | `csv`, `tsv`, `parquet`, `json`, or `xlsx`. No default: every write must declare it. `avro` is read-only; writing it is `PZ0361`. |
+| `format` | Yes | — | `csv`, `tsv`, `parquet`, or `json`. No default: every write must declare it. `avro` is read-only; writing it is `PZ0361`. `xlsx` write is localfiles-only (DuckDB's excel writer aborts the whole process on a failed remote write); writing it here, under any `auth` mode, is `PZ0361` too. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one object per calendar folder. Only under `service_account`/`adc`; refused under `hmac`, since fan-out needs the SDK write tier. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
 | `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array` (one top-level JSON array). `array` is native-only: it works under `hmac`'s native `COPY`, but the `service_account`/`adc` managed SDK writer refuses it with `PZ0361`. |
-| `sheet` | No | the workbook's first sheet | xlsx only. Sheet name to write. |
-| `header` | No | `true` | xlsx only. Whether the first row carries column names. |
-
-`xlsx` is native-only, like `layout: array`: it writes under `hmac`'s native `COPY`, but the
-`service_account`/`adc` managed SDK writer has no native tier to carry it and refuses it with
-`PZ0361` — use `csv`, `tsv`, `parquet`, or `json` on those connections instead.
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for an object
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,
@@ -122,6 +116,10 @@ timestamp value using the same tokens.
 - `xlsx` and `avro` run through DuckDB's `excel`/`avro` extensions, installed and loaded on first
   use under `hmac` — see [DuckDB extensions](/concepts/connections-and-entities/#duckdb-extensions)
   for the one-time network download this needs.
+- `xlsx` reads under `hmac` fine, but only `localfiles` can write one: "xlsx write is
+  localfiles-only; DuckDB's excel writer aborts the whole process when a remote write fails, so
+  gcs refuses it -- write the workbook with the localfiles connector, or choose parquet, csv or
+  json."
 
 ## Related
 

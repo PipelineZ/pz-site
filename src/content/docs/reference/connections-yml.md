@@ -192,9 +192,13 @@ On the file-place connectors (localfiles, s3, gcs, azureblob, sftp), `format` is
 defaults to `,`; tsv is fixed to tab), `layout` (json only, `ndjson` default or `array`, one
 top-level JSON array, native-tier only), `sheet` (xlsx only, defaults to the workbook's first
 sheet), and `header` (xlsx only, boolean, defaults to `true`; `false` yields DuckDB's generated
-`A1`/`B1`… column names). `xlsx` and `avro` are native-tier only — sftp and any managed/universal
-write path refuse them — and `avro` is read only. An option on the wrong format, or a bad value,
-is `PZ0362`. See each connector's own page for its full option table, and [DuckDB
+`A1`/`B1`… column names, so a declared `columns:` contract must use those names too). `xlsx` and
+`avro` are native-tier only — sftp and any managed/universal write path refuse them — `avro` is
+read only everywhere, and `xlsx` write is localfiles-only (s3/gcs/azureblob read it but refuse to
+write it, since DuckDB's excel writer aborts the whole process on a failed remote write). `xlsx`
+also reads exactly one workbook: a glob or date-templated `path:` matching more than one file is
+`PZ0361`. An option on the wrong format, or a bad value, is `PZ0362`. See each connector's own
+page for its full option table, and [DuckDB
 extensions](/concepts/connections-and-entities/#duckdb-extensions) for xlsx/avro's first-use
 download.
 
