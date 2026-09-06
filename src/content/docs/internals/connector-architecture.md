@@ -1,6 +1,6 @@
 ---
 title: "Connector architecture"
-description: "This page documents the connector ABI in Pz.Connectors.Abstractions, the PCP out-of-process protocol, package layout, TestKit conformance, the Rust SDK, and the builtin registry."
+description: "This page documents the connector ABI in Pz.Connectors.Abstractions, the PCP out-of-process protocol, package layout, TestKit conformance, the C# and Rust SDKs, and the builtin registry."
 sidebar:
   order: 5
 ---
@@ -216,7 +216,11 @@ no docker and no network. TestKit hooks are virtual and defaulted to null, so a 
 declares a new capability opts into the matching acceptance facts without every existing
 subclass having to change.
 
-## The Rust SDK
+## The SDKs
+
+Two SDKs drive the wire protocol on a connector author's behalf. `Pz.Connectors.Sdk` (C#) serves
+any `Pz.Connectors.Abstractions` connector over PCP, both directions, and packs it as a
+`pz`-installable package; the [authoring guide](/how-to/author-a-connector/#c-sdk) covers it.
 
 `rust/pz-connector` is a Rust crate for writing PCP connectors without hand-rolling the wire
 protocol. It is **sink-only today**: it exports `SinkConnector`, `Sink`, and `WriteSession`

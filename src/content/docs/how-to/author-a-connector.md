@@ -267,6 +267,12 @@ packs it at the nupkg root. Missing RIDs warn (`PZSDK002`); no RID at all is an 
 the packing machine must have published its own RID (`PZSDK003`). Set `PzRuntimeIdentifiers` to the
 RID set you ship.
 
+A connector that resolves relative paths from its own configuration (a local file root, a
+certificate path) sets `<PzProjectDirectoryAnchor>true</PzProjectDirectoryAnchor>`; the manifest
+then carries `projectDirectoryAnchor`, and `pz` passes the project directory to the connector as
+the `base_dir` connection option so those paths resolve against the project rather than the
+process working directory.
+
 A complete GitHub Actions release workflow:
 
 ```yaml title=".github/workflows/release.yml"
