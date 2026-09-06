@@ -18,11 +18,10 @@ there is no plugin-loading step, and no isolation boundary, for them. Every othe
 external connector must instead run out of process, speaking the PCP wire protocol, because pz
 refuses to load external connector code in-process. The ABI this guide walks through, and the
 conformance suite that enforces it, are exactly what an out-of-process connector's implementation
-is checked against under the hood. A Rust SDK for the out-of-process side exists today; see
-[Rust SDK](#rust-sdk) below. There is no C# equivalent yet, so a C# connector built the way this
-guide describes ships either as a contribution merged into the `pz` CLI itself, or as the
-in-process implementation behind a hand-built PCP host. The full protocol, hosting model, and
-capability semantics are in [Connector architecture](/internals/connector-architecture/).
+is checked against under the hood. Two SDKs serve the out-of-process side: `Pz.Connectors.Sdk`
+for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
+([Rust SDK](#rust-sdk)). The full protocol, hosting model, and capability semantics are in
+[Connector architecture](/internals/connector-architecture/).
 :::
 
 ## Prerequisites
@@ -208,6 +207,117 @@ capability semantics are in [Connector architecture](/internals/connector-archit
    $ pz connectors
    ```
 
+## C# SDK
+
+`Pz.Connectors.Sdk` serves any `Pz.Connectors.Abstractions` connector over PCP and packs it as a
+`pz`-installable package. Write the connector exactly as steps 1–4 above describe, then:
+
+```xml title="MyConnector.csproj"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackageId>Pz.Connector.MySystem</PackageId>
+    <AssemblyName>pz-mysystem</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pz.Connectors.Sdk" Version="x.y.z" />
+  </ItemGroup>
+</Project>
+```
+
+```csharp title="Program.cs"
+using Pz.Connectors.Sdk;
+
+return await PzConnectorHost.RunAsync(args, new MySystemConnector());
+// To log to the pz host: RunAsync(args, ctx => new MySystemConnector(ctx.LoggerFactory))
+```
+
+Rules the SDK enforces so a connector cannot lie to the host:
+
+- **Declare only what you implement.** Every optional RPC is answered from the interfaces your
+  objects implement: a source that is not `INaturalReadShapeSource` answers UNIMPLEMENTED; a
+  partition that is not `ISyncStatePartition` answers FAILED_PRECONDITION. A `SyncState` declaration
+  nothing backs fails `pz connector test`'s `sync-state-roundtrip` vector.
+- **Sync-state tokens are captured by the SDK** the moment a partition's enumeration completes,
+  before end-of-stream is written. Set the candidate anywhere before your iterator returns.
+- **Argv is not configuration.** `--pz-socket <path>` serves; `--pz-manifest --out <file>
+  [--entrypoint <rid>=<path>]...` writes `pz.connector.json` from the connector object itself (the
+  packaging targets run this for you). Anything else exits 2. Configuration only ever arrives
+  through the `Configure` RPC.
+- **Logging** goes to the host as connector log events, rendered verbatim: never log configuration
+  values or payloads.
+
+### Packaging
+
+Native AOT per platform is the default; `<PzPackaging>self-contained</PzPackaging>` opts a connector
+whose dependencies cannot be AOT-compiled into a single-file CoreCLR publish instead. The host sees
+no difference. Native AOT cannot cross-compile between operating systems, so a release publishes
+once per platform and packs once:
+
+```console
+$ dotnet publish -c Release -r linux-x64    # on Linux
+$ dotnet publish -c Release -r osx-arm64    # on macOS
+$ dotnet publish -c Release -r win-x64      # on Windows
+$ dotnet pack -c Release -p:PzNativeStaging=./stage   # once, from a directory holding every RID
+```
+
+`pack` collects each `<staging>/<rid>/` as `runtimes/<rid>/native/`, runs the packer's own binary
+with `--pz-manifest` to write the manifest (one `--entrypoint <rid>=<path>` per staged RID), and
+packs it at the nupkg root. Missing RIDs warn (`PZSDK002`); no RID at all is an error (`PZSDK001`);
+the packing machine must have published its own RID (`PZSDK003`). Set `PzRuntimeIdentifiers` to the
+RID set you ship.
+
+A complete GitHub Actions release workflow:
+
+```yaml title=".github/workflows/release.yml"
+name: release
+on:
+  push:
+    tags: ['v*']
+jobs:
+  publish:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest,   rid: linux-x64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64 }
+          - { os: macos-latest,    rid: osx-arm64 }
+          - { os: windows-latest,  rid: win-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - run: dotnet publish src/MyConnector -c Release -r ${{ matrix.rid }} -p:PzNativeStaging=${{ github.workspace }}/stage/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pz-native-${{ matrix.rid }}
+          path: stage/${{ matrix.rid }}
+  pack:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pz-native-*
+          path: stage
+      # download-artifact nests each artifact under its name; rename to the RID directories pack expects.
+      - run: for d in stage/pz-native-*; do mv "$d" "stage/${d#stage/pz-native-}"; done
+      - run: dotnet publish src/MyConnector -c Release -r linux-x64 -p:PzNativeStaging=${{ github.workspace }}/stage/
+      - run: dotnet pack src/MyConnector -c Release -p:PzNativeStaging=${{ github.workspace }}/stage/ -o packages
+      - run: dotnet nuget push packages/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+```
+
+(The pack job republishes `linux-x64` because the manifest is produced by running the packer's own
+RID; the artifact download covers the others.)
+
+Verify with `pz connector test <package-dir> --config probe.yml` against the restored package.
+
 ## Rust SDK
 
 The `pz-connector` crate is an SDK for writing pz's out-of-process (PCP) connectors in Rust. Its
@@ -242,6 +352,7 @@ exits `0` against your real binary.
 | `PZ0312` at plan time | An entity needs the universal tier, but your connector's `TryGetNativeScan`/`TryGetNativeCopy` are the only path it offers. Implement the universal path, or mark the connector native-only with `INativeOnlySource`/`INativeOnlySink`. |
 | `PZ0304` | `project.yml` declares the package under `connectors:`, but it isn't in `.pz/packages`. Run `pz restore`. |
 | `PZ0307` | pz loaded your assembly but found no `[assembly: PzConnector(...)]` attribute. Check it's present and names the right implementing type. |
+| `PZSDK001`/`PZSDK003` at pack time | No staged binary (or none for the packing machine's RID). Run `dotnet publish -r <rid>` before `dotnet pack`. |
 | A `PzConnectorException.Message` leaks a credential | Messages are published verbatim to `run_results.json` and the event stream. Redact anything sensitive before throwing; see [Connector architecture](/internals/connector-architecture/) for the full redaction contract. |
 | A capability you declared isn't honored | The conformance suite's mode-honesty facts exist to catch exactly this. Re-run `dotnet test` and check which fact failed. |
 

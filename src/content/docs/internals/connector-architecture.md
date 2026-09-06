@@ -165,6 +165,16 @@ child process end to end:
   ladder. A process that dies mid-operation surfaces as `PZ0358`; a protocol violation
   (malformed Arrow IPC, a reused write ticket) as `PZ0357`; a handshake failure as `PZ0356`; a
   failure to spawn at all as `PZ0355`; no usable entrypoint for the host's RID as `PZ0354`.
+- **Not every capability crosses the wire yet.** The host masks `CheckpointableReads`,
+  `CheckpointableWrites`, and `ChangeCapture` on a process-hosted connector's declared
+  capabilities, so the planner refuses a checkpointed or CDC dataset on it instead of silently
+  degrading to a plain full read. `SyncState` is fully honored: the host reads the connector's
+  natural read shape and its per-partition sync-state token through the `GetNaturalReadShape` and
+  `GetReadState` RPCs, pulling the token only once the partition has finished draining over the
+  data plane. That ordering is also why a feed connector must not offer a native scan for a feed
+  dataset — the token doesn't exist until the drain happens, and a native scan bypasses the data
+  plane entirely. `StreamingPartitions` takes the materialized partition-list path over PCP rather
+  than streaming partitions lazily.
 
 `pz connector test <entrypoint-or-package-dir> [--config file.yml]` runs black-box PCP protocol
 conformance checks against one out-of-process connector, independent of any pz project.

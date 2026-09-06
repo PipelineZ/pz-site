@@ -10,6 +10,10 @@ publish one. This page lists the ones published and maintained by the PipelineZ 
 to the same bar as a builtin, just shipped and versioned separately because their dependencies
 (a Rust runtime, a proprietary driver) don't belong in the `pz` binary.
 
+Both connectors below predate `Pz.Connectors.Sdk` and ship in-process manifests, which `PZ0360`
+refuses; each is being repackaged through the SDK in its own repository. Until that lands, install
+them from a release that predates the process-only rule or build them from source.
+
 ## What "approved" means here
 
 Every connector on this page:
