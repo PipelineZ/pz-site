@@ -54,10 +54,10 @@ connectors:
     version: 0.2.0
 ```
 
-**Before you install it:** it's a 348 MB download — the package ships a self-contained binary plus
+**Before you install it:** it's a 200 MB download — the package ships a Native AOT binary plus
 delta-rs's two Rust libraries for each of four platforms, and `pz restore` fetches the whole nupkg
-(printing nothing while it does) before materializing only your platform's 188 MB. It is
-self-contained rather than Native AOT because `DeltaLake.Net` has no AOT support. And only
+(printing nothing while it does) before materializing only your platform's 150 MB, 138 MB of which
+is the Rust pair. And only
 `linux-x64` has actually been run against; `linux-arm64`, `osx-arm64`, and `win-x64` are shipped
 but never exercised by this connector's own suite, and `osx-x64` is not shipped. See its
 [README](https://github.com/PipelineZ/pz-connector-deltalake#readme) for the full platform table,
