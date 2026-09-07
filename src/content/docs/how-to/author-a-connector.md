@@ -218,6 +218,9 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
     <OutputType>Exe</OutputType>
     <PackageId>Pz.Connector.MySystem</PackageId>
     <AssemblyName>pz-mysystem</AssemblyName>
+    <!-- Restore reads this line, not the SDK's packaging files: it is what pulls the Native AOT
+         compiler pack. PzPackaging=self-contained turns it back off. -->
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Pz.Connectors.Sdk" Version="x.y.z" />
@@ -251,7 +254,13 @@ Rules the SDK enforces so a connector cannot lie to the host:
 
 Native AOT per platform is the default; `<PzPackaging>self-contained</PzPackaging>` opts a connector
 whose dependencies cannot be AOT-compiled into a single-file CoreCLR publish instead. The host sees
-no difference. Native AOT cannot cross-compile between operating systems, so a release publishes
+no difference. `<PublishAot>true</PublishAot>` belongs in the project file itself (or on the command
+line as `-p:PublishAot=true`): NuGet restore evaluates a project with every package's build files
+excluded, so the compiler pack Native AOT needs is only restored when the project asks for it, never
+because the SDK's targets derived it from `PzPackaging`. A publish that would silently fall back to a
+CoreCLR layout fails with `PZSDK005` instead. `self-contained` turns `PublishAot` off again, so the
+line costs a connector that opts out nothing but a download; switching such a connector to Native
+AOT from the command line takes both flags (`-p:PzPackaging=aot -p:PublishAot=true`). Native AOT cannot cross-compile between operating systems, so a release publishes
 once per platform and packs once:
 
 ```console
@@ -359,6 +368,7 @@ exits `0` against your real binary.
 | `PZ0304` | `project.yml` declares the package under `connectors:`, but it isn't in `.pz/packages`. Run `pz restore`. |
 | `PZ0307` | pz loaded your assembly but found no `[assembly: PzConnector(...)]` attribute. Check it's present and names the right implementing type. |
 | `PZSDK001`/`PZSDK003` at pack time | No staged binary (or none for the packing machine's RID). Run `dotnet publish -r <rid>` before `dotnet pack`. |
+| `PZSDK005` at publish time | `PzPackaging` is `aot` but the Native AOT compiler pack was never restored, so the publish would have staged a CoreCLR layout under a native binary's name. Add `<PublishAot>true</PublishAot>` to the project file and restore again, or opt out with `<PzPackaging>self-contained</PzPackaging>`. |
 | A `PzConnectorException.Message` leaks a credential | Messages are published verbatim to `run_results.json` and the event stream. Redact anything sensitive before throwing; see [Connector architecture](/internals/connector-architecture/) for the full redaction contract. |
 | A capability you declared isn't honored | The conformance suite's mode-honesty facts exist to catch exactly this. Re-run `dotnet test` and check which fact failed. |
 
