@@ -1,6 +1,6 @@
 ---
 title: "Approved external connectors"
-description: "Third-party connectors published and maintained by the PipelineZ org: what makes one 'approved', and the deltalake and snowflake connectors it covers today."
+description: "Third-party connectors published and maintained by the PipelineZ org: what makes one 'approved', and the deltalake, kafka, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -10,9 +10,11 @@ publish one. This page lists the ones published and maintained by the PipelineZ 
 to the same bar as a builtin, just shipped and versioned separately because their dependencies
 (a Rust runtime, a proprietary driver) don't belong in the `pz` binary.
 
-Both connectors below predate `Pz.Connectors.Sdk` and ship in-process manifests, which `PZ0360`
-refuses; each is being repackaged through the SDK in its own repository. Until that lands, install
-them from a release that predates the process-only rule or build them from source.
+The deltalake and snowflake connectors below predate `Pz.Connectors.Sdk` and ship in-process
+manifests, which `PZ0360` refuses; each is being repackaged through the SDK in its own repository.
+Until that lands, install them from a release that predates the process-only rule or build them
+from source. kafka is built on the SDK from the start and ships a `runtime: "process"` manifest, so
+it installs and runs under `PZ0360` as-is.
 
 ## What "approved" means here
 
@@ -38,6 +40,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
+| [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
 | [snowflake](https://github.com/PipelineZ/pz-connector-snowflake) | `Pz.Connector.Snowflake` | ✓ | ✓ | – | ✓ | – | ✓ |
 
 ## deltalake
@@ -58,6 +61,32 @@ has actually been run against; `linux-arm64`, `osx-x64`, `osx-arm64`, and `win-x
 the underlying package but never exercised by this connector's own suite. See its
 [README](https://github.com/PipelineZ/pz-connector-deltalake#readme) for the full platform table,
 merge-cost numbers on a partitioned table, and what's proven per backend.
+
+## kafka
+
+Reads as an offset-resumed feed source: each partition is bounded at its high watermark as of the
+run's start, and the stored offset token picks up from there on the next run. Rows land in a fixed
+text envelope — `topic, partition, offset, timestamp, key, value, headers` — with `key` and `value`
+as text and `headers` as a JSON object. The sink is append-only produce: whole-row JSON by default,
+or a verbatim `value:` column, with optional `key:`/`headers:` columns; the producer is idempotent,
+giving at-least-once delivery across runs.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.Kafka
+    version: 0.1.0
+```
+
+**Before you install it:** there's no Schema Registry / Avro / Protobuf decoding — `value` arrives
+as text, so decode Avro or Protobuf payloads in SQL after landing. A feed source paired with an
+`append` output needs `duplicates: accept` (incremental → append is otherwise a compile error,
+PZ0214). A stored offset that retention has already dropped fails the run rather than silently
+skipping ahead — recover with `--full-refresh` or by clearing the offset through `pz state`. The
+package is self-contained rather than Native AOT, since the Kafka client library has no AOT
+support; it ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but only `linux-x64` has
+actually been exercised by its own CI. See its
+[README](https://github.com/PipelineZ/pz-connector-kafka#readme) for the full platform table and
+what's proven per backend.
 
 ## snowflake
 
