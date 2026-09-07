@@ -10,11 +10,10 @@ publish one. This page lists the ones published and maintained by the PipelineZ 
 to the same bar as a builtin, just shipped and versioned separately because their dependencies
 (a Rust runtime, a proprietary driver) don't belong in the `pz` binary.
 
-The deltalake and snowflake connectors below predate `Pz.Connectors.Sdk` and ship in-process
-manifests, which `PZ0360` refuses; each is being repackaged through the SDK in its own repository.
-Until that lands, install them from a release that predates the process-only rule or build them
-from source. kafka is built on the SDK from the start and ships a `runtime: "process"` manifest, so
-it installs and runs under `PZ0360` as-is.
+All three are built on [`Pz.Connectors.Sdk`](/how-to/author-a-connector/) and ship a
+`runtime: "process"` manifest: pz spawns the self-contained binary the package carries for your
+platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**. Releases of deltalake and
+snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0 or later.
 
 ## What "approved" means here
 
@@ -52,13 +51,15 @@ DuckDB has no native Delta write path.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.DeltaLake
-    version: 0.1.0
+    version: 0.2.0
 ```
 
-**Before you install it:** it's a 222 MB download — `DeltaLake.Net` ships every RID's Rust
-libraries in one package, and `pz restore` prints nothing while fetching it. And only `linux-x64`
-has actually been run against; `linux-arm64`, `osx-x64`, `osx-arm64`, and `win-x64` are shipped by
-the underlying package but never exercised by this connector's own suite. See its
+**Before you install it:** it's a 348 MB download — the package ships a self-contained binary plus
+delta-rs's two Rust libraries for each of four platforms, and `pz restore` fetches the whole nupkg
+(printing nothing while it does) before materializing only your platform's 188 MB. It is
+self-contained rather than Native AOT because `DeltaLake.Net` has no AOT support. And only
+`linux-x64` has actually been run against; `linux-arm64`, `osx-arm64`, and `win-x64` are shipped
+but never exercised by this connector's own suite, and `osx-x64` is not shipped. See its
 [README](https://github.com/PipelineZ/pz-connector-deltalake#readme) for the full platform table,
 merge-cost numbers on a partitioned table, and what's proven per backend.
 
@@ -74,7 +75,7 @@ giving at-least-once delivery across runs.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Kafka
-    version: 0.1.0
+    version: 0.1.1
 ```
 
 **Before you install it:** there's no Schema Registry / Avro / Protobuf decoding — `value` arrives
@@ -97,12 +98,16 @@ password-auth surface.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Snowflake
-    version: 0.1.0
+    version: 0.2.0
 ```
 
 **Before you install it:** prefer a glibc Linux host over Alpine — the driver's documented Linux
-support is glibc-based, and musl isn't officially validated even though the pinned package ships
-musl-targeted assets. There's no regional-endpoint option for GCP-hosted accounts, either. See its
+support is glibc-based, and the self-contained binary is glibc-linked. There's no regional-endpoint
+option for GCP-hosted accounts, either. The package is self-contained rather than Native AOT, since
+`Snowflake.Data` binds through reflection; it ships `linux-x64`, `linux-arm64`, `osx-arm64`, and
+`win-x64` as a 203 MB download of which only your platform's ~55 MB is materialized, and only
+`linux-x64` has been exercised through pz end to end. A relative `private_key_path` resolves
+against the project directory (the manifest declares a project-directory anchor). See its
 [README](https://github.com/PipelineZ/pz-connector-snowflake#readme) for connection keys, schema
 policy, and type mapping.
 
