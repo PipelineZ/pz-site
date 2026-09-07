@@ -1,6 +1,6 @@
 ---
 title: "Connector architecture"
-description: "This page documents the connector ABI in Pz.Connectors.Abstractions, the PCP out-of-process protocol, package layout, TestKit conformance, the Rust SDK, and the builtin registry."
+description: "This page documents the connector ABI in Pz.Connectors.Abstractions, the PCP out-of-process protocol, package layout, TestKit conformance, the C# and Rust SDKs, and the builtin registry."
 sidebar:
   order: 5
 ---
@@ -165,6 +165,16 @@ child process end to end:
   ladder. A process that dies mid-operation surfaces as `PZ0358`; a protocol violation
   (malformed Arrow IPC, a reused write ticket) as `PZ0357`; a handshake failure as `PZ0356`; a
   failure to spawn at all as `PZ0355`; no usable entrypoint for the host's RID as `PZ0354`.
+- **Not every capability crosses the wire yet.** The host masks `CheckpointableReads`,
+  `CheckpointableWrites`, and `ChangeCapture` on a process-hosted connector's declared
+  capabilities, so the planner refuses a checkpointed or CDC dataset on it instead of silently
+  degrading to a plain full read. `SyncState` is fully honored: the host reads the connector's
+  natural read shape and its per-partition sync-state token through the `GetNaturalReadShape` and
+  `GetReadState` RPCs, pulling the token only once the partition has finished draining over the
+  data plane. That ordering is also why a feed connector must not offer a native scan for a feed
+  dataset — the token doesn't exist until the drain happens, and a native scan bypasses the data
+  plane entirely. `StreamingPartitions` takes the materialized partition-list path over PCP rather
+  than streaming partitions lazily.
 
 `pz connector test <entrypoint-or-package-dir> [--config file.yml]` runs black-box PCP protocol
 conformance checks against one out-of-process connector, independent of any pz project.
@@ -206,7 +216,11 @@ no docker and no network. TestKit hooks are virtual and defaulted to null, so a 
 declares a new capability opts into the matching acceptance facts without every existing
 subclass having to change.
 
-## The Rust SDK
+## The SDKs
+
+Two SDKs drive the wire protocol on a connector author's behalf. `Pz.Connectors.Sdk` (C#) serves
+any `Pz.Connectors.Abstractions` connector over PCP, both directions, and packs it as a
+`pz`-installable package; the [authoring guide](/how-to/author-a-connector/#c-sdk) covers it.
 
 `rust/pz-connector` is a Rust crate for writing PCP connectors without hand-rolling the wire
 protocol. It is **sink-only today**: it exports `SinkConnector`, `Sink`, and `WriteSession`
