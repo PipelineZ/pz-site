@@ -80,6 +80,10 @@ project-wide, overriding the planner's own choice. A connector that only impleme
 tier, `mysql` and `sqlite` today, refuses a universal-only entity with `PZ0312` instead of
 pretending to support it. A native scan that needs an unsigned, packaged DuckDB extension is also
 refused by default; setting `allow_unsigned_extensions: true` on that connection opts it back in.
+An entity that resumes from a sync token (a feed-shaped read, or `sync: {mode: cdc}`) always takes
+the universal tier, whatever the connector offers: the token is captured from the drained
+partition, and a native scan never drains one, so on the native tier the entity would replay from
+the same token every run. On a native-only connector that entity is refused with `PZ0363`.
 
 ### Capabilities
 
