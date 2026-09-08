@@ -1,6 +1,6 @@
 ---
 title: "Connectors"
-description: "A capability matrix for the fifteen builtin pz connectors, plus how to add a third-party connector and test a connection."
+description: "A capability matrix for the fifteen builtin pz connectors, plus how to add a packaged connector and test a connection."
 sidebar:
   order: 1
 ---
@@ -45,10 +45,13 @@ native tier only, so declaring `engine.force_universal` for one of their entitie
 [`PZ0312`](/reference/error-codes/). `quack`'s merge is a whole-table rewrite rather than a keyed
 upsert; its page explains what that costs.
 
-## Third-party connectors
+## Packaged connectors
 
 A connector that does not ship with `pz` is a NuGet package, declared in `project.yml` under
-`connectors:`:
+`connectors:`. That covers two tiers: the **external** connectors the PipelineZ org itself
+publishes outside the binary (first-party code at a secondary support tier, listed on
+[External connectors](/connectors/external/)), and **third-party** connectors anyone can publish.
+Both are declared and restored the same way:
 
 ```yaml title="project.yml"
 connectors:
@@ -63,9 +66,6 @@ isolation boundary a builtin connector runs inside. See
 [Connectors: the plugin architecture](/concepts/connectors/) for how that isolation works, and
 [Author a connector](/how-to/author-a-connector/) to write your own.
 
-For connectors published and maintained by the PipelineZ org itself, see
-[Approved external connectors](/connectors/external/).
-
 ## Test a connection
 
 `pz validate --connect` is how you check that a connection in `connections.yml` is actually
@@ -76,7 +76,7 @@ drift for every declared entity:
 pz validate --connect
 ```
 
-If you are building a third-party connector instead, `pz connector test <target>` runs black-box
+If you are building a connector instead, `pz connector test <target>` runs black-box
 protocol conformance checks against its package directory or entrypoint binary, using a `--config`
 file that names the connection and the `read:`/`write:` entities to probe:
 

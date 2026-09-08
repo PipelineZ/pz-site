@@ -1,35 +1,43 @@
 ---
-title: "Approved external connectors"
-description: "Third-party connectors published and maintained by the PipelineZ org: what makes one 'approved', and the deltalake, elasticsearch, kafka, and snowflake connectors it covers today."
+title: "External connectors"
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the deltalake, elasticsearch, kafka, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
 
-[Third-party connectors](/connectors/#third-party-connectors) are NuGet packages, and anyone can
-publish one. This page lists the ones published and maintained by the PipelineZ org itself — held
-to the same bar as a builtin, just shipped and versioned separately because their dependencies
-(a Rust runtime, a proprietary driver) don't belong in the `pz` binary.
+pz connectors come in three tiers, the same shape DuckDB gives its extensions:
 
-All three are built on [`Pz.Connectors.Sdk`](/how-to/author-a-connector/) and ship a
-`runtime: "process"` manifest: pz spawns the self-contained binary the package carries for your
-platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**. Releases of deltalake and
-snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0 or later.
+| Tier | Who maintains it | Where it ships | Support |
+|---|---|---|---|
+| **Builtin** | PipelineZ | inside the `pz` binary | primary: released with `pz`, gated by `pz`'s own CI |
+| **External** (this page) | PipelineZ | a `Pz.Connector.*` NuGet package from a `pz-connector-*` repo under the [PipelineZ org](https://github.com/PipelineZ) | secondary: first-party code, own release cadence, coverage as its README states |
+| **Third-party** | anyone | any NuGet package | none from PipelineZ |
 
-## What "approved" means here
+The connectors below are **first-party, not third-party**. They are written, tested, and released
+by the same people who build `pz`, and held to the same bar as a builtin: the same
+[`Pz.Connectors.Abstractions`](/how-to/author-a-connector/) ABI, the same
+[`Pz.Connectors.TestKit`](/how-to/author-a-connector/) acceptance suite every builtin runs
+against, the same error-code and redaction rules. They live outside the binary because their
+dependencies (a Rust runtime, a proprietary driver, a 35 MB client stack) don't belong in it, and
+that is the whole of what makes their support **secondary** rather than primary:
 
-Every connector on this page:
+- **Own versions, own cadence.** Each repo tags and publishes on its own schedule, pinned to a
+  `Pz.Connectors.Sdk` version rather than to a `pz` release. A `pz` release does not wait for them.
+- **Coverage is what the README says.** Each connector states which backends and platforms its
+  own test suite has actually talked to, and which are merely shipped. Read that before depending
+  on an untested path.
+- **Fixes land there, not in `pz`.** Issues go to the connector's own repo; an SDK-level fix in
+  `pz` reaches you when the connector re-releases against it.
 
-- lives in a `pz-connector-*` repo under the [PipelineZ GitHub org](https://github.com/PipelineZ),
-  not a community fork;
-- ships a versioned `pz.connector.json` manifest and runs the same
-  [`Pz.Connectors.TestKit`](/how-to/author-a-connector/) acceptance suite every builtin connector
-  runs against;
-- states plainly what is proven and what isn't — which backends its own test suite has actually
-  talked to, and which are merely shipped. Read that connector's own README before depending on a
-  path it hasn't tested.
+Everything on this page is built on [`Pz.Connectors.Sdk`](/how-to/author-a-connector/) and
+ships a `runtime: "process"` manifest: pz spawns the self-contained binary the package carries
+for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**. Releases of
+deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
+or later.
 
-Approved is not a guarantee of production hardening beyond what its own README claims. Check each
-connector's stated platform and backend coverage before you rely on it.
+A third-party connector that is not on this page may be perfectly good; it just isn't something
+PipelineZ has tested or will support. To get a connector onto this page, open an issue in
+[`pz`](https://github.com/PipelineZ/pz) proposing it move under the org.
 
 ## Capability matrix
 
@@ -141,8 +149,8 @@ policy, and type mapping.
 
 ## Related
 
-- [Connector matrix](/connectors/): every builtin connector's capabilities, and how a third-party
-  package gets restored.
-- [Connectors](/concepts/connectors/): what a connector is, builtin versus third-party, isolation.
+- [Connector matrix](/connectors/): every builtin connector's capabilities, and how a packaged
+  connector gets restored.
+- [Connectors](/concepts/connectors/): what a connector is, the three tiers, isolation.
 - [Author a connector](/how-to/author-a-connector/): the ABI and test suite every connector here
   implements.
