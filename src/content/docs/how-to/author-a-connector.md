@@ -247,6 +247,32 @@ Rules the SDK enforces so a connector cannot lie to the host:
 - **Logging** goes to the host as connector log events, rendered verbatim: never log configuration
   values or payloads.
 
+### Telemetry
+
+An out-of-process connector exports its own traces and metrics to the same collector the engine uses,
+in the same run trace. When `pz run` is given `--otel-endpoint` (or `PZ_OTEL_ENDPOINT`), the host hands
+the endpoint and run id to your process at the handshake and puts a W3C `traceparent` on every RPC.
+Only then does the SDK:
+
+- export OTLP/gRPC with resource `service.name=pz-connector`, `service.version`, `pz.connector.name`,
+  and `pz.run.id`;
+- open a `pcp.<Rpc>` server span per RPC — every RPC but `HostChannel` — under the engine's
+  `node.<Kind>` span, tagged `pz.instance` (the connection name for an open the engine drives, else
+  `<connector>#<n>`), plus a `pcp.read_stream`/`pcp.write_stream` span around each data-plane transfer;
+- flush on shutdown, bounded to three seconds.
+
+Your own instrumentation joins that trace with no extra wiring — start spans from `ctx.ActivitySource`
+and record on `ctx.Meter`:
+
+```csharp
+return await PzConnectorHost.RunAsync(args, ctx => new MyConnector(ctx.ActivitySource, ctx.Meter));
+```
+
+To also export a client library's own `ActivitySource`/`Meter` (Npgsql, the AWS SDK), name them in
+`PzConnectorHostOptions`. With no endpoint nothing is built and every span is a BCL no-op. Never put a
+configuration value in a span name, a tag, or a metric label — what is emitted is what the operator
+sees.
+
 ### Packaging
 
 Native AOT per platform is the default; `<PzPackaging>self-contained</PzPackaging>` opts a connector
@@ -341,6 +367,28 @@ A minimal Rust sink implements three traits: `SinkConnector` (`validate`, `check
 pair). It is the same shape as the C# `ISinkConnector`/`ISink`/`ISinkWriteSession` triad above, just in
 Rust. The crate still produces the same `pz.connector.json` package shape described in step 5:
 `runtime: "process"` with a per-RID entrypoint pointing at the compiled binary.
+
+### Telemetry
+
+The Rust SDK exports the same way, with the same resource attributes, span names, and three-second
+shutdown flush as the C# SDK, on the same instrumentation scope (`Pz.Connector`). Ordinary `tracing`
+spans and events inside your handlers reach the collector; `pz_connector::meter()` returns the meter
+to record instruments on. At the handshake the SDK installs its own `tracing` subscriber. A connector
+that installs its own subscriber composes `pz_connector::layer()` into it before `serve_sink`, so its
+spans still export:
+
+```rust
+use tracing_subscriber::layer::SubscriberExt;
+
+tracing::subscriber::set_global_default(
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_writer(std::io::stderr))
+        .with(pz_connector::layer()),
+)?;
+```
+
+Without that layer an author-installed subscriber wins and no span is exported (the handshake says so
+on stderr); meters are unaffected either way.
 
 ## Verify
 
