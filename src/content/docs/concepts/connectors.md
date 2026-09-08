@@ -1,6 +1,6 @@
 ---
 title: "Connectors"
-description: "What a connector is, builtin versus third-party, how a connector runs, and the two data-movement tiers a planner chooses between."
+description: "What a connector is, builtin versus external versus third-party, how a connector runs, and the two data-movement tiers a planner chooses between."
 sidebar:
   order: 13
 ---
@@ -27,14 +27,14 @@ or write runs.
 
 ## How it works
 
-### Builtin versus third-party
+### Builtin, external, third-party
 
 Fifteen connectors ship inside the `pz` binary and need no extra setup: `localfiles`,
 `postgres`, `s3`, `sqlserver`, `azureblob`, `gcs`, `http`, `mysql`, `sqlite`, `duckdb`,
 `ducklake`, `motherduck`, `quack`, `iceberg`, and `sftp`. Naming one as `connector:` in
 `connections.yml` is enough.
 
-Anything else is a third-party connector: a NuGet package declared in `project.yml`.
+Anything else is a packaged connector: a NuGet package declared in `project.yml`.
 
 ```yaml title="project.yml"
 connectors:
@@ -48,20 +48,24 @@ writes `pz.lock.json` at the project root so every machine restores the exact sa
 Commit `pz.lock.json`, never `.pz/`. `pz run` refuses to start if `pz.lock.json` no longer
 matches `project.yml`'s declared connectors, unless `--no-lock-check` is passed.
 
-Anyone can publish a third-party connector; [Approved external connectors](/connectors/external/)
-lists the ones published and maintained by the PipelineZ org itself, held to the same bar as a
-builtin.
+Packaged connectors split into two tiers, the way DuckDB splits its extensions. **External**
+connectors are first-party: written, tested, and released by the PipelineZ org from
+`pz-connector-*` repos, held to the same bar as a builtin, but versioned on their own cadence
+and supported at a secondary tier because their dependencies don't belong in the `pz` binary.
+[External connectors](/connectors/external/) lists them. **Third-party** connectors are anything
+anyone else publishes against the same ABI; pz runs them identically but PipelineZ does not test
+or support them.
 
 ### Out-of-process execution
 
-A builtin connector runs inside the same `pz` process as everything else. A restored, third-party
-connector runs as its own operating-system process instead, speaking a wire protocol, PCP, back
-to pz over a local socket. pz spawns that process with an empty environment and repopulates only
-a small allowlist, `PATH`, `HOME`, and a few others: connection config and secrets never leak into
-the child's environment. They cross the socket as an explicit request instead, the same way pz
+A builtin connector runs inside the same `pz` process as everything else. A restored packaged
+connector, external or third-party, runs as its own operating-system process instead, speaking a
+wire protocol, PCP, back to pz over a local socket. pz spawns that process with an empty
+environment and repopulates only a small allowlist, `PATH`, `HOME`, and a few others: connection
+config and secrets never leak into the child's environment. They cross the socket as an explicit request instead, the same way pz
 would configure a builtin connector in memory.
 
-This isolation boundary is what lets a third-party connector crash, misbehave, or hold a
+This isolation boundary is what lets a packaged connector crash, misbehave, or hold a
 dependency version pz itself doesn't ship, without any of that touching the host process. It is
 also what a connector you write yourself has to speak, unless you're contributing it directly
 into the `pz` binary. See [Author a connector](/how-to/author-a-connector/) to build one, and
