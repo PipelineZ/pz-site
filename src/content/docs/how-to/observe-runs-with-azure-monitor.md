@@ -90,6 +90,11 @@ Run the project by hand once with `PZ_OTEL_ENDPOINT` set, then check Application
 - **Metrics** (meter `Pz.Engine`): `pz.rows_moved`, `pz.bytes_moved`, `pz.batches`,
   `pz.node.duration` (tag `pz.node.kind`), and `pz.run.completed`, a counter incremented once per
   run with tag `pz.run.status` of `success`, `completed_with_failures`, or `fatal`.
+- **External connector spans and metrics:** a `runtime: "process"` connector exports its own
+  `pcp.<Rpc>` spans (service name `pz-connector`) nested under the engine's `node.<Kind>` span, in the
+  same trace, plus any spans and meters the connector itself records. Builtin connectors add none of
+  their own — the engine's node span already covers them. See
+  [Author a connector](/how-to/author-a-connector/#telemetry).
 
 In Application Insights these land in the `customMetrics` table, with dimension names under
 `customDimensions`.
