@@ -1,6 +1,6 @@
 ---
 title: "Approved external connectors"
-description: "Third-party connectors published and maintained by the PipelineZ org: what makes one 'approved', and the deltalake, kafka, and snowflake connectors it covers today."
+description: "Third-party connectors published and maintained by the PipelineZ org: what makes one 'approved', and the deltalake, elasticsearch, kafka, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -39,6 +39,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
+| [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
 | [snowflake](https://github.com/PipelineZ/pz-connector-snowflake) | `Pz.Connector.Snowflake` | ✓ | ✓ | – | ✓ | – | ✓ |
 
@@ -62,6 +63,33 @@ is the Rust pair. And only
 but never exercised by this connector's own suite, and `osx-x64` is not shipped. See its
 [README](https://github.com/PipelineZ/pz-connector-deltalake#readme) for the full platform table,
 merge-cost numbers on a partitioned table, and what's proven per backend.
+
+## elasticsearch
+
+An index (alias, or pattern) reads as a table: the mapping is the schema — numerics, booleans and
+standard-format dates typed, objects flattened into dotted columns, everything else (`nested`,
+`flattened`, geo, vectors, custom date formats) landed as JSON or text — plus a trailing `_id`.
+Reads page through a point in time, so a run sees one consistent version of the index; an
+incremental cursor (`cursor > watermark`) and a bounded window become a `range` clause alongside
+your own `query:` (Query DSL). The sink is `_bulk`: `append`, `merge` (`_id` from the keys, a
+full-document upsert), and `replace` — a fresh index swapped in behind the output's alias in one
+atomic aliases request.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.Elasticsearch
+    version: 0.1.0
+```
+
+**Before you install it:** it targets Elasticsearch 9.x through the official 9.x client — nothing
+older is exercised. A field that holds an array where the mapping says scalar fails the read rather
+than stringifying silently; list it under `json_fields:` and decode it in SQL. `replace` needs the
+output name to be an alias (or absent) — a concrete index of that name is refused, not deleted.
+There is no SQL predicate pushdown; `query:` is the explicit lever. The package is Native AOT and
+ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but only `linux-x64` has actually
+been exercised by its own CI. See its
+[README](https://github.com/PipelineZ/pz-connector-elasticsearch#readme) for the type table,
+connection keys, and what's proven.
 
 ## kafka
 
