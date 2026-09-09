@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the deltalake, elasticsearch, github, kafka, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, deltalake, elasticsearch, github, kafka, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -46,11 +46,40 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
+| [bigquery](https://github.com/PipelineZ/pz-connector-bigquery) | `Pz.Connector.BigQuery` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [github](https://github.com/PipelineZ/pz-connector-github) | `Pz.Connector.Github` | ✓ | – | – | ✓ | – | – |
 | [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
 | [snowflake](https://github.com/PipelineZ/pz-connector-snowflake) | `Pz.Connector.Snowflake` | ✓ | ✓ | – | ✓ | – | ✓ |
+
+## bigquery
+
+A table reads through the Storage Read API as Arrow: column pruning and predicate pushdown become
+`selected_fields` and `row_restriction`, an incremental cursor (`cursor > watermark`) and a bounded
+window are pushed the same way, and `streams:` splits one read into parallel partitions. `query:`
+reads any GoogleSQL statement by materializing it into a short-lived table in `staging_dataset`
+first, since the Storage API serves tables, not queries. The sink is BigQuery's own load path: rows
+spool to NDJSON, load jobs land them in an expiring staging table, and one statement on the target
+finishes the commit — `append` (insert), `replace` (`WRITE_TRUNCATE`), or `merge` (a `MERGE` with
+last-write-wins on the session's own sequence and null-safe keys). Auth is a service-account key
+(`key_file`/`key_json`) or Application Default Credentials.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.BigQuery
+    version: 0.1.0
+```
+
+**Before you install it:** views are refused on read — point `query:` at them instead. a `BIGNUMERIC`
+column cannot land as-is (DuckDB has no decimal256) — read it through `query:` with a cast. Writes need `bigquery.dataEditor` and
+`bigquery.jobUser`; reads need `bigquery.dataViewer` and `bigquery.readSessionUser`. `schema_policy:
+evolve` is not supported. Merge and replace, multi-stream reads, and view refusal are exercised
+against real BigQuery only by an env-gated live suite (the emulator its CI runs cannot do them), so
+watch those paths on your first run. The package is Native AOT and ships `linux-x64`, `linux-arm64`,
+`osx-arm64`, and `win-x64`, but only `linux-x64` has actually been exercised by its own CI. See its
+[README](https://github.com/PipelineZ/pz-connector-bigquery#readme) for the type tables, the error
+codes, and the emulator setup.
 
 ## deltalake
 
