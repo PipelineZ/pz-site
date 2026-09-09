@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, deltalake, elasticsearch, github, kafka, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -51,6 +51,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [github](https://github.com/PipelineZ/pz-connector-github) | `Pz.Connector.Github` | ✓ | – | – | ✓ | – | – |
 | [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
+| [mongodb](https://github.com/PipelineZ/pz-connector-mongodb) | `Pz.Connector.MongoDb` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [snowflake](https://github.com/PipelineZ/pz-connector-snowflake) | `Pz.Connector.Snowflake` | ✓ | ✓ | – | ✓ | – | ✓ |
 
 ## bigquery
@@ -181,6 +182,36 @@ support; it ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but on
 actually been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-kafka#readme) for the full platform table and
 what's proven per backend.
+
+## mongodb
+
+A collection reads as a table: the columns are either declared under `fields:` (path → type) or
+inferred from the first `sample_size` documents in `_id` order — scalars typed, nested documents
+flattened into dotted columns, arrays and anything without a scalar spelling landed as canonical
+extended JSON, `_id` trailing as its 24-hex ObjectId. An incremental cursor and a bounded window
+become a typed `$gt`/`$lte` range on the cursor field, `$and`-ed with your own `filter:` (a MongoDB
+query in YAML or extended JSON). The sink is the driver's write path: `append` (ordered
+`insertMany`), `merge` (upserting `replaceOne` per row, filter from the keys), and `replace` — a
+fresh collection carrying the output's indexes, renamed over the output with `dropTarget` in one
+server-side rename.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.MongoDb
+    version: 0.1.0
+```
+
+**Before you install it:** an inferred schema is only as stable as the head of the collection —
+declare `fields:` for a pipeline that must not change shape when the data does. A document value
+the column cannot hold losslessly (a fraction in an integer column, a decimal with more than nine
+fraction digits) fails the read naming the field and the `_id` rather than landing truncated; `string`
+and `json` are the escapes. There is no SQL predicate pushdown (`filter:` is the lever), no change
+streams, and one partition per read. The package is Native AOT — the driver's own reflective
+serializer lookup is registered up front, and the native binary is run against a live server in CI —
+and ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but only `linux-x64` has actually
+been exercised by its own CI. See its
+[README](https://github.com/PipelineZ/pz-connector-mongodb#readme) for the type tables, connection
+keys, and what's proven.
 
 ## snowflake
 
