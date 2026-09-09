@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the deltalake, elasticsearch, kafka, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the deltalake, elasticsearch, github, kafka, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -48,6 +48,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 |---|---|---|---|---|---|---|---|
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
+| [github](https://github.com/PipelineZ/pz-connector-github) | `Pz.Connector.Github` | ✓ | – | – | ✓ | – | – |
 | [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
 | [snowflake](https://github.com/PipelineZ/pz-connector-snowflake) | `Pz.Connector.Snowflake` | ✓ | ✓ | – | ✓ | – | ✓ |
 
@@ -98,6 +99,33 @@ ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but only `linux-x6
 been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-elasticsearch#readme) for the type table,
 connection keys, and what's proven.
+
+## github
+
+Source only — reading GitHub's write APIs' side effects and abuse-detection limits into pz's
+append/merge/replace vocabulary would be its own design, not a same-repo add-on. Six entities read
+as `{owner}/{repo}/{kind}` — `issues`, `pulls`, `issues/comments`, `commits`, `releases`,
+`actions/runs` — each a fixed schema (these are API resources, not user tables). Incremental reads
+use whichever filter GitHub's own API actually supports per entity: `since=`/`created=` server-side
+where available, otherwise (`pulls`, `releases`) a client-side early stop once a page's row falls at
+or before the watermark. No third-party GitHub client — a plain `HttpClient` plus source-generated
+JSON, kept off the same AOT-compatibility bet the elasticsearch connector above had to route around.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.Github
+    version: 0.1.0
+```
+
+**Before you install it:** a run created before the watermark advances past it, but which keeps
+updating afterward (`status: in_progress` → `completed`), is not re-read on a later incremental
+`actions/runs` sync — its final `status`/`conclusion` can go stale until a `pz run --full-refresh`.
+Personal-access-token auth only; no GitHub App / installation tokens. The package is Native AOT and
+ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`; its own CI runs the full suite against
+a fake GitHub server on both Linux and Windows (no docker dependency), but only `linux-x64`'s
+packaged binary is smoke-tested end to end. See its
+[README](https://github.com/PipelineZ/pz-connector-github#readme) for the full per-entity schema
+tables, rate-limit handling, and the enterprise-server (`url:`) connection shape.
 
 ## kafka
 
