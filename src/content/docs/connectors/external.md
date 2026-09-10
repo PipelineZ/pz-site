@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, databricks, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -47,6 +47,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
 | [bigquery](https://github.com/PipelineZ/pz-connector-bigquery) | `Pz.Connector.BigQuery` | ✓ | ✓ | – | ✓ | – | ✓ |
+| [databricks](https://github.com/PipelineZ/pz-connector-databricks) | `Pz.Connector.Databricks` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [github](https://github.com/PipelineZ/pz-connector-github) | `Pz.Connector.Github` | ✓ | – | – | ✓ | – | – |
@@ -81,6 +82,36 @@ watch those paths on your first run. The package is Native AOT and ships `linux-
 `osx-arm64`, and `win-x64`, but only `linux-x64` has actually been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-bigquery#readme) for the type tables, the error
 codes, and the emulator setup.
+
+## databricks
+
+Reads run on a SQL warehouse through the Statement Execution API and come back as Arrow over
+presigned links: every result chunk is one partition, column pruning and a predicate become the
+statement's `select` list and `where` clause, and an incremental cursor's bounds travel as typed
+statement parameters rather than literals. `query:` runs any Databricks SQL statement as written.
+`ARRAY`/`MAP`/`STRUCT` and `INTERVAL` columns land as strings (`to_json` / `cast` in the statement)
+so the schema the probe declares is the schema the batches carry. The sink spools rows to Parquet,
+uploads the files to a Unity Catalog volume with the Files API, and finishes with one statement on
+the target — `append` (`insert … select from parquet.`…``), `replace` (`create or replace table … as
+select`), or `merge` (null-safe keys, last write wins on the session's own sequence). Decimals and
+timezone-less timestamps are staged as strings and cast back, so nothing is rounded on the way in.
+Auth is a personal access token or a service principal's OAuth client credentials.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.Databricks
+    version: 0.1.0
+```
+
+**Before you install it:** every read and every commit runs statements on the warehouse, billed as
+warehouse time, and a stopped serverless warehouse starts on the first one. Writes need
+`staging_volume` (a 3-part Unity Catalog volume name) with `READ VOLUME`/`WRITE VOLUME`, plus
+`CREATE TABLE`/`MODIFY` on the target schema; reads need `USE CATALOG`/`USE SCHEMA`/`SELECT`, and
+everything needs `CAN USE` on the warehouse. `schema_policy: evolve` is refused — the target either
+matches or the run fails. A `query:` read is never pushed down or watermarked; declare the cursor in
+the SQL itself. See the
+[README](https://github.com/PipelineZ/pz-connector-databricks#readme) for the type tables, the error
+codes, and the live test setup.
 
 ## deltalake
 
