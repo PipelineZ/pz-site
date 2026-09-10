@@ -35,6 +35,11 @@ for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**.
 deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
 or later.
 
+The bigquery, databricks, deltalake, elasticsearch, mongodb and snowflake versions pinned below
+are built on `Pz.Connectors.Sdk` 0.6.1. Their earlier releases fail every column-pruned read on
+pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is not a leading prefix of
+the source's columns; pin these or later.
+
 A third-party connector that is not on this page may be perfectly good; it just isn't something
 PipelineZ has tested or will support. To get a connector onto this page, open an issue in
 [`pz`](https://github.com/PipelineZ/pz) proposing it move under the org.
@@ -70,7 +75,7 @@ last-write-wins on the session's own sequence and null-safe keys). Auth is a ser
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.BigQuery
-    version: 0.1.0
+    version: 0.1.1
 ```
 
 **Before you install it:** views are refused on read — point `query:` at them instead. a `BIGNUMERIC`
@@ -100,7 +105,7 @@ Auth is a personal access token or a service principal's OAuth client credential
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Databricks
-    version: 0.1.0
+    version: 0.1.1
 ```
 
 **Before you install it:** every read and every commit runs statements on the warehouse, billed as
@@ -122,7 +127,7 @@ DuckDB has no native Delta write path.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.DeltaLake
-    version: 0.2.0
+    version: 0.2.1
 ```
 
 **Before you install it:** it's a 200 MB download — the package ships a Native AOT binary plus
@@ -229,7 +234,7 @@ server-side rename.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.MongoDb
-    version: 0.1.0
+    version: 0.1.1
 ```
 
 **Before you install it:** an inferred schema is only as stable as the head of the collection —
@@ -253,7 +258,7 @@ password-auth surface.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Snowflake
-    version: 0.2.0
+    version: 0.2.1
 ```
 
 **Before you install it:** prefer a glibc Linux host over Alpine — the driver's documented Linux
