@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, databricks, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, cosmosdb, databricks, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -35,8 +35,8 @@ for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**.
 deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
 or later.
 
-The bigquery, databricks, deltalake, elasticsearch, mongodb and snowflake versions pinned below
-are built on `Pz.Connectors.Sdk` 0.6.1. Their earlier releases fail every column-pruned read on
+The bigquery, cosmosdb, databricks, deltalake, elasticsearch, mongodb and snowflake versions pinned
+below are built on `Pz.Connectors.Sdk` 0.6.1. Their earlier releases fail every column-pruned read on
 pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is not a leading prefix of
 the source's columns; pin these or later.
 
@@ -52,6 +52,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
 | [bigquery](https://github.com/PipelineZ/pz-connector-bigquery) | `Pz.Connector.BigQuery` | ✓ | ✓ | – | ✓ | – | ✓ |
+| [cosmosdb](https://github.com/PipelineZ/pz-connector-cosmosdb) | `Pz.Connector.CosmosDb` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [databricks](https://github.com/PipelineZ/pz-connector-databricks) | `Pz.Connector.Databricks` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
@@ -87,6 +88,39 @@ watch those paths on your first run. The package is Native AOT and ships `linux-
 `osx-arm64`, and `win-x64`, but only `linux-x64` has actually been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-bigquery#readme) for the type tables, the error
 codes, and the emulator setup.
+
+## cosmosdb
+
+An Azure Cosmos DB container (NoSQL API) reads as a table: the columns are either declared under
+`fields:` (JSON path → type) or inferred from the first `sample_size` documents in `_ts` order —
+numbers as `int64` when every sampled value is integral, nested objects flattened into dotted
+columns, arrays and mixed-type fields landed as raw `json` text, system properties left out, `id`
+trailing. An incremental cursor and a bounded window wrap your own `query:` as a subquery with
+typed parameters (`_ts`, the server's epoch-seconds write time, is the natural cursor), each
+physical partition becomes a pz partition, and column pruning becomes a top-level projection. The
+sink writes documents in bulk mode: `append` (create per row, a conflict on an explicit `id` is
+fatal) and `merge` (upsert on the container's own `(partition key, id)` identity, so `keys` must be
+the id-forming columns). `replace` is refused: Cosmos has no container rename and no atomic
+truncate.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.CosmosDb
+    version: 0.1.0
+```
+
+**Before you install it:** the container must already exist — partition key and throughput are
+yours to provision. Cosmos stores every number as a double, so the sink refuses an integer beyond
+2^53 rather than round it, writes decimals as strings, and a `json` column read as text is written
+back as a string. An inferred schema follows the head of the container in `_ts` order; declare
+`fields:` for a pipeline that must not change shape. `consistency` may only lower the account's
+default. The package is self-contained rather than Native AOT, since the SDK's query path binds
+through reflection; it ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64` at roughly
+50 MB each, of which only your platform's is materialized, and only `linux-x64` has been exercised
+end to end — against the emulator, which has one physical partition, so multi-partition reads,
+direct mode and hierarchical partition keys are covered by a live suite the maintainers run by
+hand. See its [README](https://github.com/PipelineZ/pz-connector-cosmosdb#readme) for the type
+tables, the five `auth` shapes, and what's proven.
 
 ## databricks
 
