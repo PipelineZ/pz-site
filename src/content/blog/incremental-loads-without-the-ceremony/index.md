@@ -24,6 +24,13 @@ An incremental read flips this: it extracts only what's new since the last run, 
 stored watermark, the highest value of a cursor column already seen. Runtime then scales with
 the day's new rows, not the table's whole past.
 
+| | Full refresh | Incremental |
+|---|---|---|
+| Runtime | Grows with total history | Grows with new rows since last run |
+| State to track | None | A stored watermark |
+| Correctness risk | None, nothing to get wrong | A missed or stale cursor |
+| Deletes visible? | Yes, every run | Only with `mode: cdc` |
+
 ## What changed since last time
 
 pz tracks incrementality per entity, under a `sync:` key on its `read:` block:
@@ -70,12 +77,18 @@ An incremental read that gets retried, or that overlaps slightly with the previo
 the same row to the sink more than once. What happens next depends entirely on the write
 strategy:
 
-- **`strategy: merge`** upserts on a set of `keys:`, so re-extracting the same slice converges on
-  the same rows instead of duplicating them. This is the strategy to reach for by default when
-  pairing incremental reads with a table-shaped sink.
-- **`strategy: append`** just adds rows, so it's at-least-once: a replayed run can re-deliver a
-  slice. pz requires you to opt into that explicitly with `duplicates: 'accept'`, which is
-  correct for something like a delta log you plan to deduplicate downstream.
+| Strategy | Delivery | Re-extraction | Best for |
+|---|---|---|---|
+| `merge` | Exactly-once | Upserts on `keys:`, so replays converge | A table-shaped sink, the default choice |
+| `append` | At-least-once | Adds rows; requires `duplicates: 'accept'` | A delta log deduplicated downstream |
+
+**`strategy: merge`** upserts on a set of `keys:`, so re-extracting the same slice converges on
+the same rows instead of duplicating them. This is the strategy to reach for by default when
+pairing incremental reads with a table-shaped sink.
+
+**`strategy: append`** just adds rows, so it's at-least-once: a replayed run can re-deliver a
+slice. pz requires you to opt into that explicitly with `duplicates: 'accept'`, which is correct
+for something like a delta log you plan to deduplicate downstream.
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
