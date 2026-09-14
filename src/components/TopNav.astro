@@ -31,7 +31,8 @@ const href = (p: string) => base + p;
 const inGuides = path.startsWith('/guides') || path.startsWith('/how-to');
 const inConnectors = path.startsWith('/connectors');
 const inBlog = path.startsWith('/blog');
-const inDocs = path !== '/' && !inGuides && !inConnectors && !inBlog;
+const inBook = path.startsWith('/book');
+const inDocs = path !== '/' && !inGuides && !inConnectors && !inBlog && !inBook;
 
 const SECTIONS = [
 	{ label: 'Docs', path: versioned('/docs/'), current: inDocs },
