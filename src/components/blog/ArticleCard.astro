@@ -7,11 +7,12 @@ interface Props {
 	description: string;
 	date: Date;
 	href: string;
-	image: ImageMetadata;
+	imageDark: ImageMetadata;
+	imageLight: ImageMetadata;
 	imageAlt: string;
 }
 
-const { title, description, date, href, image, imageAlt } = Astro.props;
+const { title, description, date, href, imageDark, imageLight, imageAlt } = Astro.props;
 
 const formattedDate = date.toLocaleDateString('en-US', {
 	year: 'numeric',
@@ -21,7 +22,22 @@ const formattedDate = date.toLocaleDateString('en-US', {
 ---
 
 <a class="pz-article-card" href={href}>
-	<Image class="pz-article-card-image" src={image} alt={imageAlt} width={600} height={315} />
+	<div class="pz-article-card-image-wrap">
+		<Image
+			class="pz-article-card-image light:sl-hidden"
+			src={imageDark}
+			alt={imageAlt}
+			width={600}
+			height={315}
+		/>
+		<Image
+			class="pz-article-card-image dark:sl-hidden"
+			src={imageLight}
+			alt={imageAlt}
+			width={600}
+			height={315}
+		/>
+	</div>
 	<div class="pz-article-card-body">
 		<p class="pz-article-card-date">{formattedDate}</p>
 		<h2 class="pz-article-card-title">{title}</h2>
@@ -44,9 +60,15 @@ const formattedDate = date.toLocaleDateString('en-US', {
 		border-color: var(--sl-color-text-accent);
 		transform: translateY(-2px);
 	}
-	.pz-article-card-image {
-		width: 100%;
+	.pz-article-card-image-wrap {
+		position: relative;
 		aspect-ratio: 1200 / 630;
+	}
+	.pz-article-card-image {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
 		object-fit: cover;
 	}
 	.pz-article-card-body {

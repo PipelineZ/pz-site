@@ -28,7 +28,8 @@ const href = (p: string) => base + p;
 							description={post.data.description}
 							date={post.data.date}
 							href={href(`/blog/${post.id}/`)}
-							image={post.data.heroImage.src}
+							imageDark={post.data.heroImage.dark}
+							imageLight={post.data.heroImage.light}
 							imageAlt={post.data.heroImage.alt}
 						/>
 					))}

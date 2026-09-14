@@ -14,7 +14,8 @@ export const collections = {
 				description: z.string(),
 				date: z.coerce.date(),
 				heroImage: z.object({
-					src: image(),
+					dark: image(),
+					light: image(),
 					alt: z.string(),
 				}),
 			}),

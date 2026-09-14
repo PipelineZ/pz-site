@@ -34,13 +34,22 @@ const href = (p: string) => base + p;
 >
 	<article class="pz-blog-post">
 		<p class="pz-blog-post-date">{formattedDate}</p>
-		<Image
-			class="pz-blog-post-hero"
-			src={post.data.heroImage.src}
-			alt={post.data.heroImage.alt}
-			width={1200}
-			height={630}
-		/>
+		<div class="pz-blog-post-hero-wrap">
+			<Image
+				class="pz-blog-post-hero light:sl-hidden"
+				src={post.data.heroImage.dark}
+				alt={post.data.heroImage.alt}
+				width={1200}
+				height={630}
+			/>
+			<Image
+				class="pz-blog-post-hero dark:sl-hidden"
+				src={post.data.heroImage.light}
+				alt={post.data.heroImage.alt}
+				width={1200}
+				height={630}
+			/>
+		</div>
 		<div class="pz-blog-post-body">
 			<Content />
 		</div>
@@ -58,11 +67,17 @@ const href = (p: string) => base + p;
 		color: var(--sl-color-gray-2);
 		font-size: var(--sl-text-sm);
 	}
-	.pz-blog-post-hero {
-		width: 100%;
-		height: auto;
-		border-radius: 0.75rem;
+	.pz-blog-post-hero-wrap {
+		position: relative;
+		aspect-ratio: 1200 / 630;
 		margin-block: 1rem 2rem;
+	}
+	.pz-blog-post-hero {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border-radius: 0.75rem;
 	}
 	.pz-blog-post-back {
 		display: inline-block;
