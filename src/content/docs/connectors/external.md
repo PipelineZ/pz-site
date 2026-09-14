@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, cosmosdb, databricks, deltalake, elasticsearch, github, kafka, mongodb, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, cosmosdb, databricks, deltalake, elasticsearch, eventhubs, github, kafka, mongodb, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -56,6 +56,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | [databricks](https://github.com/PipelineZ/pz-connector-databricks) | `Pz.Connector.Databricks` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
 | [elasticsearch](https://github.com/PipelineZ/pz-connector-elasticsearch) | `Pz.Connector.Elasticsearch` | ✓ | ✓ | – | ✓ | – | ✓ |
+| [eventhubs](https://github.com/PipelineZ/pz-connector-eventhubs) | `Pz.Connector.EventHubs` | ✓ | ✓ | – | ✓ | – | – |
 | [github](https://github.com/PipelineZ/pz-connector-github) | `Pz.Connector.Github` | ✓ | – | – | ✓ | – | – |
 | [kafka](https://github.com/PipelineZ/pz-connector-kafka) | `Pz.Connector.Kafka` | ✓ | ✓ | – | ✓ | – | – |
 | [mongodb](https://github.com/PipelineZ/pz-connector-mongodb) | `Pz.Connector.MongoDb` | ✓ | ✓ | – | ✓ | – | ✓ |
@@ -199,6 +200,38 @@ ships `linux-x64`, `linux-arm64`, `osx-arm64`, and `win-x64`, but only `linux-x6
 been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-elasticsearch#readme) for the type table,
 connection keys, and what's proven.
+
+## eventhubs
+
+Reads as a sequence-number-resumed feed source: each partition is bounded at its last enqueued
+sequence number as of the run's start, and the per-partition sequence numbers stored from the
+previous run pick up from there. Rows land in a fixed envelope — `event_hub, partition,
+sequence_number, offset, enqueued_time, partition_key, body, properties, content_type` — with
+`body` as text or base64 of the raw bytes and `properties` as a JSON object of the application
+properties. The sink is append-only send: whole-row JSON by default, or a verbatim `body:` column,
+with optional `partition_key:`/`properties:` columns; rows sharing a partition key travel in the
+same batch and land on the same partition, so a low-cardinality key packs many rows per send while
+a near-unique one costs one send per row, and delivery is at-least-once — a sent event cannot be
+unsent by a failed run. Auth is a connection string (the local emulator included), the ambient
+Entra credential chain, a service principal, or managed identity.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.EventHubs
+    version: 0.1.0
+```
+
+**Before you install it:** there's no checkpoint store / Event Processor and no Schema Registry —
+`body` arrives as text (or base64), so decode JSON or other payloads in SQL after landing. One
+event hub is one pz partition — there is no fan-out below the entity. A feed source paired with an
+`append` output needs `duplicates: accept` (incremental → append is otherwise a compile error,
+PZ0214); `replace` is refused outright. A stored sequence number that retention has already dropped
+fails the run rather than silently skipping ahead — recover with `--full-refresh` or by editing the
+dataset's state through `pz state`. The package is Native AOT and ships `linux-x64`,
+`linux-arm64`, `osx-arm64`, and `win-x64`; its own CI runs the full suite against the Event Hubs
+emulator, but the live namespace suite has not been run yet. See its
+[README](https://github.com/PipelineZ/pz-connector-eventhubs#readme) for the column types, the
+error codes, and what's proven.
 
 ## github
 
