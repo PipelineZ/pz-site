@@ -1,31 +1,74 @@
 ---
 /**
- * Starlight's PageFrame with a site-wide footer added below the main content column.
+ * Starlight's PageFrame with a site-wide footer added below the main content column, and the
+ * mobile menu toggle/popover rendered on every page — not just `hasSidebar` ones.
+ *
+ * Splash-template pages (the homepage) have `hasSidebar: false`, and the header's own section
+ * nav is hidden below 50rem (see Header.astro), so without this a narrow viewport on the
+ * homepage has no way to reach navigation at all. The toggle and its popover panel now always
+ * render; on `!hasSidebar` pages the panel falls back to just the section switcher and its
+ * footer, same content Sidebar.astro puts above the doc tree on pages that have one. (This is
+ * an explicit `hasSidebar` branch rather than a `<slot name="sidebar">` fallback, because
+ * upstream Page.astro still writes `{hasSidebar && <Sidebar slot="sidebar" />}` — the slot
+ * attribute is present in that template regardless of the runtime condition, so Astro treats
+ * the slot as filled with empty content and never falls back to ours.) The desktop-visible
+ * sidebar *column*, though, still only appears for real `hasSidebar` pages — gated on the
+ * `data-has-sidebar` attribute Starlight already stamps on `<html>` — so the splash page stays
+ * full-width there, same as before.
  *
  * Everything else is the upstream component verbatim — the header/sidebar/main-frame grid
  * and its responsive rules are untouched, `<SiteFooter />` is simply appended as a new
  * sibling inside `.page`'s flex column, after `.main-frame`.
  */
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
 import MobileMenuToggle from 'virtual:starlight/components/MobileMenuToggle';
 import SiteFooter from './SiteFooter.astro';
+import TopNav from './TopNav.astro';
 
 const { hasSidebar } = Astro.locals.starlightRoute;
 ---
 
 <div class="page sl-flex">
 	<header class="header"><slot name="header" /></header>
-	{
-		hasSidebar && (
-			<nav class="sidebar print:hidden" aria-label={Astro.locals.t('sidebarNav.accessibleLabel')}>
-				<MobileMenuToggle />
-				<div id="starlight__sidebar" class="sidebar-pane">
-					<div class="sidebar-content sl-flex">
+	<nav class="sidebar print:hidden" aria-label={Astro.locals.t('sidebarNav.accessibleLabel')}>
+		<MobileMenuToggle />
+		<script>
+			// The mobile menu uses the popover API to open and close without JavaScript. We enhance this
+			// behaviour with focus trapping while the menu is open.
+			class StarlightSidebarPane extends HTMLElement {
+				constructor() {
+					super();
+
+					// Close the menu when the viewport is resized between mobile and desktop sizes.
+					matchMedia('(min-width: 50em)').addEventListener('change', () => this.hidePopover());
+
+					// Update the menu state when the sidebar popover is toggled.
+					this.addEventListener('toggle', ({ newState }) => this.trapFocus(newState === 'open'));
+				}
+				/** Trap keyboard focus inside the header and menu when the menu is expanded. */
+				trapFocus(shouldTrap: boolean) {
+					document.querySelectorAll<HTMLElement>('.main-frame, .sl-skip-link').forEach((el) => {
+						el.toggleAttribute('inert', shouldTrap);
+					});
+				}
+			}
+			customElements.define('sl-sidebar-pane', StarlightSidebarPane);
+		</script>
+		<sl-sidebar-pane popover="" id="starlight__sidebar" class="sidebar-pane">
+			<div class="sidebar-content sl-flex">
+				{
+					hasSidebar ? (
 						<slot name="sidebar" />
-					</div>
-				</div>
-			</nav>
-		)
-	}
+					) : (
+						<>
+							<TopNav variant="mobile" />
+							<MobileMenuFooter />
+						</>
+					)
+				}
+			</div>
+		</sl-sidebar-pane>
+	</nav>
 	<div class="main-frame"><slot /></div>
 	<SiteFooter />
 </div>
@@ -46,18 +89,22 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 			height: var(--sl-nav-height);
 			border-bottom: 1px solid var(--sl-color-hairline-shade);
 			padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
-			padding-inline-end: var(--sl-nav-pad-x);
-			background-color: var(--sl-color-bg-nav);
-		}
-
-		:global([data-has-sidebar]) .header {
+			/* Room for the menu button, which now renders on every page (see the component
+			   comment) — reset back to the plain padding at desktop below, where the button
+			   is always hidden regardless of whether the page has a real sidebar. */
 			padding-inline-end: calc(
 				var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
 			);
+			background-color: var(--sl-color-bg-nav);
 		}
 
 		.sidebar-pane {
-			visibility: var(--sl-sidebar-visibility, hidden);
+			/* By default, user agents apply some opinionated styles to popovers, which we don’t want. */
+			border: unset;
+			padding: unset;
+			height: unset;
+			color: unset;
+
 			position: fixed;
 			z-index: var(--sl-z-index-menu);
 			inset-block: var(--sl-nav-height) 0;
@@ -66,10 +113,6 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 			background-color: var(--sl-color-black);
 			overflow-y: auto;
 			scrollbar-gutter: stable;
-		}
-
-		:global([aria-expanded='true']) ~ .sidebar-pane {
-			--sl-sidebar-visibility: visible;
 		}
 
 		.sidebar-content {
@@ -93,11 +136,15 @@ const { hasSidebar } = Astro.locals.starlightRoute;
 		}
 
 		@media (min-width: 50rem) {
-			:global([data-has-sidebar]) .header {
+			.header {
 				padding-inline-end: var(--sl-nav-pad-x);
 			}
-			.sidebar-pane {
-				--sl-sidebar-visibility: visible;
+			/* Only pages with a real doc sidebar get a permanent desktop column — everyone
+			   else (the splash homepage) keeps the popover panel closed-by-default, so it
+			   stays full-width, same as before the menu button became unconditional. */
+			:global([data-has-sidebar]) .sidebar-pane {
+				/* Make the sidebar visible on larger screens instead of deferring to popover state. */
+				display: block;
 				width: var(--sl-sidebar-width);
 				background-color: var(--sl-color-bg-sidebar);
 				border-inline-end: 1px solid var(--sl-color-hairline-shade);
