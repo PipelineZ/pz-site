@@ -19,25 +19,25 @@ const { variant } = Astro.props;
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 /** Compare against the route, not the link, so a page nested under a section still lights
- * up its top-nav item (e.g. /book/03-… still lights up "Blog", /how-to/remote-state/ lights
- * up "Guides"). Everything else under the docs sidebar counts as "Docs". */
+ * up its top-nav item (e.g. /blog/hello-pipelinez/ still lights up "Blog", /how-to/remote-state/
+ * lights up "Guides"). Everything else under the docs sidebar counts as "Docs". */
 const fullPath = Astro.url.pathname.slice(base.length) || '/';
 /** A reader inside an archive (/v0.4/…) stays there: Docs, Guides, and Connectors link into
- * the same version. The book is not versioned, so Blog always points at the root. */
+ * the same version. The blog is not versioned, so Blog always points at the root. */
 const { version, rest: path } = splitVersion(fullPath);
 const versioned = (p: string) => (version ? `/${version}${p}` : p);
 const href = (p: string) => base + p;
 
 const inGuides = path.startsWith('/guides') || path.startsWith('/how-to');
 const inConnectors = path.startsWith('/connectors');
-const inBlog = path.startsWith('/book');
+const inBlog = path.startsWith('/blog');
 const inDocs = path !== '/' && !inGuides && !inConnectors && !inBlog;
 
 const SECTIONS = [
 	{ label: 'Docs', path: versioned('/docs/'), current: inDocs },
 	{ label: 'Guides', path: versioned('/guides/'), current: inGuides },
 	{ label: 'Connectors', path: versioned('/connectors/'), current: inConnectors },
-	{ label: 'Blog', path: '/book/', current: inBlog },
+	{ label: 'Blog', path: '/blog/', current: inBlog },
 ];
 
 const GITHUB_URL = 'https://github.com/PipelineZ/pz';
