@@ -25,6 +25,13 @@ earns its keep. But plenty of teams, and plenty of solo projects, never get ther
 need the three SQL statements to run on a schedule, fail loudly when the data looks wrong, and
 not lose an afternoon to setup first.
 
+| | A full platform | pz |
+|---|---|---|
+| First thing you set up | A scheduler, a service, a warehouse account | A `project.yml` |
+| What runs it | A container image you deploy and patch | A binary you invoke |
+| Where it runs | Wherever the platform is deployed | Your laptop, CI, or any scheduled job |
+| Right for | Coordinating hundreds of pipelines org-wide | The pipelines that don't need a platform |
+
 pz is for that second case.
 
 ## What pz actually does
@@ -61,6 +68,36 @@ lake:
 and `sink()` calls, and hands execution to [DuckDB](https://duckdb.org/). There's no separate
 service to deploy and no warehouse to provision first: DuckDB runs in-process, so the whole
 thing works on your laptop, in CI, or as a scheduled job wherever you can run a binary.
+
+<figure style="overflow-x:auto">
+<svg viewBox="0 0 1100 160" role="img" aria-label="SQL and YAML files compile into a dependency graph, which DuckDB executes, writing to destinations such as files, a warehouse, or a database" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:560px;height:auto;display:block">
+	<defs>
+		<marker id="pz-arrow-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+			<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--sl-color-text-accent)"/>
+		</marker>
+	</defs>
+	<g fill="none" stroke="var(--sl-color-text-accent)" stroke-width="3">
+		<line x1="230" y1="80" x2="260" y2="80" marker-end="url(#pz-arrow-3)"/>
+		<line x1="490" y1="80" x2="520" y2="80" marker-end="url(#pz-arrow-3)"/>
+		<line x1="750" y1="80" x2="780" y2="80" marker-end="url(#pz-arrow-3)"/>
+	</g>
+	<g font-family="Arial, sans-serif" text-anchor="middle">
+		<rect x="30" y="45" width="200" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<text x="130" y="75" font-size="18" font-weight="700" fill="var(--sl-color-white)">SQL + YAML</text>
+		<text x="130" y="98" font-size="13" fill="var(--sl-color-gray-3)">your project files</text>
+		<rect x="260" y="45" width="230" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<text x="375" y="75" font-size="18" font-weight="700" fill="var(--sl-color-white)">Dependency graph</text>
+		<text x="375" y="98" font-size="13" fill="var(--sl-color-gray-3)">from source()/ref()/sink()</text>
+		<rect x="520" y="45" width="230" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-text-accent)" stroke-width="2"/>
+		<text x="635" y="75" font-size="18" font-weight="700" fill="var(--sl-color-white)">DuckDB</text>
+		<text x="635" y="98" font-size="13" fill="var(--sl-color-gray-3)">runs in-process</text>
+		<rect x="780" y="45" width="290" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<text x="925" y="75" font-size="18" font-weight="700" fill="var(--sl-color-white)">Destinations</text>
+		<text x="925" y="98" font-size="13" fill="var(--sl-color-gray-3)">files, warehouse, database</text>
+	</g>
+</svg>
+<figcaption>No separate service and no server to run: the whole path from files to written data happens inside one process.</figcaption>
+</figure>
 
 A few things follow from that shape:
 

@@ -12,6 +12,62 @@ heroImage:
 still go wrong before any byte of data actually moves. Knowing the shape of a run tells you
 where to look when something fails, and why a retry is usually cheap.
 
+<figure style="overflow-x:auto">
+<svg viewBox="0 0 1200 190" role="img" aria-label="Seven phases of a run: Load, Compile, Validate, Plan, Dispatch, Finalize, Report, connected left to right by arrows" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:640px;height:auto;display:block">
+	<defs>
+		<marker id="pz-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+			<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--sl-color-text-accent)"/>
+		</marker>
+	</defs>
+	<g fill="none" stroke="var(--sl-color-text-accent)" stroke-width="3">
+		<line x1="170" y1="115" x2="200" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="335" y1="115" x2="365" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="500" y1="115" x2="530" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="665" y1="115" x2="695" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="830" y1="115" x2="860" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="995" y1="115" x2="1025" y2="115" marker-end="url(#pz-arrow)"/>
+	</g>
+	<g font-family="Arial, sans-serif" text-anchor="middle">
+		<rect x="40" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="105" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="105" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">1</text>
+		<text x="105" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Load</text>
+		<text x="105" y="174" font-size="13" fill="var(--sl-color-gray-3)">parse files</text>
+		<rect x="205" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="270" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="270" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">2</text>
+		<text x="270" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Compile</text>
+		<text x="270" y="174" font-size="13" fill="var(--sl-color-gray-3)">build the DAG</text>
+		<rect x="370" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="435" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="435" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">3</text>
+		<text x="435" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Validate</text>
+		<text x="435" y="174" font-size="13" fill="var(--sl-color-gray-3)">dry-compile SQL</text>
+		<rect x="535" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="600" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="600" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">4</text>
+		<text x="600" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Plan</text>
+		<text x="600" y="174" font-size="13" fill="var(--sl-color-gray-3)">pick a path</text>
+		<rect x="700" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="765" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="765" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">5</text>
+		<text x="765" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Dispatch</text>
+		<text x="765" y="174" font-size="13" fill="var(--sl-color-gray-3)">run in parallel</text>
+		<rect x="865" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="930" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="930" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">6</text>
+		<text x="930" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Finalize</text>
+		<text x="930" y="174" font-size="13" fill="var(--sl-color-gray-3)">commit or fail</text>
+		<rect x="1030" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="1095" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="1095" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">7</text>
+		<text x="1095" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Report</text>
+		<text x="1095" y="174" font-size="13" fill="var(--sl-color-gray-3)">exit code</text>
+	</g>
+</svg>
+<figcaption>The seven phases of a run, in order. Everything narrows what can still go wrong before dispatch, the only phase that touches real data.</figcaption>
+</figure>
+
 ## Load and compile
 
 `pz` first parses `project.yml` and `connections.yml`, resolving environment variables and any
@@ -62,8 +118,18 @@ FAIL lake.order_totals 0 rows 4ms
 Sinks commit, or the node is marked failed. The staging database sticks around either way, so a
 failure doesn't cost you the work that already succeeded, only the part that didn't. `pz` then
 prints a summary line naming the run ID and where its results landed, and exits with a code that
-says exactly what happened: `0` for a clean run, `1` if any node failed, `2` for a validation
-error that stopped things before they started, `3` for anything unexpected.
+says exactly what happened:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Every node succeeded. |
+| `1` | The run finished, but at least one node failed. |
+| `2` | A configuration or validation error stopped the run before it started. |
+| `3` | An unexpected, fatal error. |
+
+A script that only checks for `0` misses the difference between "some data didn't land" and
+"nothing ran at all." Checking for `2` specifically is how you tell "my config is wrong" from
+"my data was wrong" without parsing any output.
 
 ## Why this shape makes retries cheap
 

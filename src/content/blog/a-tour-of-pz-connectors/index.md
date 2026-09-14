@@ -35,9 +35,19 @@ mart:
 ```
 
 Nothing here says which tier the write uses or what `merge` requires. `postgres` declares the
-`Merge` capability, so the planner resolves the rest on its own. The full [connector
-matrix](/connectors/) lists every builtin connector's read, write, incremental, CDC, and merge
-support at a glance, along with which file formats the file-shaped ones read.
+`Merge` capability, so the planner resolves the rest on its own. A slice of the range, spanning a
+file connector, two databases, an object store, and an API:
+
+| Connector | Read | Write | Native tier | Incremental | CDC | Merge |
+|---|---|---|---|---|---|---|
+| `localfiles` | ✓ | ✓ | ✓ | ✓ | – | – |
+| `postgres` | ✓ | ✓ | – | ✓ | ✓ | ✓ |
+| `duckdb` | ✓ | ✓ | ✓ | ✓ | – | ✓ |
+| `s3` | ✓ | ✓ | ✓ | ✓ | – | – |
+| `http` | ✓ | ✓ | – | ✓ | – | ✓ |
+
+The full [connector matrix](/connectors/) lists all fifteen builtin connectors this way, plus
+which file formats the file-shaped ones read.
 
 ## Native versus universal
 
