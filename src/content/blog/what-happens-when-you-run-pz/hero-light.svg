@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Dot Grid Pattern -->
+		<pattern id="dot-grid-light" width="40" height="40" patternUnits="userSpaceOnUse">
+			<circle cx="20" cy="20" r="1.5" fill="#E6E6E6"/>
+		</pattern>
+
+		<radialGradient id="center-glow-light" cx="50%" cy="50%" r="50%">
+			<stop offset="0%" stop-color="#FFFFFF"/>
+			<stop offset="100%" stop-color="#FAFAFA"/>
+		</radialGradient>
+	</defs>
+
+	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
+	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<!-- Surface Background -->
+		<rect width="1920" height="1080" fill="url(#center-glow-light)"/>
+		<rect width="1920" height="1080" fill="url(#dot-grid-light)"/>
+
+		<!-- Light Structural Frame Lines -->
+		<line x1="160" y1="0" x2="160" y2="1080" stroke="#E6E6E6" stroke-width="2"/>
+		<line x1="1760" y1="0" x2="1760" y2="1080" stroke="#E6E6E6" stroke-width="2"/>
+		<line x1="0" y1="920" x2="1920" y2="920" stroke="#E6E6E6" stroke-width="2"/>
+
+		<!-- Right Side Minimal Accent Pipelines -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<!-- Light Secondary Connectors -->
+			<path d="M 1400 920 L 1400 680 L 1600 480 L 1760 480" stroke="#E6E6E6" stroke-width="6"/>
+
+			<!-- Yellow Accent Connector -->
+			<path d="M 1240 920 L 1240 600 L 1480 360 L 1760 360" stroke="hsl(46, 96%, 50%)" stroke-width="6"/>
+		</g>
+
+		<!-- Accent Nodes -->
+		<circle cx="1240" cy="920" r="8" fill="hsl(46, 96%, 50%)"/>
+		<circle cx="1240" cy="600" r="8" fill="hsl(46, 96%, 50%)"/>
+		<circle cx="1480" cy="360" r="8" fill="hsl(46, 96%, 50%)"/>
+		<circle cx="1760" cy="360" r="12" fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="4"/>
+
+		<!-- Subtle Top Left Tag Accent -->
+		<rect x="160" y="120" width="12" height="12" fill="hsl(46, 96%, 50%)"/>
+		<line x1="188" y1="126" x2="300" y2="126" stroke="#CCCCCC" stroke-width="2" stroke-dasharray="6 6"/>
+	</svg>
+
+	<!-- Post heading, overlaid on the plainer lower-left of the cropped background -->
+	<text x="220" y="430" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#0D0D0D">Inside</text>
+	<text x="220" y="510" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">a run</text>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Vignette Gradient -->
+		<radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+			<stop offset="60%" stop-color="#0D0D0D" stop-opacity="0"/>
+			<stop offset="100%" stop-color="#0D0D0D" stop-opacity="0.9"/>
+		</radialGradient>
+
+		<!-- Subtle Soft Glow -->
+		<filter id="soft-glow" x="-10%" y="-10%" width="120%" height="120%">
+			<feGaussianBlur stdDeviation="12" result="blur"/>
+			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
+		</filter>
+	</defs>
+
+	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
+	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<!-- Background Base -->
+		<rect width="1920" height="1080" fill="#0D0D0D"/>
+
+		<!-- Large Abstraction of the Pipeline 'Z' Logo Mark -->
+		<g transform="translate(1000, -80) scale(1.6)" opacity="0.15">
+			<!-- Outer Dark Track Shadow -->
+			<path d="M 180 200 L 520 200 L 260 560 L 600 560" fill="none" stroke="#262626" stroke-width="110" stroke-linecap="round" stroke-linejoin="round"/>
+
+			<!-- Inner Accent Flow Line -->
+			<path d="M 180 200 L 520 200 L 260 560 L 600 560" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+
+			<!-- Logo Nodes -->
+			<circle cx="180" cy="200" r="45" fill="#0D0D0D" stroke="hsl(46, 96%, 50%)" stroke-width="20"/>
+			<circle cx="600" cy="560" r="55" fill="hsl(46, 96%, 50%)"/>
+		</g>
+
+		<!-- Left Side Technical Grid Accent Lines -->
+		<g stroke="#1A1A1A" stroke-width="1.5">
+			<line x1="120" y1="0" x2="120" y2="1080"/>
+			<line x1="0" y1="840" x2="1920" y2="840"/>
+		</g>
+
+		<!-- Focal Yellow Accent Node in Bottom-Left Intersection -->
+		<g transform="translate(120, 840)">
+			<line x1="-40" y1="0" x2="40" y2="0" stroke="hsl(46, 96%, 50%)" stroke-width="2"/>
+			<line x1="0" y1="-40" x2="0" y2="40" stroke="hsl(46, 96%, 50%)" stroke-width="2"/>
+			<circle cx="0" cy="0" r="6" fill="hsl(46, 96%, 50%)" filter="url(#soft-glow)"/>
+		</g>
+
+		<!-- Vignette Overlay -->
+		<rect width="1920" height="1080" fill="url(#vignette)"/>
+	</svg>
+
+	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
+	<text x="220" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Checks,</text>
+	<text x="220" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">not gates</text>
+</svg>
