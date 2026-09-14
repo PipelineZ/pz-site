@@ -1,7 +1,7 @@
 ---
 title: "Checks, not gates"
 description: "A check is a data-quality assertion that runs inside the same dependency graph as your pipeline, close enough to free to run. It observes, it doesn't block, unless you tell it to."
-date: 2026-09-14
+date: 2026-09-12
 heroImage:
   dark: ./hero-dark.svg
   light: ./hero-light.svg
