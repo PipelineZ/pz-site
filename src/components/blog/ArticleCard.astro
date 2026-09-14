@@ -1,0 +1,72 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+	title: string;
+	description: string;
+	date: Date;
+	href: string;
+	image: ImageMetadata;
+	imageAlt: string;
+}
+
+const { title, description, date, href, image, imageAlt } = Astro.props;
+
+const formattedDate = date.toLocaleDateString('en-US', {
+	year: 'numeric',
+	month: 'long',
+	day: 'numeric',
+});
+---
+
+<a class="pz-article-card" href={href}>
+	<Image class="pz-article-card-image" src={image} alt={imageAlt} width={600} height={315} />
+	<div class="pz-article-card-body">
+		<p class="pz-article-card-date">{formattedDate}</p>
+		<h2 class="pz-article-card-title">{title}</h2>
+		<p class="pz-article-card-description">{description}</p>
+	</div>
+</a>
+
+<style>
+	.pz-article-card {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		overflow: hidden;
+		text-decoration: none;
+		background: var(--sl-color-gray-6);
+		transition: border-color 150ms ease, transform 150ms ease;
+	}
+	.pz-article-card:hover {
+		border-color: var(--sl-color-text-accent);
+		transform: translateY(-2px);
+	}
+	.pz-article-card-image {
+		width: 100%;
+		aspect-ratio: 1200 / 630;
+		object-fit: cover;
+	}
+	.pz-article-card-body {
+		display: grid;
+		gap: 0.5rem;
+		padding: 1.25rem;
+	}
+	.pz-article-card-date {
+		margin: 0;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-2);
+	}
+	.pz-article-card-title {
+		margin: 0;
+		font-size: var(--sl-text-lg);
+		color: var(--sl-color-white);
+	}
+	.pz-article-card-description {
+		margin: 0;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-2);
+	}
+</style>
