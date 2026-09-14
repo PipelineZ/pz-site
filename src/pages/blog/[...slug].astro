@@ -1,0 +1,72 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: { post },
+	}));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const formattedDate = post.data.date.toLocaleDateString('en-US', {
+	year: 'numeric',
+	month: 'long',
+	day: 'numeric',
+});
+---
+
+<StarlightPage
+	frontmatter={{
+		title: post.data.title,
+		description: post.data.description,
+	}}
+	hasSidebar={false}
+>
+	<article class="pz-blog-post">
+		<p class="pz-blog-post-date">{formattedDate}</p>
+		<Image
+			class="pz-blog-post-hero"
+			src={post.data.heroImage.src}
+			alt={post.data.heroImage.alt}
+			width={1200}
+			height={630}
+		/>
+		<div class="pz-blog-post-body">
+			<Content />
+		</div>
+		<a class="pz-blog-post-back" href="/blog/">&larr; Back to all articles</a>
+	</article>
+</StarlightPage>
+
+<style>
+	.pz-blog-post {
+		max-width: var(--sl-content-width);
+		margin-inline: auto;
+		padding-block: 1rem 3rem;
+	}
+	.pz-blog-post-date {
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+	}
+	.pz-blog-post-hero {
+		width: 100%;
+		height: auto;
+		border-radius: 0.75rem;
+		margin-block: 1rem 2rem;
+	}
+	.pz-blog-post-back {
+		display: inline-block;
+		margin-top: 2rem;
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+	}
+	.pz-blog-post-back:hover {
+		text-decoration: underline;
+	}
+</style>
