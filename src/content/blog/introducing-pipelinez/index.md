@@ -3,8 +3,8 @@ title: "Introducing PipelineZ"
 description: "Why we built pz: a lightweight, SQL-based batch pipeline engine powered by DuckDB, for the pipelines that don't need a whole data platform."
 date: 2026-09-14
 heroImage:
-  src: ./hero.png
-  alt: "An 'Introducing PipelineZ' illustration: a source database flows into a chip labeled DuckDB, which flows out to a destination database."
+  src: ./hero.svg
+  alt: "The PipelineZ wordmark over a dark, grid-lined background with a glowing yellow pipeline diagram."
 ---
 
 Welcome to the pz blog. This is the first post, so it's the obvious one to write: what pz
