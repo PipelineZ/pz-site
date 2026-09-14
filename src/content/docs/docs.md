@@ -57,5 +57,5 @@ tour, and the [contributing guide](/internals/contributing/).
 
 ## Background reading
 
-[Data Pipelines: An Article Series](/book/) is a ten-part introduction to pipelines in general,
+[Data Engineering Introduction](/book/) is a ten-part introduction to pipelines in general,
 with the last article showing how pz maps onto each idea.

@@ -1,0 +1,91 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const posts = await getCollection('blog');
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: { post },
+	}));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const formattedDate = post.data.date.toLocaleDateString('en-US', {
+	year: 'numeric',
+	month: 'long',
+	day: 'numeric',
+});
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (p: string) => base + p;
+---
+
+<StarlightPage
+	frontmatter={{
+		title: post.data.title,
+		description: post.data.description,
+	}}
+	hasSidebar={false}
+	headings={headings}
+>
+	<article class="pz-blog-post">
+		<p class="pz-blog-post-date">{formattedDate}</p>
+		<div class="pz-blog-post-hero-wrap">
+			<Image
+				class="pz-blog-post-hero light:sl-hidden"
+				src={post.data.heroImage.dark}
+				alt={post.data.heroImage.alt}
+				width={1200}
+				height={630}
+			/>
+			<Image
+				class="pz-blog-post-hero dark:sl-hidden"
+				src={post.data.heroImage.light}
+				alt={post.data.heroImage.alt}
+				width={1200}
+				height={630}
+			/>
+		</div>
+		<div class="pz-blog-post-body">
+			<Content />
+		</div>
+		<a class="pz-blog-post-back" href={href('/blog/')}>&larr; Back to all articles</a>
+	</article>
+</StarlightPage>
+
+<style>
+	.pz-blog-post {
+		max-width: var(--sl-content-width);
+		margin-inline: auto;
+		padding-block: 1rem 3rem;
+	}
+	.pz-blog-post-date {
+		color: var(--sl-color-gray-2);
+		font-size: var(--sl-text-sm);
+	}
+	.pz-blog-post-hero-wrap {
+		position: relative;
+		aspect-ratio: 1200 / 630;
+		margin-block: 1rem 2rem;
+	}
+	.pz-blog-post-hero {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border-radius: 0.75rem;
+	}
+	.pz-blog-post-back {
+		display: inline-block;
+		margin-top: 2rem;
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+	}
+	.pz-blog-post-back:hover {
+		text-decoration: underline;
+	}
+</style>

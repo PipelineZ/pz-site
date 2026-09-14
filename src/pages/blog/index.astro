@@ -1,0 +1,60 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getCollection } from 'astro:content';
+import ArticleCard from '../../components/blog/ArticleCard.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (p: string) => base + p;
+---
+
+<StarlightPage
+	frontmatter={{
+		title: 'Blog',
+		description: 'Articles from the PipelineZ team on data engineering and building pz.',
+	}}
+	hasSidebar={false}
+>
+	<div class="pz-blog-gallery">
+		{
+			posts.length > 0 ? (
+				<div class="pz-blog-grid">
+					{posts.map((post) => (
+						<ArticleCard
+							title={post.data.title}
+							description={post.data.description}
+							date={post.data.date}
+							href={href(`/blog/${post.id}/`)}
+							imageDark={post.data.heroImage.dark}
+							imageLight={post.data.heroImage.light}
+							imageAlt={post.data.heroImage.alt}
+						/>
+					))}
+				</div>
+			) : (
+				<p class="pz-blog-empty">No articles yet, check back soon.</p>
+			)
+		}
+	</div>
+</StarlightPage>
+
+<style>
+	.pz-blog-gallery {
+		max-width: var(--sl-content-width);
+		margin-inline: auto;
+		padding-block: 1rem 3rem;
+	}
+	.pz-blog-grid {
+		display: grid;
+		gap: 1.5rem;
+		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+	}
+	.pz-blog-empty {
+		color: var(--sl-color-gray-2);
+		text-align: center;
+		padding-block: 3rem;
+	}
+</style>

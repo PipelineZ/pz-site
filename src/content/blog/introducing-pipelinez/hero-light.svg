@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Light background gradient base -->
+		<radialGradient id="bg-glow-light" cx="80%" cy="20%" r="70%">
+			<stop offset="0%" stop-color="#FFFFFF"/>
+			<stop offset="100%" stop-color="#FAFAFA"/>
+		</radialGradient>
+
+		<!-- Subtle Accent Glow -->
+		<radialGradient id="accent-glow-light" cx="85%" cy="30%" r="35%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.12"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-light" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#E6E6E6" stroke-width="1" stroke-opacity="0.6"/>
+			<circle cx="60" cy="60" r="1.5" fill="#CCCCCC" opacity="0.6"/>
+		</pattern>
+
+		<!-- Glowing Yellow Joint/Node -->
+		<filter id="node-glow-light" x="-50%" y="-50%" width="200%" height="200%">
+			<feGaussianBlur stdDeviation="6" result="blur"/>
+			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
+		</filter>
+	</defs>
+
+	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
+	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<!-- Base Light Surface -->
+		<rect width="1920" height="1080" fill="url(#bg-glow-light)"/>
+
+		<!-- Grid Layer -->
+		<rect width="1920" height="1080" fill="url(#grid-light)"/>
+
+		<!-- Ambient Brand Color Radial Accent -->
+		<rect width="1920" height="1080" fill="url(#accent-glow-light)"/>
+
+		<!-- Pipeline Network Graphics (Right / Top Accent) -->
+		<g stroke-linecap="round" stroke-linejoin="round">
+			<!-- Light Pipeline Tracks -->
+			<path d="M 1100 0 L 1100 240 L 1380 520 L 1920 520" fill="none" stroke="#E6E6E6" stroke-width="12"/>
+			<path d="M 1300 0 L 1300 180 L 1650 530 L 1650 1080" fill="none" stroke="#F6F6F6" stroke-width="8"/>
+			<path d="M 800 1080 L 1150 730 L 1920 730" fill="none" stroke="#E6E6E6" stroke-width="6"/>
+
+			<!-- Active Brand Yellow Pipeline Line -->
+			<path d="M 1920 280 L 1520 280 L 1260 540 L 1260 820 L 1400 960 L 1920 960" fill="none" stroke="#FAC409" stroke-width="10" opacity="0.95"/>
+
+			<!-- Secondary Yellow Micro-Track -->
+			<path d="M 1520 280 L 1700 100" fill="none" stroke="#FAC409" stroke-width="4" stroke-dasharray="12 12" opacity="0.75"/>
+		</g>
+
+		<!-- Pipeline Nodes & Connections -->
+		<!-- Solid Yellow Nodes -->
+		<circle cx="1520" cy="280" r="14" fill="#FAC409" filter="url(#node-glow-light)"/>
+		<circle cx="1260" cy="540" r="14" fill="#FAC409" filter="url(#node-glow-light)"/>
+		<circle cx="1260" cy="820" r="14" fill="#FAC409" filter="url(#node-glow-light)"/>
+		<circle cx="1400" cy="960" r="14" fill="#FAC409" filter="url(#node-glow-light)"/>
+
+		<!-- Hollow Node / Terminal Endpoint -->
+		<circle cx="1700" cy="100" r="16" fill="#FAFAFA" stroke="#FAC409" stroke-width="6"/>
+
+		<!-- Neutral Pipeline Joints -->
+		<circle cx="1380" cy="520" r="10" fill="#E6E6E6"/>
+		<circle cx="1150" cy="730" r="8" fill="#CCCCCC"/>
+
+		<!-- Subtle Watermark/Logo Silhouette Element in Top Right -->
+		<path d="M 1750 160 L 1830 160 L 1770 220 L 1830 220" fill="none" stroke="#E6E6E6" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+	</svg>
+
+	<!-- PipelineZ wordmark, overlaid on the plain left half of the cropped background -->
+	<text x="70" y="345" font-family="Arial, sans-serif" font-size="72" font-weight="800" fill="#0D0D0D">Pipeline<tspan fill="#FAC409">Z</tspan></text>
+</svg>

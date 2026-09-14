@@ -1,13 +1,14 @@
 ---
-title: "Data Pipelines: An Article Series"
+title: "Data Engineering Introduction"
 sidebar:
   order: 0
   label: "About this series"
 ---
-A beginner-friendly article series about data pipelines: what they are, who builds them, how they are
-built, and what a modern data platform looks like - explained in plain language, with one
-running example and simple diagrams throughout. The final article introduces PipelineZ
-(`pz`) and shows how it addresses each problem the earlier articles raise.
+A beginner-friendly introduction to data engineering, told as a ten-part article series: what
+data pipelines are, who builds them, how they are built, and what a modern data platform looks
+like - explained in plain language, with one running example and simple diagrams throughout. The
+final article introduces PipelineZ (`pz`) and shows how it addresses each problem the earlier
+articles raise.
 
 No prior data engineering experience is assumed. If you can read a spreadsheet and have seen
 a SQL query before, you have everything you need.
