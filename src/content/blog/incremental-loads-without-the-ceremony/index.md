@@ -1,7 +1,7 @@
 ---
 title: "Incremental loads without the ceremony"
 description: "Full refresh reads everything, every time. Watermarks, sync modes, and merge writes let pz read only what changed, safely."
-date: 2026-09-14
+date: 2026-09-10
 heroImage:
   dark: ./hero-dark.svg
   light: ./hero-light.svg
