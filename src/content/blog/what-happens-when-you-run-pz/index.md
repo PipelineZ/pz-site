@@ -1,7 +1,7 @@
 ---
 title: "What happens when you run pz"
 description: "The seven phases between typing pz run and seeing a result: load, compile, validate, plan, dispatch, finalize, report, and what each one leaves on disk."
-date: 2026-09-14
+date: 2026-09-11
 heroImage:
   dark: ./hero-dark.svg
   light: ./hero-light.svg
