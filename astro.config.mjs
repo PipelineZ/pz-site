@@ -198,7 +198,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Data Pipelines: An Article Series',
+					label: 'Data Engineering Introduction',
 					items: [{ autogenerate: { directory: 'book' } }],
 				},
 			],
