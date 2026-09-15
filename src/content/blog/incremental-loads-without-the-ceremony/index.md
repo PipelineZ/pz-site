@@ -58,9 +58,9 @@ The same comparison can live directly in a pipeline's `WHERE` clause instead of 
 
 ```sql title="pipelines/orders_log.sql"
 INSERT INTO {{ sink('lake', 'orders_log', format: 'parquet', strategy: 'append', duplicates: 'accept') }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('raw', 'orders') }}
-where updated_at > {{ watermark('raw', 'orders') }}
+SELECT order_id, customer_id, amount, status, updated_at
+FROM {{ source('raw', 'orders') }}
+WHERE updated_at > {{ watermark('raw', 'orders') }}
 ```
 
 `watermark('<connection>', '<entity>')` renders the stored cursor value, or `NULL` on an
@@ -92,9 +92,9 @@ for something like a delta log you plan to deduplicate downstream.
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('erp', 'dbo.orders') }}
-where updated_at > {{ watermark('erp', 'dbo.orders') }}
+SELECT order_id, customer_id, amount, status, updated_at
+FROM {{ source('erp', 'dbo.orders') }}
+WHERE updated_at > {{ watermark('erp', 'dbo.orders') }}
 ```
 
 ## When cursor and watermark aren't enough

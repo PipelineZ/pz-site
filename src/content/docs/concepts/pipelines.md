@@ -32,13 +32,13 @@ one edge of the dependency graph. `pz` never guesses an edge by parsing SQL: if 
 name it, it isn't a dependency.
 
 ```sql title="pipelines/orders_enriched.sql"
-select
+SELECT
     o.id,
     o.amount,
     c.email
-from {{ ref('stg_orders') }} as o
-join {{ source('raw', 'customers') }} as c
-  on c.id = o.customer_id
+FROM {{ ref('stg_orders') }} AS o
+JOIN {{ source('raw', 'customers') }} AS c
+  ON c.id = o.customer_id
 ```
 
 ### `INSERT INTO {{ sink(...) }}` is the load
@@ -50,9 +50,11 @@ leading statement, on one line: `pz`'s template engine ends a statement at the n
 
 ```sql title="pipelines/order_totals.sql"
 INSERT INTO {{ sink('lake', 'order_totals', strategy: 'replace', format: 'csv') }}
-select customer_id, sum(amount) as total
-from {{ ref('stg_orders') }}
-group by customer_id
+SELECT 
+  customer_id, 
+  sum(amount) AS total
+FROM {{ ref('stg_orders') }}
+GROUP BY customer_id
 ```
 
 `pz` strips that `INSERT INTO` prefix at compile time. Execution stages the query's result into
@@ -113,19 +115,19 @@ a pipeline that `ref()`s it and joins a `source()`, and an aggregation that both
 sinks in one file.
 
 ```sql title="pipelines/stg_orders.sql"
-select
+SELECT
     id,
     customer_id,
     amount,
     status
-from {{ source('raw', 'orders') }}
-where amount >= {{ var('min_amount') }}
+FROM {{ source('raw', 'orders') }}
+WHERE amount >= {{ var('min_amount') }}
 ```
 
 ```sql title="pipelines/product_catalog.sql"
 INSERT INTO {{ sink('lake', 'product_catalog', strategy: 'replace', format: 'csv') }}
-select id, name, price
-from {{ source('raw', 'products', path: 'data/products.csv', format: 'csv',
+SELECT id, name, price
+FROM {{ source('raw', 'products', path: 'data/products.csv', format: 'csv',
     columns: { id: 'bigint', name: 'varchar', price: 'double' }) }}
 ```
 

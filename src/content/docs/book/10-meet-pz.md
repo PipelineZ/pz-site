@@ -77,27 +77,41 @@ Then the transformations - article 5's layers, as SQL files:
 
 ```sql
 -- pipelines/stg_orders.sql  (staging: clean, no business logic)
-select id, customer_id, store_id, amount, lower(status) as status, updated_at
-from {{ source('shop', 'orders') }}
-where status <> 'test'
+SELECT
+  id, 
+  customer_id,
+  store_id,
+  amount,
+  lower(status) AS status,
+  updated_at
+FROM {{ source('shop', 'orders') }}
+WHERE status <> 'test'
 ```
 
 ```sql
 -- pipelines/orders_enriched.sql  (join to customers; write curated parquet)
 INSERT INTO {{ sink('lake', 'orders_curated', format: 'parquet', strategy: 'replace') }}
-select o.id, o.amount, o.status, c.email, c.region
-from {{ ref('stg_orders') }} as o
-join {{ source('crm', 'customers', format: 'csv', columns: { id: 'bigint', email: 'varchar', region: 'varchar' }) }} as c
-  on c.id = o.customer_id
+SELECT
+  o.id,
+  o.amount,
+  o.status,
+  c.email,
+  c.region
+FROM {{ ref('stg_orders') }} AS o
+JOIN {{ source('crm', 'customers', format: 'csv', columns: { id: 'bigint', email: 'varchar', region: 'varchar' }) }} AS c
+  ON c.id = o.customer_id
 ```
 
 ```sql
 -- pipelines/revenue_by_store.sql  (mart: the owner's Monday answer)
 INSERT INTO {{ sink('lake', 'revenue_by_store', format: 'csv', strategy: 'replace') }}
-select store_id, date_trunc('day', updated_at) as day, sum(amount) as revenue
-from {{ ref('stg_orders') }}
-where status = 'shipped'
-group by store_id, day
+SELECT 
+  store_id, 
+  date_trunc('day', updated_at) AS day, 
+  sum(amount) AS revenue
+FROM {{ ref('stg_orders') }}
+WHERE status = 'shipped'
+GROUP BY store_id, day
 ```
 
 And the checks, one small YAML next to the pipeline they guard:
@@ -172,7 +186,7 @@ by accident) and `--all` is the explicit everything.
 first-party - local files, Postgres, SQL Server, MySQL, SQLite, S3, Azure Blob, and HTTP
 APIs - and there's a documented ABI for writing your own. `pz` pushes work down to capable sources: it uses
 DuckDB's own SQL parser to extract which columns and filters your pipeline actually needs
-and hands them to the connector (*ReadHints*), so `select id, amount ... where updated_at >`
+and hands them to the connector (*ReadHints*), so `SELECT id, amount ... WHERE updated_at >`
 becomes a narrow query at the source, not a full-table drag. Failures are classified
 transient-or-permanent, and transient ones retry with backoff - tunable per call:
 `source('shop', 'orders', retry: { max_attempts: 3 })`.
@@ -180,8 +194,8 @@ transient-or-permanent, and transient ones retry with backoff - tunable per call
 **Incremental and CDC (articles 3–4).** Going incremental is one line *in the SQL*:
 
 ```sql
-from {{ source('shop', 'orders') }}
-where updated_at > {{ watermark('shop', 'orders') }}
+FROM {{ source('shop', 'orders') }}
+WHERE updated_at > {{ watermark('shop', 'orders') }}
 ```
 
 That comparison *is* the declaration - `pz` reads it (again via DuckDB's parser, not

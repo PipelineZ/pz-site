@@ -27,7 +27,7 @@ checks:
   - accepted_values: { column: status, values: [pending, shipped, delivered] }
   - custom_sql:
       name: no_negative_amounts
-      sql: select * from staging.orders_current where amount < 0
+      sql: SELECT * FROM staging.orders_current WHERE amount < 0
 ```
 
 `not_null`, `unique`, `row_count`, `freshness`, and `accepted_values` cover most of what a table

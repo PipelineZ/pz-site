@@ -55,8 +55,8 @@ YAML wiring to the output:
 
 ```sql title="pipelines/orders_out.sql"
 INSERT INTO {{ sink('lake', 'orders_synced', strategy: 'merge', keys: ['id']) }}
-select id, customer_id, amount
-from {{ source('pg_prod', 'orders') }}
+SELECT id, customer_id, amount
+FROM {{ source('pg_prod', 'orders') }}
 ```
 
 Incremental plus merge is effectively-once: a replayed run converges on the same rows rather than

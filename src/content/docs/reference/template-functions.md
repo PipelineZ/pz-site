@@ -18,7 +18,7 @@ Reads an entity. Declares a DAG edge from the entity to this pipeline and render
 staging table pz loads it into.
 
 ```sql
-select * from {{ source('raw', 'customers') }}
+SELECT * FROM {{ source('raw', 'customers') }}
 ```
 
 | Keyword option | Type | Meaning |
@@ -40,7 +40,7 @@ its own qualification. The retired `incremental` keyword is refused (`PZ0332`).
 Resolves to another pipeline's result and declares a DAG edge to it.
 
 ```sql
-select * from {{ ref('stg_orders') }}
+SELECT * FROM {{ ref('stg_orders') }}
 ```
 
 Renders to that pipeline's staging table. If the referenced pipeline is `materialization:
@@ -54,7 +54,7 @@ INTO`:
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
-select order_id, amount, status from {{ source('erp', 'dbo.orders') }}
+SELECT order_id, amount, status FROM {{ source('erp', 'dbo.orders') }}
 ```
 
 | Keyword option | Type | Meaning |
@@ -83,7 +83,7 @@ Renders a comparison against an entity's stored incremental cursor, inside a `WH
 The two positional arguments name a connection and an entity, in that order:
 
 ```sql
-where updated_at > {{ watermark('erp', 'dbo.orders') }}
+WHERE updated_at > {{ watermark('erp', 'dbo.orders') }}
 ```
 
 `watermark()` declares no DAG edge of its own; pair it with a `source()` call for the same
@@ -94,7 +94,7 @@ connection and entity to declare the read.
 Renders a project variable's value.
 
 ```sql
-where region = '{{ var('region') }}'
+WHERE region = '{{ var('region') }}'
 ```
 
 An undeclared variable name fails the render.
@@ -104,7 +104,7 @@ An undeclared variable name fails the render.
 Renders the value of an environment variable.
 
 ```sql
-where tenant_id = '{{ env('TENANT_ID') }}'
+WHERE tenant_id = '{{ env('TENANT_ID') }}'
 ```
 
 An unset variable is `PZ0103`.

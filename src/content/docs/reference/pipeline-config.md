@@ -115,7 +115,7 @@ No other option is accepted.
 ```yaml
 - custom_sql:
     name: no_negative_amounts
-    sql: select * from staging.orders_current where amount < 0
+    sql: SELECT * FROM staging.orders_current WHERE amount < 0
 ```
 
 ## Sample sidecar
@@ -132,7 +132,7 @@ checks:
   - accepted_values: { column: status, values: [pending, shipped, delivered] }
   - custom_sql:
       name: no_negative_amounts
-      sql: select * from staging.orders_current where amount < 0
+      sql: SELECT * FROM staging.orders_current WHERE amount < 0
 ```
 
 ## Errors

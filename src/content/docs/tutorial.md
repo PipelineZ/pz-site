@@ -48,14 +48,14 @@ Now write a pipeline that joins it to the staged orders:
 
 ```sql title="pipelines/customer_regions.sql"
 INSERT INTO {{ sink('lake', 'customer_regions', strategy: 'replace', format: 'csv') }}
-select
-    o.id as order_id,
+SELECT
+    o.id AS order_id,
     o.customer_id,
     o.amount,
     r.region
-from {{ ref('stg_orders') }} as o
-join {{ source('raw', 'regions') }} as r
-  on r.customer_id = o.customer_id
+FROM {{ ref('stg_orders') }} AS o
+JOIN {{ source('raw', 'regions') }} AS r
+  ON r.customer_id = o.customer_id
 ```
 
 This reads `stg_orders`'s result through [`ref()`](/concepts/pipelines/) rather than reading
@@ -158,9 +158,14 @@ lands. Use the SQL form instead, which filters the rows the pipeline actually in
 
 ```sql title="pipelines/orders_log.sql"
 INSERT INTO {{ sink('lake', 'orders_log', strategy: 'append', format: 'csv', duplicates: 'accept') }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('raw', 'order_events') }}
-where updated_at > {{ watermark('raw', 'order_events') }}
+SELECT
+  order_id,
+  customer_id,
+  amount,
+  status,
+  updated_at
+FROM {{ source('raw', 'order_events') }}
+WHERE updated_at > {{ watermark('raw', 'order_events') }}
 ```
 
 `strategy: 'append'` paired with an incremental read is at-least-once, so `pz` requires the
@@ -225,7 +230,7 @@ Introduce a typo in `customer_regions.sql`, renaming its `ref()` target so it no
 any pipeline:
 
 ```sql title="pipelines/customer_regions.sql"
-from {{ ref('stg_order') }} as o
+FROM {{ ref('stg_order') }} AS o
 ```
 
 Validate:

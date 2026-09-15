@@ -48,9 +48,9 @@ window are pushed into that query, so DuckDB reads only the rows the run needs.
 
 | Strategy | What runs |
 |---|---|
-| `append` | `create table if not exists` from the staged rows' shape, then `insert`. |
-| `replace` | One `create or replace table … as select`. |
-| `merge` | `create table if not exists`, then DuckDB's own `merge into`, matched on `keys:`. Matched rows update, unmatched rows insert. |
+| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`. |
+| `replace` | One `CREATE OR REPLACE TABLE … as SELECT`. |
+| `merge` | `CREATE TABLE IF NOT EXISTS`, then DuckDB's own `MERGE INTO`, matched on `keys:`. Matched rows update, unmatched rows insert. |
 
 ```yaml title="connections.yml"
 warehouse:

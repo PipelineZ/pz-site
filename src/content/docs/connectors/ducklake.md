@@ -118,9 +118,9 @@ incremental watermark and any bounded window pushed into the query.
 
 | Strategy | What runs |
 |---|---|
-| `append` | `create table if not exists` from the staged rows' shape, then `insert`. |
-| `replace` | One `create or replace table … as select`. |
-| `merge` | `create table if not exists`, then DuckDB's own `merge into`, matched on `keys:`. |
+| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`. |
+| `replace` | One `CREATE OR REPLACE TABLE … as SELECT`. |
+| `merge` | `CREATE TABLE IF NOT EXISTS`, then DuckDB's own `merge into`, matched on `keys:`. |
 
 Each generated statement commits as one DuckLake snapshot. There is no transaction spanning
 several writes.

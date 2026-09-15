@@ -73,7 +73,7 @@ source-side delete is applied, and it's required whenever CDC feeds a merge (`PZ
 
 ```sql title="pipelines/orders_curated.sql"
 INSERT INTO {{ sink('lake', 'public.orders_curated', strategy: 'merge', keys: ['id'], on_delete: 'delete') }}
-select * from {{ source('crm', 'public.orders') }}
+SELECT * FROM {{ source('crm', 'public.orders') }}
 ```
 
 | `on_delete` | Behavior |

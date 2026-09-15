@@ -41,7 +41,7 @@ warehouse:
 entities:
   active_orders:
     read:
-      query: select id, customer_id, amount from orders where status = 'active'
+      query: SELECT id, customer_id, amount FROM orders WHERE status = 'active'
 ```
 
 `sync` and `retry` under `read:` are the shared keys documented in the

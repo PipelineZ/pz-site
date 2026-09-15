@@ -84,13 +84,13 @@ raw:
 double-brace template calls:
 
 ```sql
-select
+SELECT
     id,
     customer_id,
     amount,
     status
-from {{ source('raw', 'orders') }}
-where amount >= {{ var('min_amount') }}
+FROM {{ source('raw', 'orders') }}
+WHERE amount >= {{ var('min_amount') }}
 ```
 
 Those `{{ ... }}` calls are the most important idea in the whole project, so read this twice:
@@ -111,9 +111,9 @@ complete extract-transform-load statement:
 
 ```sql
 INSERT INTO {{ sink('lake', 'order_totals', strategy: 'replace', format: 'csv') }}
-select customer_id, sum(amount) as total
-from {{ ref('stg_orders') }}
-group by customer_id
+SELECT customer_id, sum(amount) AS total
+FROM {{ ref('stg_orders') }}
+GROUP BY customer_id
 ```
 
 Note there is no `INSERT` at run time, the compiler strips the `INSERT INTO {{ sink(...) }}`
@@ -208,9 +208,13 @@ example project it:
    whitelisted functions from §2 exist). Rendering `stg_orders.sql` produces real SQL:
 
    ```sql
-   select id, customer_id, amount, status
-   from staging.src_raw__orders
-   where amount >= 10
+   SELECT
+    id,
+    customer_id,
+    amount,
+    status
+   FROM staging.src_raw__orders
+   WHERE amount >= 10
    ```
 
    and, as a side effect, records the dependency "stg_orders needs source raw.orders".

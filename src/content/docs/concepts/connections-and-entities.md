@@ -107,7 +107,7 @@ surfaces have exactly the same names at every nesting level, so moving an option
 cut-and-paste.
 
 ```sql
-select id, email from {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }}
+SELECT id, email FROM {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }}
 ```
 
 is equivalent to declaring the same options under `entities: customers: read:` in YAML. Declaring

@@ -132,7 +132,7 @@ statement parameters rather than literals. `query:` runs any Databricks SQL stat
 `ARRAY`/`MAP`/`STRUCT` and `INTERVAL` columns land as strings (`to_json` / `cast` in the statement)
 so the schema the probe declares is the schema the batches carry. The sink spools rows to Parquet,
 uploads the files to a Unity Catalog volume with the Files API, and finishes with one statement on
-the target — `append` (`insert … select from parquet.`…``), `replace` (`create or replace table … as
+the target — `append` (`INSERT … SELECT FROM parquet.`…``), `replace` (`CREATE OR REPLACE TABLE … AS
 select`), or `merge` (null-safe keys, last write wins on the session's own sequence). Decimals and
 timezone-less timestamps are staged as strings and cast back, so nothing is rounded on the way in.
 Auth is a personal access token or a service principal's OAuth client credentials.

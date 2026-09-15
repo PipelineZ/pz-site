@@ -73,7 +73,7 @@ from the connection it writes to:
 
 ```sql title="pipelines/orders_out.sql"
 INSERT INTO {{ sink('lake', 'orders_synced', retry: { max_attempts: 6, base_delay: '3s' }) }}
-select * from {{ ref('orders_shaped') }}
+SELECT * FROM {{ ref('orders_shaped') }}
 ```
 
 The cascade is the same either direction: the output's own `retry:` overrides the connection's,

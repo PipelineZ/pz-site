@@ -79,8 +79,8 @@ lake:
 
 ```sql title="pipelines/issues_log.sql"
 INSERT INTO {{ sink('lake', 'issues_log', format: 'parquet', path: 'out/issues/', strategy: 'append', duplicates: 'accept') }}
-select id, number, title, state, updated_at
-from {{ source('github', 'issues') }}
+SELECT id, number, title, state, updated_at
+FROM {{ source('github', 'issues') }}
 ```
 
 `duplicates: 'accept'` is required here: GitHub's `since` is inclusive, so the boundary row can
@@ -164,7 +164,7 @@ The `http` connector also ships a sink, for pushing a pipeline's rows to a REST 
 
 ```sql title="pipelines/events_out.sql"
 INSERT INTO {{ sink('webhook', 'events_out', strategy: 'append', path: '/events') }}
-select * from {{ ref('events_shaped') }}
+SELECT * FROM {{ ref('events_shaped') }}
 ```
 
 `append` chunks rows into request bodies; `strategy: 'merge'` sends one keyed `PUT` per row

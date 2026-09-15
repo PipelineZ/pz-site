@@ -111,7 +111,7 @@ between the two surfaces is cut-and-paste. Declaring the same entity-side in bot
 Read, declared at the call site:
 
 ```sql
-join {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }} as c
+JOIN {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }} as c
 ```
 
 Read, declared in YAML instead (`connections.yml`):
@@ -178,14 +178,14 @@ contract or `sync:` block required for a plain floor:
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
-select
+SELECT
     order_id,
     customer_id,
     amount,
     status,
     updated_at
-from {{ source('erp', 'dbo.orders', partition_column: 'order_id', partitions: 4, retry: { max_attempts: 3 }) }}
-where updated_at > {{ watermark('erp', 'dbo.orders') }}
+FROM {{ source('erp', 'dbo.orders', partition_column: 'order_id', partitions: 4, retry: { max_attempts: 3 }) }}
+WHERE updated_at > {{ watermark('erp', 'dbo.orders') }}
 ```
 
 The recognized shape is an ordered comparison — `<cursor column>` followed by `>`, `>=`, `<`, or
@@ -217,8 +217,8 @@ explicitly with `duplicates: 'accept'`:
 -- Incremental extraction paired with an append sink is at-least-once ... pz refuses this
 -- pairing at compile time (PZ0214) unless you consent -- which a delta log deliberately does.
 INSERT INTO {{ sink('lake', 'issues_log', format: 'parquet', path: 'out/issues/', strategy: 'append', duplicates: 'accept') }}
-select id, number, title, state, updated_at
-from {{ source('github', 'issues') }}
+SELECT id, number, title, state, updated_at
+FROM {{ source('github', 'issues') }}
 ```
 
 An incremental source feeding `replace` is refused outright (`PZ0335`, no consent escape — a

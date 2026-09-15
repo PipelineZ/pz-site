@@ -58,9 +58,14 @@ The same comparison can live directly in a pipeline's `WHERE` clause instead of 
 
 ```sql title="pipelines/orders_log.sql"
 INSERT INTO {{ sink('lake', 'orders_log', format: 'parquet', strategy: 'append', duplicates: 'accept') }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('raw', 'orders') }}
-where updated_at > {{ watermark('raw', 'orders') }}
+SELECT
+  order_id, 
+  customer_id, 
+  amount, 
+  status, 
+  updated_at
+FROM {{ source('raw', 'orders') }}
+WHERE updated_at > {{ watermark('raw', 'orders') }}
 ```
 
 `watermark()` takes the connection name and entity name and renders the stored cursor value, or
@@ -119,9 +124,14 @@ so re-extracting the same slice converges on the same rows instead of duplicatin
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('erp', 'dbo.orders') }}
-where updated_at > {{ watermark('erp', 'dbo.orders') }}
+SELECT
+  order_id,
+  customer_id,
+  amount,
+  status,
+  updated_at
+FROM {{ source('erp', 'dbo.orders') }}
+WHERE updated_at > {{ watermark('erp', 'dbo.orders') }}
 ```
 
 An append sink fed by an incremental read is legal, but it is at-least-once: a replayed run can
@@ -144,9 +154,14 @@ no `sync:` block in `connections.yml` at all:
 
 ```sql title="pipelines/orders_log.sql"
 INSERT INTO {{ sink('lake', 'orders_log', format: 'parquet', strategy: 'append', duplicates: 'accept') }}
-select order_id, customer_id, amount, status, updated_at
-from {{ source('raw', 'orders') }}
-where updated_at > {{ watermark('raw', 'orders') }}
+SELECT
+  order_id,
+  customer_id,
+  amount,
+  status,
+  updated_at
+FROM {{ source('raw', 'orders') }}
+WHERE updated_at > {{ watermark('raw', 'orders') }}
 ```
 
 Run it twice: the first run lands every row, and the second lands nothing, because the stored

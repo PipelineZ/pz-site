@@ -230,9 +230,9 @@ so a first run needs no pre-created namespace or table. Then:
 
 | Strategy | What runs |
 |---|---|
-| `append` | `insert into … select * from {{source}};` — one `append` snapshot. An incremental source feeding an append sink still needs `write: { duplicates: accept }` (`PZ0214`). |
-| `replace` | `begin transaction; delete from …; insert into … select * from {{source}}; commit;` |
-| `merge` | `merge into … using (… qualify row_number() over (partition by <keys>) = 1) … when matched then update when not matched then insert;` |
+| `append` | `INSERT INTO ... SELECT * FROM {{source}};` — one `append` snapshot. An incremental source feeding an append sink still needs `write: { duplicates: accept }` (`PZ0214`). |
+| `replace` | `BEGIN TRANSACTION; DELETE FROM …; INSERT INTO … SELECT * FROM {{source}}; COMMIT;` |
+| `merge` | `MERGE INTO … USING (… QUALIFY row_number() OVER (PARTITION BY <keys>) = 1) … WHEN MATCHED THEN UPDATE WHEN NOT MATCHED THEN INSERT;` |
 
 `replace` always commits **two** new snapshots, a `delete` immediately followed by an `append` —
 DuckDB's iceberg extension commits one snapshot per DML statement, and there is no single-snapshot

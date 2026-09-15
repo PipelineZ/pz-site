@@ -93,13 +93,13 @@ lake:
 
 ```sql title="pipelines/orders_enriched.sql"
 INSERT INTO {{ sink('lake', 'orders_curated', strategy: 'replace', format: 'parquet') }}
-select
+SELECT
     o.id,
     o.amount,
     c.email
-from {{ ref('stg_orders') }} as o
-join {{ source('raw', 'customers') }} as c
-  on c.id = o.customer_id
+FROM {{ ref('stg_orders') }} AS o
+JOIN {{ source('raw', 'customers') }} AS c
+  ON c.id = o.customer_id
 ```
 
 `source('raw', 'customers')` reads the `customers` entity from the `raw` connection. It resolves
