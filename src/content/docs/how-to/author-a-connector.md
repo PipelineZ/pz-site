@@ -396,10 +396,16 @@ Verify with `pz connector test <package-dir> --config probe.yml` against the res
 
 The `pz-connector` crate is an SDK for writing pz's out-of-process (PCP) connectors in Rust. Its
 `serve_sink` entry point parses a `--pz-socket` argument, serves the connector's control-plane
-gRPC service on that Unix socket, and serves the raw Arrow IPC data plane on a paired socket,
+gRPC service on that AF_UNIX socket, and serves the raw Arrow IPC data plane on a paired socket,
 dispatching every call to a `SinkConnector`/`Sink`/`WriteSession` you implement. Add the crate as
 a dependency and implement those three traits; the crate's own `examples/memory_sink.rs` is a
 complete, minimal sink.
+
+A Rust connector builds and runs on Linux and Windows, and on macOS through the same unix code
+path as Linux. Building the crate needs `protoc` on
+`PATH` (or its path in the `PROTOC` environment variable), because it compiles the PCP `.proto`
+contract at build time. On Windows, take `protoc-<version>-win64.zip` from the
+[protobuf releases](https://github.com/protocolbuffers/protobuf/releases).
 
 Source support is deferred in this SDK. Its trait surface covers sinks only; the wire protocol
 already covers sources, but no Rust trait exists yet to implement one against.

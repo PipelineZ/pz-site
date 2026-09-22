@@ -181,8 +181,9 @@ a builtin or a shim proxying PCP calls to a child process.
 ## PCP: the out-of-process wire protocol
 
 PCP's control plane is generated gRPC/protobuf code (`Pz.Connectors.Protocol`, built from
-`pz_connector.proto`), spoken over a Unix domain socket; the row data itself crosses on a second,
-paired data socket as raw Arrow IPC rather than serialized through the control channel.
+`pz_connector.proto`), spoken over an AF_UNIX (Unix domain) socket, on Windows as well as Linux and
+macOS; the row data itself crosses on a second, paired data socket as raw Arrow IPC rather than
+serialized through the control channel.
 `ConnectorProcess` (`Pz.PackageManagement/ProcessHosting/ConnectorProcess.cs`) owns one spawned
 child process end to end:
 
@@ -191,9 +192,16 @@ child process end to end:
   (`OpenAsync`/`ValidateAsync`/`CheckConnectionAsync`) is what spawns the child.
 - **The child's environment is a fixed allowlist**, never the full host environment: `PATH`,
   `HOME`, `TMPDIR`, `LANG`, `LC_ALL`, and both-case proxy variables
-  (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`). Nothing on
-  that list can carry a secret; actual connection configuration crosses only through the
-  handshake's Configure RPC, never through argv or the environment.
+  (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`). On Windows
+  it also passes `SystemRoot`, `windir`, `SystemDrive`, `TEMP`, `TMP`, `USERPROFILE`, `APPDATA`,
+  `LOCALAPPDATA`, `PATHEXT`, and `ComSpec`: without `SystemRoot`, Winsock cannot load its
+  providers and the child's first socket fails. Nothing on that list can carry a secret; actual
+  connection configuration crosses only through the handshake's Configure RPC, never through argv
+  or the environment.
+- **The socket directory is owner-only.** The control socket carries connection credentials, so the
+  host creates the directory holding both sockets with mode `0700` on Unix, and on Windows with a
+  protected DACL that grants only the current user. On Windows the socket files inherit that DACL.
+  Another local user cannot dial either socket.
 - **A child's stdout is drained and discarded, never inherited.** Redirecting it keeps a
   connector's own stdout out of pz's own stdout (which may be the NDJSON event stream), and
   draining it as raw bytes rather than line-by-line keeps a connector that writes a lot with no
@@ -341,6 +349,14 @@ gRPC and protobuf, `arrow` (pinned to one major across the workspace, since `arr
 every release as a new major and a mismatched pin would silently stop being the same nominal
 `RecordBatch` type), and `tokio` for the async runtime. There is no published source-side trait
 yet; a source connector in Rust means implementing the wire protocol directly.
+
+The crate speaks AF_UNIX on unix and Windows alike; pz's CI builds and tests it on Linux and
+Windows, and macOS takes the same unix code path as Linux. Tokio has
+no AF_UNIX types on Windows, so there the crate creates and accepts its sockets through `socket2`
+and lets tokio's reactor drive them. One behavior differs by platform: on Windows, a `recv` already
+waiting on an AF_UNIX socket ignores `shutdown`. When `Cancel`, `AbortWrite`, or `Shutdown` has to
+end a data-plane read the host will never finish, the crate calls `shutdown` and then cancels the
+pending read with `CancelIoEx` on the same handle.
 
 ## The builtin registry
 
