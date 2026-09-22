@@ -52,7 +52,8 @@ riskiest code (native interop) behind an interface the engine consumes. Target: 
 
 Requires the .NET 10 SDK. Docker is optional: suites that need Postgres or MinIO
 (Testcontainers) use `Xunit.SkippableFact` and skip cleanly without it
-(`tests/Pz.TestSupport/DockerFacts.cs`).
+(`tests/Pz.TestSupport/DockerFacts.cs`). Docker counts as available only when it can run Linux
+containers, so Docker Desktop in Windows-containers mode skips those suites too.
 
 ```bash
 dotnet build Pz.slnx -c Release            # zero warnings required (TreatWarningsAsErrors)
@@ -117,7 +118,7 @@ five jobs:
 
 | Job | Runs on | Does |
 |---|---|---|
-| `build-test` | ubuntu + windows matrix | Both legs build (cross-platform compile safety); the ubuntu leg runs the full `dotnet test`, with `PZ_TESTS_OFFLINE=1` and a 10-minute per-suite hang timeout that dumps thread stacks on a stall. The windows leg runs only the `Category=Pcp` tests, because its Docker daemon can't pull the Linux images the Testcontainers suites need. Those tests spawn the real C# SDK fixture over AF_UNIX (handshake, data plane, cancellation, telemetry, a restored package layout) and check the owner-only socket-directory DACL; only the few that need bash fixtures, `/proc`, or a unix exec bit skip. Either leg uploads its `TestResults/` (hang dumps included) when it fails. |
+| `build-test` | ubuntu + windows matrix | Both legs build and run the full `dotnet test`, with `PZ_TESTS_OFFLINE=1` and a 10-minute per-suite hang timeout that dumps thread stacks on a stall. The windows runner's Docker daemon runs Windows containers, not the Linux images the Testcontainers suites need, so those suites skip there; everything else runs on Windows for real, including the PCP host spawning the real C# SDK fixture over AF_UNIX and the owner-only socket-directory DACL. Only the few tests that need bash fixtures, `/proc`, a unix exec bit, or a case-sensitive filesystem skip. Either leg uploads its `TestResults/` (hang dumps included) when it fails. |
 | `format-extensions` | ubuntu | Runs the `Category=DuckDbExtension` tests (xlsx/avro), which need network to install DuckDB's `excel`/`avro` extensions and are excluded from `build-test`. |
 | `pack-and-verify` | ubuntu | Runs `scripts/verify-tool-install.sh` and `scripts/make-release-bundle.sh`, so the install path a stranger's first five commands depend on can't silently rot. |
 | `verify-aot` | ubuntu | Runs `scripts/verify-aot.sh`, the Native AOT runtime proof described above, then `scripts/verify-sdk-package.sh`, the connector packaging proof. |
