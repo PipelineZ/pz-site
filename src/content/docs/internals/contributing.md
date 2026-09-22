@@ -113,22 +113,32 @@ gate; see CI, below.
 ## CI workflows
 
 `.github/workflows/ci.yml` runs on every push to `main`/`feat/**` and every pull request, with
-four jobs:
+five jobs:
 
 | Job | Runs on | Does |
 |---|---|---|
-| `build-test` | ubuntu + windows matrix | Both legs build (cross-platform compile safety); only the ubuntu leg runs `dotnet test`, with `PZ_TESTS_OFFLINE=1` and a 10-minute per-suite hang timeout that dumps thread stacks on a stall. Windows stays build-only because its Docker daemon can't pull the Linux images the Testcontainers suites need. |
+| `build-test` | ubuntu + windows matrix | Both legs build (cross-platform compile safety); the ubuntu leg runs the full `dotnet test`, with `PZ_TESTS_OFFLINE=1` and a 10-minute per-suite hang timeout that dumps thread stacks on a stall. The windows leg runs only the `Category=Pcp` tests, because its Docker daemon can't pull the Linux images the Testcontainers suites need. Either leg uploads its `TestResults/` (hang dumps included) when it fails. |
+| `format-extensions` | ubuntu | Runs the `Category=DuckDbExtension` tests (xlsx/avro), which need network to install DuckDB's `excel`/`avro` extensions and are excluded from `build-test`. |
 | `pack-and-verify` | ubuntu | Runs `scripts/verify-tool-install.sh` and `scripts/make-release-bundle.sh`, so the install path a stranger's first five commands depend on can't silently rot. |
-| `verify-aot` | ubuntu | Runs `scripts/verify-aot.sh`, the Native AOT runtime proof described above. |
-| `rust` | ubuntu | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` over `rust/`, then `scripts/rust-conformance.sh` against the .NET host. |
+| `verify-aot` | ubuntu | Runs `scripts/verify-aot.sh`, the Native AOT runtime proof described above, then `scripts/verify-sdk-package.sh`, the connector packaging proof. |
+| `rust` | ubuntu | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` over `rust/`, `cargo audit` for RUSTSEC advisories, then `scripts/rust-conformance.sh` against the .NET host. |
 
-`.github/workflows/release.yml` is tag-triggered (`push: tags: ['v*']`). MinVer computes every
-packable project's version from the tag. Because Native AOT can't cross-compile between
-operating systems, one `pack-aot` job per platform builds that platform's RID sub-package, and
-a `release` job builds, tests, and packs everything else, then pushes every package to
-nuget.org via trusted publishing (OIDC), sub-packages before the `pz` pointer package, since
-the .NET CLI resolves an install through the pointer and needs every referenced sub-package to
-already exist.
+`.github/workflows/release.yml` is tag-triggered (`push: tags: ['v*']`). A `changelog-gate` job
+runs first and fails fast, before anything is packed, if `CHANGELOG.md` has no entry for the tag.
+MinVer computes every packable project's version from the tag. Because Native AOT can't
+cross-compile between operating systems, one `pack-aot` job per platform builds that platform's
+RID sub-package. A `verify-release` job reruns the same three end-to-end proofs PR CI runs
+(`verify-tool-install.sh`, `verify-aot.sh`, `verify-sdk-package.sh`) against the exact tagged
+commit, so a merge commit or a tag pushed at the wrong ref can't slip an unproven tree past
+release. Only once `pack-aot` and `verify-release` are both green does the `release` job build,
+test, and pack everything else, then push every package to nuget.org via trusted publishing
+(OIDC), sub-packages before the `pz` pointer package, since the .NET CLI resolves an install
+through the pointer and needs every referenced sub-package to already exist.
+
+`.github/dependabot.yml` opens weekly, grouped dependency-update PRs for the NuGet, Cargo, and
+GitHub Actions ecosystems — every minor/patch bump for an ecosystem lands as one PR per week,
+while a major bump always arrives on its own for deliberate review. None auto-merge: every one
+still goes through the normal review-plus-green-CI path.
 
 ## Doc link check
 

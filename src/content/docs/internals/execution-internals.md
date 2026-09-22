@@ -133,7 +133,7 @@ load ▶ compile ▶ validate ▶ restore-check ▶ plan ▶ dispatch ▶ finali
 | `.pz/target/manifest.json` | compile | The full node-and-edge graph: nodes, edges, content hashes, configs. |
 | `.pz/target/plan.json` | plan | Per-edge tier decisions and reasons, partition counts, batch sizes, a computed memory budget. |
 | `.pz/runs/<id>/staging.duckdb` | dispatch | The run's disk-backed DuckDB staging database. Retained after every run, success or failure. |
-| `.pz/runs/<id>/run_results.json` | dispatch, finalize | One entry per node: status, rows moved, duration, error, and optional `provenance`/`watermark` fields. Rewritten after every node completes, not once at the end. |
+| `.pz/runs/<id>/run_results.json` | dispatch, finalize | Run-level `runId`, `status`, `startedAt`, and `finishedAt` (the last written only once the run reaches a terminal status, so its absence distinguishes "still running" from a crashed run's last snapshot), plus one entry per node: status, rows moved, duration, error, and optional `provenance`/`watermark` fields. Rewritten after every node completes, not once at the end. |
 
 ## Observability
 

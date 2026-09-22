@@ -112,7 +112,8 @@ isn't drivable through an agent.
 
 | If you see | Do |
 |---|---|
-| `PZ0605` from `pz mcp init` | No client was named and no `--all` was passed, an existing config file failed to parse as JSON, or `--skill-locations` named an unrecognized token. The message names which. |
+| `PZ0605` from `pz mcp init` | No client was named and no `--all` was passed, an existing config file failed to parse as JSON even tolerantly, or `--skill-locations` named an unrecognized token. The message names which. |
+| `PZ0611` from `pz mcp init` | An existing client config file legally carries comments or trailing commas (JSONC) that merging in the `pz` entry would silently delete, so pz refused to rewrite it. Paste in the entry the error message gives you by hand instead. |
 | `PZ0601` from a mutation tool | The proposed connection config carries a credential-shaped value that isn't a `${VAR}` reference. Move it into the environment and reference it with `${VAR}` instead. |
 | `PZ0103` after exporting a new secret | The running server never saw it. Set the variable where the client launches `pz mcp` from, then restart the server. |
 | `PZ0604` on a run tool | Another run already holds the project's run lock, from the CLI or another MCP call. Wait for it to finish. |
