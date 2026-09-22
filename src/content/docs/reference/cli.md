@@ -21,6 +21,7 @@ you need an exact flag or default. For the narrative version of how a run procee
 | `pz test` | Run data checks and their required ancestors, without writing to sinks. |
 | `pz retry` | Re-run the last run's failed and skipped nodes. |
 | `pz ls` | List every node in the compiled DAG, in topological order. |
+| `pz runs` | List prior runs, newest first, with their status, timing, and provenance. |
 | `pz connectors` | List every registered connector and its capabilities. |
 | `pz restore` | Resolve and download declared non-builtin connector packages. |
 | `pz connector test` | Run protocol conformance checks against an out-of-process connector. |
@@ -34,6 +35,7 @@ you need an exact flag or default. For the narrative version of how a run procee
 | `pz schema accept` | Accept observed schema drift as the new baseline. |
 | `pz mcp` | Serve the project to AI agents over the Model Context Protocol. |
 | `pz mcp init` | Write MCP client config and install the pz-pipelines skill. |
+| `pz completion` | Print a shell completion script for pz to stdout. |
 
 ## Global options
 
@@ -203,6 +205,25 @@ $ pz ls --select +orders_enriched
 
 See also: [Selecting nodes](/concepts/selecting-nodes/).
 
+## pz runs
+
+List prior runs, newest first, with their status, timing, and provenance (how many nodes were
+`reused` or `carried_forward` from an earlier run). Reads only `state:` out of `project.yml`, the
+same way `pz clean` does, so a broken pipeline or connections.yml never stops it reporting what
+already ran. Works identically under a remote state backend.
+
+```console
+$ pz runs --limit 5
+```
+
+| Option | Meaning | Default |
+|---|---|---|
+| `--project <project>` | Project directory. | current directory |
+| `--json` | Print one JSON object per run (NDJSON) instead of a table. | off |
+| `--limit <limit>` | Show only the N most recent runs. Must be 1 or greater (`PZ0534`). | all |
+
+See also: [How a run works](/concepts/how-a-run-works/).
+
 ## pz connectors
 
 List every registered connector, builtin and restored, with its capabilities and tiers.
@@ -223,14 +244,25 @@ See also: [Connectors](/concepts/connectors/).
 Resolve declared non-builtin connectors against the host feeds, materialize them under
 `.pz/packages`, and write `pz.lock.json`.
 
+An existing `pz.lock.json` is honoured, not overwritten: every package it names is restored at
+exactly the locked version and must hash to the locked `sha512`, or restore fails with `PZ0327`.
+A requirement the lock no longer satisfies (a bumped version, a new or removed connector) is
+`PZ0321`, with `--update` as the next step. A lock honoured for exactly this host, with every
+package already content-verified in the local cache, never touches a feed at all: once a project
+has restored once, a later restore that changes nothing succeeds fully offline. Any other
+failure reaching a feed or writing under `.pz` is reported as `PZ0328` (feed unreachable or
+refused) or `PZ0329` (a local disk failure) instead of a raw exception.
+
 ```console
 $ pz restore
+$ pz restore --update
 ```
 
 | Option | Meaning | Default |
 |---|---|---|
 | `--project <project>` | Project directory. | current directory |
 | `--feeds <feeds>` | NuGet feed URL or local folder path, in probe order. Repeatable. Overrides `PZ_FEEDS`. | nuget.org |
+| `--update` | Ignore the existing `pz.lock.json`: re-resolve every declared connector against the feeds and write a new lock. Without it, an existing lock pins every package to its locked version and content. | off |
 
 See also: [Connectors](/concepts/connectors/).
 
@@ -426,14 +458,56 @@ $ pz mcp init claude-code vscode
 
 See also: [Use pz with an AI agent](/how-to/use-with-an-ai-agent/), [MCP contract](/reference/mcp-contract/).
 
+An existing client config file that legally carries comments or trailing commas (JSONC, such as
+a hand-edited `.vscode/mcp.json`) cannot be merged and rewritten without silently deleting those
+comments, so `pz mcp init` refuses to touch it (`PZ0611`) and instead prints the exact entry to
+paste in by hand. A file that isn't valid JSON even tolerantly is the pre-existing `PZ0605`.
+
+## pz completion
+
+Print a shell completion script for `pz` to stdout. Each script is a thin shim: it hands the
+command line and cursor position back to `pz "[suggest:<position>]" "<line>"`, answered by the
+command-line parser itself, so verbs, sub-verbs, and options complete from whatever the
+installed `pz` accepts — an upgrade never leaves a stale script behind. Where pz has nothing to
+offer (an option's value is usually a path), the script falls back to the shell's own file
+completion. No network, no file writes.
+
+```console
+$ pz completion bash
+```
+
+| Option | Meaning | Default |
+|---|---|---|
+| `<shell>` | `bash`, `zsh`, `fish`, or `pwsh`. Anything else is `PZ0535`. | required |
+
+Install per shell:
+
+| Shell | Install |
+|---|---|
+| bash | Add `source <(pz completion bash)` to `~/.bashrc`. |
+| zsh | Add `source <(pz completion zsh)` to `~/.zshrc` (works whether zsh autoloads it from `fpath` or sources it directly). |
+| fish | `pz completion fish > ~/.config/fish/completions/pz.fish` |
+| pwsh | Add `pz completion pwsh \| Out-String \| Invoke-Expression` to `$PROFILE`. |
+
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Success. Every node succeeded, or the reported check (`pz cdc status`, `pz state show`) is healthy. |
-| `1` | Run or check failure. At least one node failed, or `pz cdc status` found an unhealthy entity, or `pz state show` found a corrupt state file. |
+| `1` | Run or check failure. At least one node failed, or `pz cdc status` found an unhealthy entity, or `pz state show` found a corrupt state file. Also returned for a run cancelled (Ctrl-C, `SIGTERM`, `SIGHUP`) after at least one node had already failed. |
 | `2` | Usage or configuration error: bad flags, invalid `project.yml`/`connections.yml`, a validation failure. |
-| `3` | Fatal engine error: an unexpected failure outside normal node execution or configuration. |
+| `3` | Fatal engine error: an unexpected failure outside normal node execution or configuration, or a run cancelled before any node had failed. |
+
+Set `PZ_DEBUG=1` (any non-empty, non-`0` value) to include the full stack trace on an
+unanticipated internal error (`PZ0500`); without it, only the error type and message print.
+
+A stop signal — Ctrl-C, `SIGTERM` (the default stop signal of systemd, Docker, Kubernetes, and
+Airflow), or `SIGHUP` (a closing terminal or SSH session) — winds a run down cooperatively
+instead of killing the process outright: the first signal cancels the run and lets it finish
+committing sinks, writing `run_results.json`, and letting connector processes clean up, however
+long that takes. A second signal is left unhandled and terminates the process immediately, so a
+run that will not wind down never traps an operator or a supervisor's stop sequence. `SIGQUIT` is
+left alone, for an operator to request a stuck process's dump.
 
 ## Output formats
 

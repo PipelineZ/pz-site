@@ -22,7 +22,7 @@ Raised while reading `project.yml`, `connections.yml`, and `pipelines/`, before 
 | `PZ0110` | DuplicateName | Two `.sql` files define the same pipeline name. | Loading pipelines |
 | `PZ0111` | SidecarUnknownPipeline | A sidecar's `pipeline:` key names a pipeline no `.sql` file defines. | Loading `pipelines/configs/*.yml` |
 | `PZ0112` | RemovedInputField | A sink declares the removed `input:` field; a pipeline's own `INSERT INTO {{ sink(...) }}` is the load binding. | Loading connections.yml, rendering pipeline SQL |
-| `PZ0113` | InvalidCheck | A sidecar check is invalid: unknown type, malformed per-type option, or unrecognized option key. | Loading `pipelines/configs/*.yml` |
+| `PZ0113` | InvalidCheck | A sidecar check is invalid: unknown type, malformed per-type option, unrecognized option key, or two identical checks declared on one pipeline. | Loading `pipelines/configs/*.yml` |
 | `PZ0120` | InvalidEngineConfig | project.yml's `engine:` block is malformed. | Loading project.yml |
 | `PZ0121` | RetryConfigInvalid | A `retry:` block, in connections.yml or at a call site, is malformed, out of bounds, or has an unparseable duration. | Loading connections.yml, rendering pipeline SQL |
 | `PZ0122` | ConcurrencyConfigInvalid | `max_concurrency:` is not an integer, or is less than 1. | Loading connections.yml |
@@ -34,6 +34,11 @@ Raised while reading `project.yml`, `connections.yml`, and `pipelines/`, before 
 | `PZ0130` | InitTargetNotEmpty | `pz init`'s target directory exists and is not empty. | `pz init` |
 | `PZ0131` | InitTemplateUnknown | `pz init --template` names a template id that does not exist. | `pz init` |
 | `PZ0132` | InitInvocationInvalid | `pz init` was given neither a name nor `--list-templates`, or both. | `pz init` |
+| `PZ0133` | EnvRefNotInterpolatedInEntity | A `${VAR}` reference appears inside an `entities: <e>: read:`/`write:` block, which is never interpolated — the connector receives the literal text. A warning, not an error. | Loading connections.yml |
+| `PZ0134` | MaterializationInvalid | A sidecar's `materialization:` is not `table`, `view`, or `ephemeral`. | Loading `pipelines/configs/*.yml` |
+| `PZ0135` | YamlExtensionIgnored | A `*.yaml` file sits where pz only ever looks for `*.yml`, so it is never loaded. A warning, not an error. | Loading a project |
+| `PZ0136` | InvalidIdentifierName | A pipeline's file stem, or a connection name, is not a legal unquoted DuckDB identifier, or a connection name contains `__`. | Loading connections.yml, loading pipelines |
+| `PZ0137` | UnsupportedOptionValue | A `source()`/`sink()` kwarg, or a YAML read/write option, holds a value that cannot be hashed into a node's content-addressed id. | Compiling the DAG |
 
 ## 02xx: Semantic
 
@@ -66,6 +71,9 @@ declarations, and node selection.
 | `PZ0225` | ConflictingIncrementalDeclaration | A dataset declares both a YAML `sync:` (or retired `incremental:`) block and a SQL `watermark()` call. | Compiling the DAG |
 | `PZ0227` | WatermarkCursorUndeclared | A `watermark()` call's cursor column is absent from the dataset's declared `columns:` contract, or its type is unsupported. | Compiling the DAG |
 | `PZ0229` | DescendingCursorTruncatable | An incremental dataset combines a descending cursor order with a page limit, which could advance the watermark past unfetched rows. | Compiling the DAG |
+| `PZ0230` | PipelineNameCollidesWithStaging | A non-ephemeral pipeline's name, case-insensitively, is the same staging relation name a source it reads stages to. | Compiling the DAG |
+| `PZ0231` | WatermarkCursorDisagreement | Two `watermark()` comparisons for the same source/dataset name different cursor columns. | Compiling the DAG |
+| `PZ0232` | RunIdentityInRenderedSql | A pipeline's rendered SQL embeds `run_id`/`run_started_at`, which changes every run and defeats `pz retry`'s node-id match against a prior run. A warning, not an error. | Compiling the DAG |
 
 ## 030x: Connector host
 
@@ -81,9 +89,11 @@ Raised resolving, installing, and running connector packages, including process-
 | `PZ0345` | ReservedConnectionKey | A connector's own config schema declares a key pz reserves at the connection level. | Validating connector config |
 | `PZ0354` | ProcessEntrypointMissing | A process-hosted connector's manifest leaves the host no usable entrypoint to spawn. | Starting a process-hosted connector |
 | `PZ0355` | ConnectorSpawnFailed | Launching a process-hosted connector's executable failed, or its control-socket path is too deep. | Starting a process-hosted connector |
-| `PZ0356` | ConnectorHandshakeFailed | A process-hosted connector's startup handshake failed: a timeout, a malformed Hello message, or a manifest/capability mismatch. | Starting a process-hosted connector |
-| `PZ0358` | ConnectorDiedMidOperation | A process-hosted connector's executable exited unexpectedly during an in-flight operation. | Reading or writing through a process-hosted connector |
+| `PZ0356` | ConnectorHandshakeFailed | A process-hosted connector's startup handshake failed: a timeout, a malformed Hello message, or a manifest/capability mismatch. If the connector process had already exited by the time the host detected the failure, the message also names its exit code (and POSIX signal, when the exit code encodes one). | Starting a process-hosted connector |
+| `PZ0357` | ProtocolViolation | A process-hosted connector violated the wire protocol while still running: a bad or reused data-plane ticket, or a malformed Arrow IPC reply. | Reading or writing through a process-hosted connector |
+| `PZ0358` | ConnectorDiedMidOperation | A process-hosted connector's executable exited unexpectedly during an in-flight operation. The message names its exit code (and POSIX signal, when the exit code encodes one). | Reading or writing through a process-hosted connector |
 | `PZ0360` | ExternalConnectorNotOutOfProcess | A non-builtin connector package declares runtime `"dotnet"`, or ships no manifest; external connectors must run out of process. | Building the connector registry |
+| `PZ0364` | ConnectorConfigWarning | A connector's own `ValidateAsync` reported a non-blocking cross-field warning, such as sftp's unpinned `host_key_fingerprint`. Never fails `pz validate`. | Validating connector config |
 
 ## 031x: Native path
 
@@ -113,11 +123,15 @@ Raised installing connector packages and checking them against `pz.lock.json`.
 | Code | Name | Meaning | Where it surfaces |
 |---|---|---|---|
 | `PZ0320` | RestoreFailed | `pz restore` could not resolve or download a declared connector package. | `pz restore` |
-| `PZ0321` | LockDrift | Installed connector packages under `.pz/packages` do not match `pz.lock.json`. | Building the connector registry |
+| `PZ0321` | LockDrift | Installed connector packages under `.pz/packages` do not match `pz.lock.json`, or (at `pz restore`, without `--update`) the declared connectors no longer match what the lock pins — a bumped version, or a new or removed connector. | Building the connector registry, `pz restore` |
 | `PZ0322` | LockMissing | `pz.lock.json` is missing but the project declares non-builtin connectors. | Building the connector registry |
 | `PZ0323` | FloatingVersionRejected | A connector package requirement names a floating version range, which `pz restore` does not accept. | `pz restore` |
 | `PZ0324` | WriteModeUnsupported | A write's strategy is not supported by its target connector: `merge` without merge support, or `replace` without replace support. | Planning execution |
 | `PZ0325` | PackageAssetCollision | Two resolved connector packages provide a library or native file with the same name. | Restoring packages |
+| `PZ0326` | PackageContentMismatch | A file under `.pz/packages` no longer matches the content `pz.lock.json` recorded for it (modified, truncated, or replaced after restore). | Building the connector registry |
+| `PZ0327` | LockedPackageChanged | A locked package downloaded during a pinned restore hashes differently from what `pz.lock.json` recorded: the same version was republished, or the feed's copy was tampered with. | `pz restore` |
+| `PZ0328` | RestoreFeedUnreachable | `pz restore` could not reach a feed: unreachable (DNS, connection refused, timeout), or the feed refused the request (HTTP 401/403). | `pz restore` |
+| `PZ0329` | RestoreDiskFailure | `pz restore` failed reading or writing under `.pz`: permission denied, disk full, or a file locked by another process. | `pz restore` |
 
 ## 033x: Connectivity
 
@@ -146,6 +160,7 @@ codes from the YAML author's side.
 | `PZ0349` | SourceReadByMultiplePipelines | A source entity is read by more than one pipeline. | Compiling the DAG |
 | `PZ0351` | WatermarkCeilingWithoutFloor | A `watermark()` comparison declares an upper bound on the cursor with no lower bound anywhere for that dataset. | Compiling the DAG |
 | `PZ0352` | FeedsRemoved | project.yml declares the removed `feeds:` block. | Loading project.yml |
+| `PZ0365` | RootEscape | A relative `path:`, once resolved against a localfiles/s3/gcs connection's `root:`, lands outside it (a `..` segment escapes). An absolute `path:` is unaffected — it ignores `root:` entirely, by design. | Planning execution, running a node |
 
 ## 04xx: SQL
 
@@ -184,13 +199,25 @@ maintenance.
 | `PZ0515` | StateValueInvalid | A requested state value cannot be used for this operation: unparseable for the stored cursor type, or a rollback that would move the watermark forward. | `pz state` |
 | `PZ0516` | StateArgumentInvalid | A `pz state` subcommand's required argument is missing, or `--yes` was not passed on a non-interactive terminal. | `pz state` |
 | `PZ0517` | StateRunInFlight | A run holds the run-directory lock, so a `pz state` edit would be overwritten by its watermark advancement. | `pz state` |
-| `PZ0518` | StateStoreUnavailable | The configured state backend could not be reached, or authentication failed. | Reading or writing state |
+| `PZ0518` | StateStoreUnavailable | The configured state backend could not be reached at all, or authentication failed — never got a response. Distinct from `PZ0529`, where the store responded but the operation itself failed. | Reading or writing state |
 | `PZ0519` | StateSchemaVersionMismatch | The state store's schema version is newer than this build understands, or a forward migration failed partway. | Reading or writing state |
 | `PZ0520` | StateConcurrencyConflict | A keyed-state write lost its optimistic-concurrency check because another run advanced the same dataset concurrently. | Writing state |
 | `PZ0521` | MergeKeyNull | A `strategy: merge` write's staged input has NULL values in a declared merge key column. | Running a node (write) |
 | `PZ0522` | MergeKeyDuplicates | A `strategy: merge` write's staged input holds duplicate merge-key groups, which collapse to one survivor. A warning, not a failure. | Running a node (write) |
 | `PZ0523` | LossyIntegerInference | A contract-less csv/json read's auto-detected DOUBLE column holds only whole numbers beyond 2^53, where digits may already be lost. A warning. | Running a node (extraction) |
 | `PZ0524` | AmbiguousDateInference | A contract-less csv read's sniffed date format is day-first/month-first and every value was ambiguous. A warning. | Running a node (extraction) |
+| `PZ0525` | NodeTimedOut | A node's attempt ran longer than `engine.node_timeout`; the engine cancelled it and the node stopped without an in-run retry. `pz retry` reruns it in a fresh run. | Running a node |
+| `PZ0526` | NodeUnresponsive | A node cancelled for exceeding `engine.node_timeout` did not stop within the grace period, so the rest of the run is cancelled too. | Running a node |
+| `PZ0527` | StateNotAdvanced | The run's sinks committed, but the watermark or sync state of one or more datasets could not be persisted afterwards. A notice, not a failure — the next run re-extracts those datasets from the previous value. | Finalizing a run |
+| `PZ0528` | StateSchemaMigrationLockTimedOut | The SQL Server state backend's exclusive schema-migration lock could not be acquired within its timeout; another process appears to be migrating the same schema. | Reading or writing state |
+| `PZ0529` | StateQueryFailed | A keyed-state or run-artifact operation reached the store, but the operation itself failed: a permanent SQL error, an exhausted transient-retry budget, or an unexpected HTTP status. | Reading or writing state |
+| `PZ0530` | HttpStateTokenOverInsecureUrl | `backend: http`'s `state.url` is plain `http://` while a bearer token (`PZ_STATE_TOKEN`) is configured, so the token travels in cleartext. A warning, not a failure. | Loading project.yml |
+| `PZ0531` | EngineAccessDenied | An unhandled exception during `pz run`/`pz retry`/`pz test`/`pz connector test` was the OS refusing a read or write under the project directory or `.pz`. | Running a command |
+| `PZ0532` | EngineDiskFull | An unhandled exception during the same execution paths as `PZ0531` was the OS reporting the disk full. | Running a command |
+| `PZ0533` | EngineFileLocked | An unhandled exception during the same execution paths as `PZ0531` was another process holding a file open without sharing it (Windows). | Running a command |
+| `PZ0534` | RunsLimitInvalid | `pz runs --limit` was not a positive integer. | `pz runs` |
+| `PZ0535` | CompletionShellInvalid | `pz completion` was given a shell name none of the generators recognize. | `pz completion` |
+| `PZ0536` | SqlStateValueTooLong | A value bound for the SQL Server state backend exceeds the length its parameter is declared with — a state key past 512 characters, or a watermark cursor/value past 256. Checked client-side and refused before the value ever reaches a command, never silently truncated. | Writing state |
 
 ## 06xx: MCP
 
@@ -206,9 +233,11 @@ table.
 | `PZ0604` | McpRunLockHeld | A gated execution tool was called while another run already holds the run-directory lock. | `pz mcp` Execute tools |
 | `PZ0605` | McpClientConfigInvalid | `pz mcp init`'s client-setup surface is invalid: an unparseable client config file, or an invocation naming no client and no `--all`. | `pz mcp init` |
 | `PZ0606` | McpPathEscapesProject | A localfiles path resolves outside the project directory. | `pz mcp` tools |
-| `PZ0607` | McpDocsUnavailable | The documentation tools could not reach the documentation site. | `pz mcp` documentation tools |
+| `PZ0607` | McpDocsUnavailable | The documentation tools could not reach the documentation site, or `PZ_DOCS_URL` names a `file:` mirror that is missing or unreadable on disk. | `pz mcp` documentation tools |
 | `PZ0608` | McpDocsRequestInvalid | A documentation request the catalog cannot answer: an unknown slug, or an empty search query. | `pz mcp` documentation tools |
 | `PZ0609` | McpToolFailed | A tool handler failed with an exception no handler-level catch classified. | Any `pz mcp` tool |
+| `PZ0610` | McpDocsResponseTooLarge | A documentation response (the `llms.txt`/`llms-full.txt` fetch, or an individual page, over http or a `file:` mirror) exceeded the 25 MB cap the docs tools refuse to consume. Never a silent truncation. | `pz mcp` documentation tools |
+| `PZ0611` | McpClientConfigHasComments | `pz mcp init`'s target client config file legally carries comments or trailing commas (JSONC), which pz cannot round-trip while merging in the `pz` server entry — refused rather than silently stripping the comments. The message pastes in the exact entry to add by hand. | `pz mcp init` |
 
 ## Retired codes
 
