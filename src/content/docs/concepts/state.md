@@ -47,6 +47,19 @@ entry per entity. **Sync state** is the same idea for connectors that track posi
 way, such as CDC. Both live under `.pz/state/`, and both advance only after every downstream
 write for that run has committed, never before.
 
+### Overlapping runs
+
+All three state backends, including the local one, allow overlapping runs of one project as long
+as they touch different datasets — two flows on independent schedules can run at the same time
+without either blocking the other. What none of them allow is two runs advancing the *same*
+dataset's watermark concurrently: the later one to write loses the race and gets `PZ0520`, since
+letting it win would silently regress the watermark to its own, older, `MAX(cursor)`. If you
+intend concurrent runs over the same dataset, split them so each owns a disjoint slice instead.
+
+Every write under `.pz/state/` takes an OS-held lock on a sibling `<file>.lock`, released
+automatically if the holder dies. Those `.lock` files are left on disk on purpose after a run
+ends — deleting one by hand reintroduces the exact race it exists to prevent.
+
 ### Inspecting and repairing state
 
 `pz state` reads and edits this directly, so you never hand-edit the JSON files:
@@ -97,6 +110,11 @@ The `local` backend needs no configuration. `sqlserver` and `http` exist for hos
 persistent disk, such as a container that disappears between scheduled runs. See
 [Move state off the local disk](/how-to/remote-state/) for the full `state:` block, the
 `PZ_STATE_*` environment variables, and a Container Apps recipe.
+
+The `sqlserver` backend migrates its own schema forward automatically the first time a newer `pz`
+build connects to an older schema — there's nothing to run by hand. A migration that can't
+complete, or two processes racing to migrate the same schema at once, surfaces as a coded error
+rather than a silently half-migrated store.
 
 **`project.yml` always wins over its `PZ_STATE_*` environment counterpart.** The environment
 supplies a default for a project that expresses no opinion; a project that pins its own backend

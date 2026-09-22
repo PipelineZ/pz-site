@@ -220,6 +220,14 @@ merges a YAML default with a call-site override. See
 | A bare `incremental:` block under `read:` | `PZ0332` | The unified `sync: { mode: incremental, cursor: <column> }` block. |
 | `mode:`/`accept_duplicates:` kwargs on a `sink()` call | `PZ0333` | `strategy:`/`duplicates: 'accept'` kwargs, or the equivalent `write:` block here. |
 
+## YAML value typing
+
+Only a **plain** (unquoted) scalar is typed as a number, boolean, or null. A quoted (`"…"`/`'…'`)
+or block (`|`/`>`) scalar always stays a string, whatever it looks like: `password: "0123456"`
+stays the text `0123456`, not the integer `123456`, and `port: "5432"` still reads as text through
+a connector's own string accessor even though `port: 5432` reads as an integer. Quote any
+numeric-looking or boolean-looking value that must stay text.
+
 ## `${VAR}` interpolation
 
 Any scalar value in `connections.yml` may reference an environment variable with `${NAME}`. pz

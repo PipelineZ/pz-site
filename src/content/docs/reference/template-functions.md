@@ -107,7 +107,8 @@ Renders the value of an environment variable.
 WHERE tenant_id = '{{ env('TENANT_ID') }}'
 ```
 
-An unset variable is `PZ0103`.
+An unset variable is `PZ0103`. Interpolating a value is `env()`'s job: its rendered value lands on
+disk like any other rendered SQL, under `.pz/target/manifest.json`.
 
 ## Constants
 
@@ -116,6 +117,11 @@ An unset variable is `PZ0103`.
 | `this` | The current pipeline's own staging table name. |
 | `run_id` | The current run's id, as a string. |
 | `run_started_at` | The current run's start time, ISO 8601, the same value for every pipeline rendered within one run. |
+
+Using `run_id` or `run_started_at` inside a pipeline's SQL changes that pipeline's compiled SQL,
+and so its node id, on every single run. That is a compile-time warning, `PZ0232`, once per
+pipeline: it does not fail the compile, but it means `pz retry` can never match that pipeline's
+node against a prior run, so it is always recomputed rather than reused.
 
 ## The sandbox
 
@@ -144,6 +150,7 @@ instead of silently producing empty output.
 | [`PZ0121`](/reference/error-codes/) | A `retry:` block at a call site is malformed. |
 | [`PZ0201`](/reference/error-codes/) | `source()`/`ref()` is malformed: missing or extra arguments. |
 | [`PZ0208`](/reference/error-codes/) | `sink()` is malformed: missing or extra arguments, or a duplicated keyword. |
+| [`PZ0232`](/reference/error-codes/) | (warning) A pipeline's SQL uses `run_id`/`run_started_at`, which changes its node id every run and defeats `pz retry` matching for it. |
 | [`PZ0318`](/reference/error-codes/) | `rate_limit`/`max_concurrency` passed at a call site instead of the connection. |
 | [`PZ0332`](/reference/error-codes/) | `source()` was passed the retired `incremental` keyword. |
 | [`PZ0333`](/reference/error-codes/) | `sink()` was passed a retired `mode`/`accept_duplicates`/`write` keyword. |

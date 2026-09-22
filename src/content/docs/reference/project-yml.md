@@ -33,6 +33,7 @@ engine:
   batch_bytes: 33554432
   force_universal: false
   check_samples: true
+  node_timeout: 45m
   duckdb:
     memory_limit: 4GiB
     threads: 4
@@ -61,7 +62,7 @@ gets the targeted `PZ0347`.
 | `name` | string | required (`PZ0101`) | The project's identity. Appears in the `run_started` event's `projectName` field. |
 | `version` | string | required (`PZ0101`) | The project's own version string. Free text; nothing checks it. |
 | `pz` | string | none | Engine version constraint, e.g. `">=1.0 <2.0"`. Reserved and accepted; not enforced against the running build yet. |
-| `connectors` | list of `{package, version}` | empty | Non-builtin connector packages `pz restore` resolves. Builtin connectors ([localfiles](/connectors/localfiles/), [postgres](/connectors/postgres/), [s3](/connectors/s3/), [sqlserver](/connectors/sqlserver/), [azureblob](/connectors/azureblob/), [gcs](/connectors/gcs/), [http](/connectors/http/), [mysql](/connectors/mysql/), [sqlite](/connectors/sqlite/), [duckdb](/connectors/duckdb/), [ducklake](/connectors/ducklake/), [motherduck](/connectors/motherduck/), [quack](/connectors/quack/), [iceberg](/connectors/iceberg/), [sftp](/connectors/sftp/)) need no entry. |
+| `connectors` | list of `{package, version}` | empty | Non-builtin connector packages `pz restore` resolves. Builtin connectors ([localfiles](/connectors/localfiles/), [postgres](/connectors/postgres/), [s3](/connectors/s3/), [sqlserver](/connectors/sqlserver/), [azureblob](/connectors/azureblob/), [gcs](/connectors/gcs/), [http](/connectors/http/), [mysql](/connectors/mysql/), [sqlite](/connectors/sqlite/), [duckdb](/connectors/duckdb/), [ducklake](/connectors/ducklake/), [motherduck](/connectors/motherduck/), [quack](/connectors/quack/), [iceberg](/connectors/iceberg/), [sftp](/connectors/sftp/)) need no entry. Quote `version:`, e.g. `version: "1.10"` — a bare decimal like `1.10` is the YAML number `1.1`, a different package, and is refused rather than silently restored wrong. |
 | `vars` | map of name to value | empty | Project variables, read in SQL via `{{ var('name') }}`. Overridable per invocation with `pz run --vars '{...}'`. Values may reference `${VAR}`. |
 | `engine` | map | see below | Concurrency, batching, and DuckDB settings. |
 | `retention` | map, or `off`/`false`/`no` | `keep_last: 10` | Automatic disk reclamation at the end of every run. |
@@ -80,6 +81,7 @@ banana` is refused, never silently defaulted.
 | `batch_bytes` | integer, 1MiB–512MiB | `33554432` (32MiB) | Target size of one Arrow batch on the universal (non-native) execution path. |
 | `force_universal` | bool | `false` | Force every entity through the universal batch path, skipping native scan/copy tiers. |
 | `check_samples` | bool | `true` | Project-wide default for whether a failing check reports sample violating rows. |
+| `node_timeout` | duration | unbounded | The longest one attempt of one node may run before it is cancelled. Applies per attempt, per node — a node retried after a transient failure gets the full duration again. |
 | `duckdb.memory_limit` | string | DuckDB's own default | DuckDB's `memory_limit` setting, e.g. `4GiB`. |
 | `duckdb.threads` | integer | DuckDB's own default | DuckDB's own thread pool size, independent of `engine.threads`. |
 | `duckdb.temp_directory` | string | DuckDB's own default | Where DuckDB spills to disk under memory pressure. |
@@ -90,6 +92,13 @@ banana` is refused, never silently defaulted.
 `failure_threshold` and `cool_down` together; either one alone is `PZ0120`. The same
 `failure_threshold`/`cool_down` pair applies to every connection's own breaker instance; there is
 no per-connection override.
+
+`node_timeout:` is absent by default, meaning no node is ever cancelled for running long. When set,
+an attempt that exceeds it is cancelled: if the node stops in time the attempt fails with `PZ0525`
+and is not retried in the same run (a cancelled attempt can leave half-built staging a second
+attempt would collide with) — `pz retry` reruns it in a fresh run. If the node does not stop within
+a grace period after cancellation, the run raises `PZ0526` and cancels everything else still
+pending, since the unresponsive work may still be holding the run's one DuckDB connection.
 
 ## `retention:`
 
@@ -129,11 +138,12 @@ state:
 | `events` | bool | `false` | `PZ_STATE_EVENTS` | Persist the NDJSON event stream to the backend, in addition to stdout. Requires `artifacts: true` (`PZ0124`). |
 | `url` | URL | none | `PZ_STATE_URL` | `backend: http` only. The run-scoped state endpoint a server issued for this run. Must be an absolute `http`/`https` URL (`PZ0125`). |
 | — | bearer token | none | `PZ_STATE_TOKEN` | `backend: http` only. Sent as `Authorization: Bearer …` when set. No `project.yml` spelling: it is a credential. |
+| `timeout_seconds` | integer, 1–3600 | the HTTP client's own default | `PZ_STATE_TIMEOUT_SECONDS` | `backend: http` only. How long a state request waits before the run's cancellation aborts it. |
 
 Each backend accepts only its own keys; a key from a different backend is `PZ0124`.
 `backend: local` accepts `backend` alone; `backend: sqlserver` adds `connection`/`schema`/
-`artifacts`/`events`; `backend: http` adds `url` (plus `artifacts`/`events`, which may only be
-`false`). An explicit `project.yml` key always wins over its `PZ_STATE_*` counterpart: the
+`artifacts`/`events`; `backend: http` adds `url`/`timeout_seconds` (plus `artifacts`/`events`,
+which may only be `false`). An explicit `project.yml` key always wins over its `PZ_STATE_*` counterpart: the
 environment supplies defaults for a project that expresses no opinion, never an override. Full
 detail is in [Move state off the local disk](/how-to/remote-state/).
 
@@ -165,6 +175,8 @@ publishes a `source_drift_detected` event and continues; `fail` fails the load n
 | [`PZ0331`](/reference/error-codes/) | A source's observed schema drifted from its baseline under `on_source_drift: fail`. |
 | [`PZ0347`](/reference/error-codes/) | A top-level `outputs:` block is present. That block is retired; declare each place as a connection in `connections.yml`. |
 | [`PZ0352`](/reference/error-codes/) | A top-level `feeds:` key is present. Feeds are host configuration now, set via `PZ_FEEDS` or `pz restore --feeds`. |
+| [`PZ0525`](/reference/error-codes/) | A node's attempt ran longer than `engine.node_timeout` and was cancelled. |
+| [`PZ0526`](/reference/error-codes/) | A node cancelled for exceeding `engine.node_timeout` did not stop within the grace period. |
 
 ## Related
 
