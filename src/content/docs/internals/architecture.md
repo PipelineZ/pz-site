@@ -79,7 +79,11 @@ Layering is strictly downward: a project may only reference the ones below it in
 The **Abstractions assembly is the contract of the whole ecosystem**. It changes under a
 strict additive-only compatibility policy: growth happens through new optional capability
 interfaces and new `ConnectorCapabilities` flags, never through a breaking change to an
-existing interface. See [Connector architecture](/internals/connector-architecture/).
+existing interface. Growth stays forward-compatible at the wire level too: a connector built on a
+newer SDK than a given `pz`'s own Abstractions may declare a capability bit that build doesn't
+define, and the host treats that as a one-time warning rather than a handshake failure, masking
+the unknown bit out before comparing or naming capabilities. See
+[Connector architecture](/internals/connector-architecture/).
 
 ## The two-tier data plane
 

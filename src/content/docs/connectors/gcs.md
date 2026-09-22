@@ -37,7 +37,8 @@ lake:
 created under **Cloud Storage → Settings → Interoperability** for a service account with the
 right role on the bucket. `auth: adc` needs no further fields: it resolves Application Default
 Credentials from `gcloud auth application-default login`, `GOOGLE_APPLICATION_CREDENTIALS`, or the
-metadata server on GCP compute.
+metadata server on GCP compute. A relative `key_file` resolves against the project directory, not
+the process's working directory.
 
 A source opened on a `service_account`/`adc` connection is refused at open, naming `hmac` as the
 fix: there is no universal read tier for this connector, so that is a refusal, not a fallback.
@@ -113,6 +114,9 @@ timestamp value using the same tokens.
   `files_per_partition`) fails with `PZ0312`: `hmac` reads have no universal path at all.
 - Any other S3-compatible store, not just GCS, stays reachable through the `s3` connector's own
   `endpoint` override.
+- An object key is an opaque slash-delimited string with no filesystem resolution behind it, so a
+  `..` segment anywhere in `path` is always refused with [`PZ0365`](/reference/error-codes/),
+  naming the connection and dataset/output — regardless of whether `root:` is declared.
 - `xlsx` and `avro` run through DuckDB's `excel`/`avro` extensions, installed and loaded on first
   use under `hmac` — see [DuckDB extensions](/concepts/connections-and-entities/#duckdb-extensions)
   for the one-time network download this needs.

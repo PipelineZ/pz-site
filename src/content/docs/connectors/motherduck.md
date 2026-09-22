@@ -46,7 +46,7 @@ bounded window pushed into the query, so MotherDuck returns only the rows the ru
 
 | Strategy | What runs |
 |---|---|
-| `append` | `create table if not exists` from the staged rows' shape, then `insert`. |
+| `append` | `create table if not exists` from the staged rows' shape, then `insert`, matched by column name rather than position. |
 | `replace` | One `create or replace table … as select`. |
 | `merge` | One `merge into`, matched on `keys:`, executed by MotherDuck. Matched rows update, unmatched rows insert, and an empty batch leaves the target untouched. |
 
@@ -82,10 +82,17 @@ The connector does not declare `Transactional`: commit semantics belong to Mothe
 
 - `motherduck` is native-only. Declaring `engine.force_universal` on a `motherduck` entity fails
   at plan time; remove that setting instead.
+- **`append` matches columns by name, not position.** A target column the pipeline does not
+  produce keeps its existing default; a column the pipeline produces that the target lacks is an
+  error naming it.
 - **One token per run.** The extension accepts a token only once per process, before its first
   attach. Every connection in a run that uses the same `database` and `token` shares that one
   setup. A second connection with a different token fails its own setup with a redacted error.
-  Use one token per project.
+  Use one token per project. `pz validate` catches this ahead of a run: two `motherduck`
+  connections that declare different tokens produce a [`PZ0311`](/reference/error-codes/) warning
+  naming both connections and comparing the resolved tokens, never printing either — this warning
+  does not fail validation, since a project whose runs each touch only one of the connections is
+  sound.
 - **The token never appears in an error.** It rides a session setting, not the attach string. A
   wrong token fails as a permanent, redacted error that names only `md:<database>`.
 - **Duplicate keys within a merge batch collapse to one survivor.** MotherDuck matches every staged

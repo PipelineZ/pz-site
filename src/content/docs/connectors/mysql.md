@@ -73,6 +73,10 @@ upsert, and the connector declares no `Merge` capability.
   time with [`PZ0312`](/reference/error-codes/); remove that setting instead.
 - The MySQL-side `strategy: replace` swap is not atomic: the extension's `OR REPLACE` is a drop and
   create, and MySQL DDL commits implicitly. `mysql` does not declare `Transactional`.
+- **`append` matches columns by name, not position.** Appending into a table that predates the
+  pipeline, or whose column order differs from the pipeline's select list, lands every value under
+  its own column name rather than by position. A target column the pipeline does not produce keeps
+  its existing default; a column the pipeline produces that the target lacks is an error naming it.
 - `pz validate --connect` checks reachability and server version over a raw TCP probe, not
   credentials. A bad password surfaces only at run time.
 

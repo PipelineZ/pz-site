@@ -124,7 +124,18 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    Declare only what's true. A connector that claims `Merge` without actually handling
    `mode: merge` in `BeginWriteAsync` is a defect the conformance suite (next step) exists to
    catch. The full capability list and what each flag means for a run's delivery guarantees is in
-   [Connector architecture](/internals/connector-architecture/#connectorcapabilities).
+   [Connector architecture](/internals/connector-architecture/#connectorcapabilities). A source
+   with no universal read path at all implements the marker interface `INativeOnlySource` instead
+   of declaring a flag; the SDK derives `ConnectorCapabilities.NativeOnlyRead` from it for the
+   manifest and the handshake, so `pz connector test` knows to skip the vectors that need a real
+   `PlanRead` to succeed.
+
+   A sink can also implement `IOutputConfigSchema` to get its `write:`/`sink()` options validated
+   at `pz validate` the same way `DatasetConfigSchema` already validates read options — a JSON
+   Schema for the options your `BeginWriteAsync`/write session actually reads, excluding the
+   engine-owned keys (`strategy`, `keys`, `duplicates`, `on_delete`, `schema_policy`, `retry`),
+   which never reach it. A sink that skips the interface keeps working exactly as before: its
+   write options simply aren't checked for typos ahead of a run.
 
 5. **Write the connector manifest.** A connector package ships a `pz.connector.json` file at its
    root, read before pz spawns or loads anything:
@@ -139,7 +150,10 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    `Pz.Connectors.Abstractions` protocol majors your connector supports. `runtime: "process"`
    plus `entrypoints` is what makes an external package loadable at all: an external connector
    with no `runtime: "process"` manifest, or none at all, is refused with `PZ0360` when pz
-   builds its connector registry, before spawning anything.
+   builds its connector registry, before spawning anything. The C# SDK also writes an `sdk: {
+   "name": ..., "version": ... }` block identifying itself; you never author this by hand (see
+   [C# SDK](#c-sdk) below) — it shows up in `pz connectors`' `sdk` column and in a handshake
+   failure's message.
 
    Pack it at the root of the nupkg:
 
@@ -173,6 +187,14 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    `--config` names a YAML file with the connection to configure and the `read:`/`write:`
    entity to probe. This is the one `pz` verb with no `--project`: it targets a connector package
    directly, not a project.
+
+   Two of its vectors are worth knowing about ahead of time. **`numeric-option-fidelity`** proves a
+   whole number survives the wire round-trip (protobuf's `Struct` has only a `number` type, so an
+   SDK must turn an integral double back into an integer on receipt); it needs no author effort on
+   a current SDK, and reports Skip rather than Fail against an older one. **The schema/batch,
+   cancellation, and ticket-handling vectors report Skip, not Fail, against a source that declares
+   `NativeOnlyRead`** (see step 4) instead of demanding a `PlanRead` result such a source can never
+   give.
 
 7. **Package it as a NuGet package.** A connector is an ordinary NuGet package. Tag it
    `pipelinez-connector` in `<PackageTags>`, the ecosystem's discovery tag, and name it under your
@@ -249,6 +271,17 @@ Rules the SDK enforces so a connector cannot lie to the host:
   through the `Configure` RPC.
 - **Logging** goes to the host as connector log events, rendered verbatim: never log configuration
   values or payloads.
+- **Stdout is discarded; stderr is the diagnostic channel.** The host drains and throws away
+  whatever your process writes to stdout — never write your own diagnostics there, since nothing
+  reads them and a connector that writes enough of it with no newline could otherwise block on a
+  full pipe. A bounded tail of stderr is folded into a failure's message, so an unhandled
+  exception or a crash still surfaces something to `pz run`'s output. Prefer logging through the
+  SDK (above) over stderr where you can: it reaches the host as a structured, per-connection event
+  rather than free text.
+- **Reading a numeric option.** `ConnectorConfig.GetInt` and its siblings turn an integral double
+  within ±2^53 back into an integer; a fractional or non-finite value is refused rather than
+  silently rounded. protobuf's `Struct` type has no integer of its own, so this is what makes
+  `max_pages: 50000` in YAML arrive as the integer your code expects rather than `50000.0`.
 
 ### Telemetry
 

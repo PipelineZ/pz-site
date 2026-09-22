@@ -122,6 +122,15 @@ off (`access_delegation_mode 'none'`): the keys are the data-plane credential th
 them, a REST catalog is expected to vend storage credentials (Polaris, S3 Tables, Glue, and R2 all
 do).
 
+`storage_scope:` (optional, on any catalog) is a URL-shaped prefix (`s3://bucket/prefix/`,
+`abfss://container@account/prefix/`, `az://bucket/prefix/`) that becomes the storage secret's
+DuckDB `SCOPE`. Without it, a catalog connection's storage secret is unscoped — fine with one such
+connection, but two catalog connections that both declare storage credentials with no scope create
+two unscoped secrets of the same type, and DuckDB's matching among them is not deterministic.
+Setting `storage_scope:` on each gives DuckDB an unambiguous secret to pick. It is never echoed on
+failure, the same as `warehouse`, since a URL can carry embedded credentials. A `files` connection
+already scopes its secret to `root`; an explicit `storage_scope:` overrides that.
+
 ### Optional: Azure storage (`storage: azure`)
 
 ```yaml title="connections.yml"
@@ -161,8 +170,11 @@ because `client_id`/`client_secret` already name a REST catalog's OAuth2 pair he
 Every S3 key is refused under `azure` and every Azure key under `s3`; `storage: azure` is refused
 on `glue`/`s3_tables`. A `files` root with an Azure scheme infers `storage: azure` and needs a
 `storage_auth` (nothing vends credentials for a bare root); a `rest` catalog may omit
-`storage_auth`, in which case the catalog is expected to vend Azure SAS credentials. The
-connection loads DuckDB's `azure` extension and, when a method is declared, builds a `type azure`
+`storage_auth`, in which case the catalog is expected to vend Azure SAS credentials.
+`storage_scope:` (above) works the same way here, scoping a catalog connection's Azure secret so
+two catalog connections with different Azure storage credentials don't compete as unscoped
+secrets of the same type. The connection loads DuckDB's `azure` extension and, when a method is
+declared, builds a `type azure`
 secret — scoped to a `files` root, unscoped on a catalog — and switches the REST catalog's
 credential vending off exactly as explicit S3 keys do. As with S3, DuckDB prefers a longer-scoped
 secret for any path one covers, so an azureblob connection's scoped secret wins over an iceberg
@@ -230,7 +242,7 @@ so a first run needs no pre-created namespace or table. Then:
 
 | Strategy | What runs |
 |---|---|
-| `append` | `INSERT INTO ... SELECT * FROM {{source}};` — one `append` snapshot. An incremental source feeding an append sink still needs `write: { duplicates: accept }` (`PZ0214`). |
+| `append` | `INSERT INTO ... BY NAME SELECT * FROM {{source}};` — one `append` snapshot, matched by column name rather than position. An incremental source feeding an append sink still needs `write: { duplicates: accept }` (`PZ0214`). |
 | `replace` | `BEGIN TRANSACTION; DELETE FROM …; INSERT INTO … SELECT * FROM {{source}}; COMMIT;` |
 | `merge` | `MERGE INTO … USING (… QUALIFY row_number() OVER (PARTITION BY <keys>) = 1) … WHEN MATCHED THEN UPDATE WHEN NOT MATCHED THEN INSERT;` |
 
@@ -286,6 +298,9 @@ datasets get a clear refusal. Plain `pz validate`, `pz run`, and the `on_source_
 
 - `iceberg` is native-only. Declaring `engine.force_universal` on an `iceberg` entity fails at
   plan time; remove that setting instead.
+- **`append` matches columns by name, not position.** A target column the pipeline does not
+  produce keeps its existing default; a column the pipeline produces that the target lacks is an
+  error naming it.
 - **Credentials never ride the attach string.** A bearer token or OAuth2 client pair builds a
   `type iceberg` DuckDB secret the attach references by name; AWS catalogs sign with a `type s3`
   secret (explicit keys, or `provider credential_chain`); storage keys build a `type s3` secret
