@@ -43,6 +43,16 @@ crm:
 
 An unset `${VAR}` fails fast at load time rather than connecting to something unintended.
 
+### A connection name is an identifier
+
+A connection's name is interpolated, unquoted, into the staging relation `pz` reads it under
+(`src_<connection>__<entity>`), so it must be a legal identifier: ASCII letters, digits, and
+underscores only, and it cannot start with a digit. A name that doesn't match, such as
+`my-warehouse`, is refused with a concrete rename suggested. A connection name additionally cannot
+contain `__` — that's the separator between the connection and entity halves of the staging name,
+and a connection carrying it (`erp__mart`) could collide with an entirely different connection
+(`erp`) reading an entity that happens to start with `mart__`.
+
 ### Six reserved keys
 
 At the connection level, `pz` owns six keys. A connector cannot declare a config option with

@@ -57,6 +57,17 @@ checks:
 Only a non-ephemeral pipeline can carry checks: an ephemeral pipeline produces no node for a
 check to depend on. See [Pipelines](/concepts/pipelines/) for what makes a pipeline ephemeral.
 
+### Check node names
+
+Each check compiles to a node named after its pipeline, type, and columns —
+`check_<pipeline>_<type>_<columns>` (or `check_<pipeline>_<name>` for `custom_sql`, using its
+`name` option) — which is what `--select` and console output show. When two distinct checks on
+one pipeline would land on the same conventional name, such as two `row_count` checks or
+`not_null: [a_b]` beside `not_null: [a, b]`, the later ones get a numeric suffix: `_2`, `_3`, and
+so on. The first check to claim a name keeps the plain conventional name, so a project with no
+collisions is unchanged. Two checks that are entirely identical — same type, same columns, same
+options — are refused at compile time (`PZ0113`) rather than silently deduplicated.
+
 ### Checks observe, they don't gate
 
 A check node depends only on the pipeline it checks. It has no edge to that pipeline's sink

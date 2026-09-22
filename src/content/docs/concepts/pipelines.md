@@ -15,6 +15,13 @@ A pipeline is one `.sql` file under `pipelines/`, named after its file. `stg_ord
 pipeline named `stg_orders`. There is no YAML frontmatter and no separate registration: every
 `.sql` file in that directory is a pipeline.
 
+A pipeline's name is interpolated, unquoted, into its staging table (`staging.<name>`), so the
+file stem must be a legal identifier: ASCII letters, digits, and underscores only, and it cannot
+start with a digit. `01_load.sql` is refused with a concrete rename suggested (`load_01`); DuckDB
+reserved words are fine, since the name is always schema-qualified. A non-ephemeral pipeline also
+can't be named the same as a source's own staging relation (`src_<connection>__<entity>`), since
+that would collide with a real node.
+
 ## Why it matters
 
 A pipeline's SQL is the whole story: what feeds it, what it computes, and where it loads,
@@ -73,6 +80,11 @@ Going further, a sidecar config can set `materialization: ephemeral` on a pipeli
 pipeline is inlined as a CTE into every pipeline that `ref()`s it, instead of getting its own
 node in the graph. Because it never gets a node, an ephemeral pipeline cannot call `sink()`,
 cannot declare checks, and cannot `ref()` another ephemeral pipeline.
+
+Inlining goes through DuckDB's own SQL parser, not a text splice, so a consumer's compiled SQL —
+what `pz compile` shows and what actually runs — is DuckDB's own rendering of the combined query:
+comments are dropped and keywords are normalized, whether the consumer already opens with `WITH`
+(including `WITH RECURSIVE`) or not.
 
 ### The sidecar config
 

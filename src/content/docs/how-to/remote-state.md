@@ -52,7 +52,11 @@ endpoint instead. Read it once a project needs to run somewhere with no durable 
 
    `backend: http` covers watermarks and sync state only. Run results and the event stream stay
    local (`run_results.json` and stdout). Set `PZ_STATE_TOKEN` if the endpoint requires a bearer
-   token; `pz` sends it only when the variable is set.
+   token; `pz` sends it only when the variable is set. Set `timeout_seconds` (or
+   `PZ_STATE_TIMEOUT_SECONDS`) to bound how long one state request may take (default 100 seconds);
+   a request that runs past it fails with `PZ0518`. Cancelling the run aborts an in-flight request
+   regardless. Sending a bearer token to a plain `http://` URL warns (`PZ0530`)
+   unless the URL is a loopback address.
 
 3. **Grant DDL rights on the target database**, under `backend: sqlserver`. `pz` issues
    `CREATE SCHEMA`/`CREATE TABLE` on first use and migrates forward on every later connection.
@@ -99,9 +103,12 @@ but not incorrect.
 |---|---|
 | `PZ0124` | `state:` sets a key that belongs to a different backend, such as `schema` under `backend: http`. Check which keys each backend accepts in [State](/concepts/state/#state-backends). |
 | `PZ0125` | `state.connection` names a connection that doesn't exist or isn't `connector: sqlserver`, or a backend is missing its required credential (`state.connection` or `PZ_STATE_CONNECTION_STRING` for `sqlserver`; `state.url` or `PZ_STATE_URL` for `http`). |
-| `PZ0518` | The state database or HTTP endpoint can't be reached, or answered something the contract doesn't allow. Check network access and credentials before anything else. |
+| `PZ0518` | The state database or HTTP endpoint never answered at all — unreachable, or authentication failed before a response came back. Check network access and credentials before anything else. |
 | `PZ0519` | The connection succeeded but the schema is newer than this build understands, or DDL was refused. Check the account's DDL rights on that schema first, not the network. |
 | `PZ0520` | Two runs advanced the same watermark concurrently. Confirm nothing else is scheduled against the same project and state store at the same time. |
+| `PZ0528` | Another process is migrating (or is stuck holding the migration lock on) the same SQL Server schema. Retry; this isn't a DDL-rights problem. |
+| `PZ0529` | The store was reached, but the operation itself failed — a permanent SQL error, an exhausted transient-retry budget, or an unexpected HTTP status. Distinct from `PZ0518`: connectivity is fine here. |
+| `PZ0530` | (warning) A bearer token is being sent to a plain `http://` state URL. Move the endpoint to `https://`, or ignore it for a deliberately loopback/VPN-only endpoint. |
 
 ## Related
 
@@ -109,4 +116,4 @@ but not incorrect.
 - [Environment variables](/reference/environment-variables/#state-backend-variables): every `PZ_STATE_*` variable and the `project.yml` key it defaults.
 - [project.yml reference](/reference/project-yml/#state): the complete `state:` key table.
 - [Run in CI](/how-to/run-in-ci/): pointing a CI job's ephemeral `.pz/` at a remote state store.
-- [Error codes](/reference/error-codes/): what `PZ0124`, `PZ0125`, `PZ0518`, `PZ0519`, and `PZ0520` mean in full.
+- [Error codes](/reference/error-codes/): what `PZ0124`, `PZ0125`, `PZ0518`, `PZ0519`, `PZ0520`, `PZ0528`, `PZ0529`, and `PZ0530` mean in full.

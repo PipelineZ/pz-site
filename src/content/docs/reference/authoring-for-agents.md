@@ -73,6 +73,19 @@ my-project/
     root: out   # a source() write lands under out/<entity>/ unless overridden per entity
   ```
 
+  `format:` on a file-place entity (localfiles, s3, gcs, azureblob, sftp) is one of `csv`, `tsv`,
+  `parquet`, `json`, `xlsx`, `avro`. Format-scoped options sit beside it, in YAML or as
+  `source()`/`sink()` kwargs: `delimiter: "|"` (csv only, one ASCII character; tsv is fixed to tab),
+  `layout: ndjson | array` (json only; `ndjson` is the default, `array` is one top-level JSON array
+  and is native-tier only, so sftp refuses it with PZ0361). An option on the wrong format is
+  PZ0362. A read with no `path:` is `<root>/<entity>.<format>`; a sink file is `<entity>.<format>`.
+  `xlsx` (read and write, options `sheet:` and `header:`, one workbook per entity) and `avro` (read
+  only) use DuckDB's `excel` and `avro` extensions, installed on first use (needs network once per
+  machine and DuckDB version, cached under `~/.duckdb/extensions/`); both are native-tier only, so
+  sftp refuses them with PZ0361. With `header: false` DuckDB names xlsx columns `A1`, `B1`, …, so a
+  `columns:` contract must use those names. xlsx write is localfiles-only (an s3/gcs/azureblob xlsx
+  sink is PZ0361); xlsx read works on all four.
+
   An entity does not have to be declared in YAML at all — see [Two surfaces, one
   declaration](#two-surfaces-one-declaration-pz0341) below. `sources:`/`sinks:` directories and a
   top-level `outputs:` block are retired (`PZ0346`/`PZ0347`); everything is one `connections.yml`.
@@ -111,7 +124,7 @@ between the two surfaces is cut-and-paste. Declaring the same entity-side in bot
 Read, declared at the call site:
 
 ```sql
-JOIN {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }} as c
+join {{ source('crm', 'customers', path: 'data/customers.csv', format: 'csv') }} as c
 ```
 
 Read, declared in YAML instead (`connections.yml`):
@@ -178,14 +191,14 @@ contract or `sync:` block required for a plain floor:
 
 ```sql
 INSERT INTO {{ sink('mart', 'mart.orders_current', strategy: 'merge', keys: ['order_id']) }}
-SELECT
+select
     order_id,
     customer_id,
     amount,
     status,
     updated_at
-FROM {{ source('erp', 'dbo.orders', partition_column: 'order_id', partitions: 4, retry: { max_attempts: 3 }) }}
-WHERE updated_at > {{ watermark('erp', 'dbo.orders') }}
+from {{ source('erp', 'dbo.orders', partition_column: 'order_id', partitions: 4, retry: { max_attempts: 3 }) }}
+where updated_at > {{ watermark('erp', 'dbo.orders') }}
 ```
 
 The recognized shape is an ordered comparison — `<cursor column>` followed by `>`, `>=`, `<`, or
@@ -217,8 +230,8 @@ explicitly with `duplicates: 'accept'`:
 -- Incremental extraction paired with an append sink is at-least-once ... pz refuses this
 -- pairing at compile time (PZ0214) unless you consent -- which a delta log deliberately does.
 INSERT INTO {{ sink('lake', 'issues_log', format: 'parquet', path: 'out/issues/', strategy: 'append', duplicates: 'accept') }}
-SELECT id, number, title, state, updated_at
-FROM {{ source('github', 'issues') }}
+select id, number, title, state, updated_at
+from {{ source('github', 'issues') }}
 ```
 
 An incremental source feeding `replace` is refused outright (`PZ0335`, no consent escape — a
@@ -236,6 +249,19 @@ in-process loading is reserved for builtins — declared in the package's `pz.co
   Resolved with `RuntimeIdentifierGraph` fallback (a package shipping only `linux-x64` is still
   reachable from `linux-musl-x64`), and rejected if a path would resolve outside the package
   directory.
+- `sdk: {name, version}` — which SDK built the connector and at what version, distinct from the
+  connector's own `name`/entrypoint version. Additive: absent on a manifest written before this
+  existed, which reads as an unnamed SDK, never a handshake disagreement. Both SDKs' Hello echoes
+  the same name/version, and `pz connectors`/`pz connector test`/PZ0356/PZ0357 show it.
+- The host masks `CheckpointableReads`, `CheckpointableWrites`, and `ChangeCapture` until they are
+  wired over the wire; declared flags whose ABI interface the host shim does not implement
+  (`StreamingPartitions`) take the materialized path. `SyncState` (opaque-token feeds) is honored:
+  the connector answers `GetNaturalReadShape` (FEED/FULL per dataset, plan-time, offline) and
+  `GetReadState` (the partition's token, pulled by the host after the drain completed). A
+  connector that never implements `GetNaturalReadShape` reads as FULL. A FEED dataset always takes
+  the arrow path: the token is captured from the drained partition, which a native scan never
+  drains, so the planner routes around any native scan the connector offers for it (a native-only
+  connector is refused, `PZ0363`).
 
 This is packaging-time detail an agent authoring `connections.yml`/pipelines never touches
 directly — the connector's `connector:` name in `connections.yml` and its `ConnectionConfigSchema`/
@@ -245,6 +271,26 @@ directly — the connector's `connector:` name in `connections.yml` and its `Con
 `max_concurrency`/`rate_limit`/`retry`, default `false`. A native scan/copy that would load an
 unsigned packaged DuckDB extension is refused at plan time (`PZ0359`) unless the connection sets
 `allow_unsigned_extensions: true`.
+
+**Writing one in C# — `Pz.Connectors.Sdk`.** Implement `ISourceConnector` and/or `ISinkConnector`
+from `Pz.Connectors.Abstractions` exactly as a builtin would, then serve it with one line:
+`return await PzConnectorHost.RunAsync(args, new MyConnector());` (or
+`RunAsync(args, ctx => new MyConnector(ctx.LoggerFactory))` to log to the host). The SDK answers every
+optional RPC from the interfaces your objects actually implement — a source that is not
+`INaturalReadShapeSource` answers UNIMPLEMENTED, a partition that is not `ISyncStatePartition` answers
+FAILED_PRECONDITION — so declare only capabilities you implement; `pz connector test` fails the rest.
+The SDK captures the sync-state token itself when a partition's enumeration completes, before it
+writes end-of-stream: set the candidate anywhere before your iterator returns. Two argv modes only:
+`--pz-socket <path>` (serve) and `--pz-manifest --out <file>` (write `pz.connector.json` from the
+connector object); configuration never travels on argv. Packaging: the project file carries
+`<PublishAot>true</PublishAot>` (NuGet restore never sees the SDK's own build files, so the Native
+AOT compiler pack is restored only when the project asks for it; a publish that would otherwise fall
+back to a CoreCLR layout fails with `PZSDK005`), then `dotnet publish -r <rid>` per platform (Native
+AOT by default; `<PzPackaging>self-contained</PzPackaging>` opts out and turns `PublishAot` back
+off), then `dotnet pack -p:PzNativeStaging=<dir>` collects every RID under `runtimes/<rid>/native/`
+with the generated manifest at the nupkg root — the layout `pz restore` already installs. Set
+`<PzProjectDirectoryAnchor>true</PzProjectDirectoryAnchor>` when the connector resolves relative paths
+in its own config; `pz` then passes the project directory as the `base_dir` connection option.
 
 **PCP error codes:**
 
@@ -257,6 +303,7 @@ unsigned packaged DuckDB extension is refused at plan time (`PZ0359`) unless the
 | `PZ0358` | The connector process died unexpectedly mid-operation. |
 | `PZ0359` | An unsigned packaged DuckDB extension was refused for a native scan/copy; set `allow_unsigned_extensions: true` on the connection to allow it. |
 | `PZ0360` | An external connector package declares runtime `"dotnet"` (or ships no manifest) — external connectors are hosted out of process only. Use a `runtime: "process"` (PCP) package or a builtin. |
+| `PZ0363` | A token-resumed dataset (feed-shaped, or `sync: {mode: cdc}`) sits on a native-only connector; a native scan never drains the partition the sync token is captured from, so the dataset could never advance. Use a connector with an arrow read path, or a full / cursor-incremental read. |
 
 **`pz connector test <entrypoint-or-package-dir> [--config file.yml]`** — runs black-box PCP
 protocol conformance checks against one out-of-process connector, independent of any pz project.
@@ -264,9 +311,12 @@ The target is a package directory containing `pz.connector.json` or a bare entry
 `--config` names the connection to configure and the `read:`/`write:` dataset(s) to probe (a
 `connection:` block plus optional `read: { dataset: ... }` and/or `write: { output: ..., mode: ...,
 schema_policy: ... }`). Every applicable vector runs regardless of earlier failures, printed as one
-`PASS`/`FAIL`/`SKIP <vector>[: detail]` line each. Exit codes: `0` every applicable vector passed,
-`1` one or more vectors failed, `2` a config/usage problem (bad target, malformed manifest or
-`--config`) meant no vector could even be attempted.
+`PASS`/`FAIL`/`SKIP <vector>[: detail]` line each. A connector declaring `SyncState` additionally
+runs `sync-state-roundtrip` (FEED shape, one `sync_state` partition, a non-empty token after a full
+drain, and that token accepted back as `prior_sync_state`); it is skipped for connectors that do not
+declare the flag. Exit codes: `0` every applicable vector passed, `1` one or more vectors failed,
+`2` a config/usage problem (bad target, malformed manifest or `--config`) meant no vector could even
+be attempted.
 
 ## Recommended tool loop
 

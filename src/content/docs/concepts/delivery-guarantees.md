@@ -81,6 +81,11 @@ inside the [staging database](/concepts/key-concepts/) and are cheap either way.
 fall back: a reused read that no longer matches what was recorded, or a staged table that is
 missing or unreadable, re-extracts instead of failing the retry outright.
 
+A sink write's `keys:`, `duplicates:`, and `on_delete:` are part of what identifies its node, not
+just how it writes: changing one of them changes the node's id, so `pz retry` re-runs that sink
+instead of carrying its prior commit forward. `retry:` is not part of that identity, since it only
+changes how this attempt approaches the write, not what gets committed.
+
 ### The flaky-source contract for bounded windows
 
 An incremental read with `max_window` set exists partly to protect the destination from a
@@ -94,6 +99,17 @@ That promise only holds if the connector actually applies the upper bound during
 rather than reading past it. pz calls this its `BoundedWindow` capability, and treats it as
 load-bearing: declaring `max_window` on an entity whose connector does not declare `BoundedWindow`
 is refused at plan time, `PZ0313`, rather than silently extracting more than the window promised.
+
+### A watermark that can't be persisted never fails the run
+
+Once every downstream sink for an incremental dataset has committed, pz tries to persist its new
+watermark or sync-state token. That persist is isolated per dataset: a failure on one dataset
+costs only that dataset its advancement, and every other dataset in the run still advances
+normally. The run itself still succeeds, with a `PZ0527` notice naming every dataset that didn't
+advance and why — the data was already delivered, so failing the run over a bookkeeping write
+would be the wrong trade. The next run for an affected dataset re-extracts from the previous
+watermark instead of the one that should have landed: harmless into `merge`/`replace` outputs,
+duplicate rows into an `append` output that already accepted duplicates.
 
 ### `--full-refresh`
 
@@ -152,6 +168,7 @@ instead of re-running the pipeline, and only `lake.order_totals` actually execut
 | [`PZ0214`](/reference/error-codes/) | An incremental or windowed read feeds an `append` write with no `duplicates: 'accept'` consent. |
 | [`PZ0313`](/reference/error-codes/) | `max_window` is set on an entity whose connector does not declare `BoundedWindow`. |
 | [`PZ0324`](/reference/error-codes/) | A write strategy the target connector's capabilities do not support. |
+| [`PZ0527`](/reference/error-codes/) | (notice, exit 0) One or more datasets' watermark or sync state could not be persisted after their sinks committed. |
 
 ## Related
 

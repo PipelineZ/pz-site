@@ -73,6 +73,12 @@ WHERE updated_at > {{ watermark('raw', 'orders') }}
 file names the whole story, extract through load, including that the read is incremental. An
 entity is declared incremental either in YAML or through `watermark()` in SQL, never both.
 
+Every `watermark()` comparison for the same connection and entity must agree on which column is
+the cursor. `updated_at > {{ watermark(s, e) }} and created_at < {{ watermark(s, e) }}` leaves no
+single column to store as the dataset's cursor, and is refused at compile time (`PZ0231`). Two
+comparisons that agree on the same column, such as a lower bound paired with a recognized ceiling,
+are unaffected.
+
 ### Bounded windows: `max_window`, `initial`, `until`
 
 Add these keys alongside `cursor:` to bound each run to a fixed-size slice instead of one
