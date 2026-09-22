@@ -503,9 +503,9 @@ unanticipated internal error (`PZ0500`); without it, only the error type and mes
 
 A stop signal — Ctrl-C, `SIGTERM` (the default stop signal of systemd, Docker, Kubernetes, and
 Airflow), or `SIGHUP` (a closing terminal or SSH session) — winds a run down cooperatively
-instead of killing the process outright: the first signal cancels the run and lets it finish
-committing sinks, writing `run_results.json`, and letting connector processes clean up, however
-long that takes. A second signal is left unhandled and terminates the process immediately, so a
+instead of killing the process outright: the first signal cancels the run cooperatively, so
+in-flight nodes stop at their next cancellation point, pending ones are skipped,
+`run_results.json` records the final status, and connector processes get to clean up. A second signal is left unhandled and terminates the process immediately, so a
 run that will not wind down never traps an operator or a supervisor's stop sequence. `SIGQUIT` is
 left alone, for an operator to request a stuck process's dump.
 

@@ -58,6 +58,12 @@ package to an exact version. It is generated, but it is not gitignored: commit i
 machine and CI run resolves the identical package graph. `pz run` and `pz validate` check it
 against `project.yml` and refuse to proceed on drift unless you pass `--no-lock-check`.
 
+The lock pins content as well as versions: every installed file carries a `sha512`. A later
+`pz restore` restores exactly the locked versions and refuses a package whose download hashes
+differently (`PZ0327`), and loading refuses an installed file that changed after restore
+(`PZ0326`). To move to newer versions after editing `project.yml`, run `pz restore --update`,
+which re-resolves every connector and rewrites the lock.
+
 ## `connections.yml`
 
 One file, at the project root, that declares every place the project talks to. Each top-level
