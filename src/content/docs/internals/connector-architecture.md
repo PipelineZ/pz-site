@@ -214,6 +214,13 @@ child process end to end:
   `PZ0354`. `PZ0356`/`PZ0358` name the child's exit code and, on Unix, the signal it decodes to
   (`exited with code 137 (signal SIGKILL)`), when the process has already exited by the time the
   failure is diagnosed.
+- **A connector must not outlive a host that died.** The shutdown ladder only runs if the host's
+  own code does; a host killed outright (a crash, `kill -9`, `taskkill /f`) never gets there. Two
+  backstops cover that case. Both SDKs exit on their own when the control connection closes without
+  a `Shutdown` RPC, which is what a dead host looks like from the child's side, and `pz connector
+  test` checks it (the `exits-on-connection-loss` vector). On Windows the host also assigns every
+  child to a Job Object with kill-on-close, so the OS kills the children when the host process
+  goes away by any means, even a connector that ignores its control connection.
 - **An unrecognized capability bit is a warning, never a handshake failure.** A connector built on
   a newer SDK than the host's own `Pz.Connectors.Abstractions` may declare a capability bit this
   build doesn't define; the host masks unknown bits out before comparing or naming capabilities and
@@ -232,7 +239,10 @@ child process end to end:
   than streaming partitions lazily.
 
 `pz connector test <entrypoint-or-package-dir> [--config file.yml]` runs black-box PCP protocol
-conformance checks against one out-of-process connector, independent of any pz project.
+conformance checks against one out-of-process connector, independent of any pz project. Its
+`exits-on-connection-loss` vector spawns a separate instance, closes the control connection
+without sending `Shutdown`, and fails if the process is still running after a grace period, since
+a connector that waits only for the `Shutdown` RPC would linger forever after a host crash.
 
 ### RPC surface
 
