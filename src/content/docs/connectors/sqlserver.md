@@ -38,6 +38,8 @@ erp:
 | `authentication` | No | – | Passed through to SqlClient, for example `Active Directory Default`. |
 | `encrypt` | No | – | Boolean, forces or disables connection encryption. |
 | `trust_server_certificate` | No | – | Boolean, skips certificate validation. |
+| `connect_timeout_seconds` | No | driver default (15s) | Connection timeout, 1–3600 seconds. |
+| `command_timeout_seconds` | No | driver default (30s) | Per-command timeout, 0–86400 seconds; `0` is unbounded. The sink's own large merge/clear/delete-apply commands always run unbounded regardless of this setting. |
 
 ## Read options
 

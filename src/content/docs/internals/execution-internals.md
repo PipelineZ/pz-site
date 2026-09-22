@@ -29,8 +29,10 @@ Every node gets a **stable, content-addressed id**: a hash of its rendered SQL o
 config, not of when it was compiled. Same inputs, same id, every run. That single property is
 what lets `pz retry` and incremental watermarks recognize "the same node" across runs without
 any separate identity scheme. `ReadHints`, the column and predicate pushdown extracted from
-pipeline SQL, feed into a `SourceLoad`'s content hash too, so a pipeline edit that changes what
-gets pushed down changes the node's identity.
+pipeline SQL (see [Connector architecture: `ReadHints` extraction and
+joins](/internals/connector-architecture/#readhints-extraction-and-joins) for the join-aware
+rules), feed into a `SourceLoad`'s content hash too, so a pipeline edit that changes what gets
+pushed down changes the node's identity.
 
 Nodes are topologically sorted with Kahn's algorithm (`TopologicalSortOrThrow`) and
 deterministic tie-breaking, so a `ref()` cycle fails with a named `dependency cycle: a -> b -> a`

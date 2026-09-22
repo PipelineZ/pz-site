@@ -47,7 +47,7 @@ different from the other DuckDB-family connectors:
 
 | Strategy | What runs |
 |---|---|
-| `append` | `create table if not exists` from the staged rows' shape, then `insert`. |
+| `append` | `create table if not exists` from the staged rows' shape, then `insert`, matched by column name rather than position. |
 | `replace` | One `create or replace table … as select`. |
 | `merge` | Merge-by-replace: pull the target, merge it with the staged rows locally, and rewrite the whole remote table in one `create or replace table`. |
 
@@ -86,6 +86,10 @@ The connector does not declare `Transactional`: commit semantics belong to the s
 
 - `quack` is native-only. Declaring `engine.force_universal` on a `quack` entity fails at plan
   time; remove that setting instead.
+- **`append` matches columns by name, not position.** A target column the pipeline does not
+  produce keeps its existing default; a column the pipeline produces that the target lacks is an
+  error naming it. (`merge`'s target column order follows the staged rows' order instead — see
+  above; that rule is unrelated to `append`.)
 - **The token never appears in an attach string or an error.** It rides a DuckDB secret scoped to
   the normalized `uri`. A wrong token fails as a permanent, redacted error.
 - **TLS is the reverse proxy's job.** The connector has no TLS settings. Put a reverse proxy in

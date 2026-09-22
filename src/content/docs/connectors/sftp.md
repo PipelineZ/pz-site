@@ -30,6 +30,10 @@ lake:
 | `host_key_fingerprint` | No | — | SHA-256 host key pin (`SHA256:<base64>` or the bare base64 body), checked before authenticating. |
 | `port` | No | `22` | SSH port, 1–65535. |
 | `root` | No | — | Base directory every entity's `path` resolves under. |
+| `connect_timeout_seconds` | No | driver default | Connect timeout, 1–3600 seconds; honors run cancellation. |
+
+`private_key_path` resolves relative to the project directory, not the process's working
+directory.
 
 ## Read options
 
@@ -93,6 +97,24 @@ folder per row from its timestamp value using the same tokens.
 | `BoundedWindow` | Honors an entity's upper watermark bound, applied row-by-row since there is no native filter pushdown. |
 | `PathTemplating` | Understands calendar tokens in `path`, for both read pruning and `partition_by` writes. |
 | `GatedOperations` | Every SSH operation routes through `rate_limit` pacing. |
+
+## Host key pinning
+
+With no `host_key_fingerprint` declared, this connector accepts any SSH host key — no protection
+against a man-in-the-middle. `pz validate` warns about it with [`PZ0364`](/reference/error-codes/),
+naming the connection; `pz run` prints the same warning once per run as a `note:` line. This never
+fails validation or a run on its own: a first connect to an unknown host is a legitimate, common
+case, but the choice is always visible rather than silent.
+
+`pz validate --connect` prints the fingerprint the server actually presented, in the exact
+`SHA256:<base64>` form `host_key_fingerprint` accepts, so pinning is copy-paste from its output:
+
+```sh
+pz validate --connect
+```
+
+Once `host_key_fingerprint` is set, a server presenting a different key fails the connection rather
+than silently accepting it — only pin a fingerprint you've verified out of band.
 
 ## Notes
 

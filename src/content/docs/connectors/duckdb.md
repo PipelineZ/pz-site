@@ -48,7 +48,7 @@ window are pushed into that query, so DuckDB reads only the rows the run needs.
 
 | Strategy | What runs |
 |---|---|
-| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`. |
+| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`, matched by column name rather than position. |
 | `replace` | One `CREATE OR REPLACE TABLE … as SELECT`. |
 | `merge` | `CREATE TABLE IF NOT EXISTS`, then DuckDB's own `MERGE INTO`, matched on `keys:`. Matched rows update, unmatched rows insert. |
 
@@ -94,6 +94,10 @@ the [connections.yml reference](/reference/connections-yml/).
 - **Use one connection per file.** Two connections that name the same file each try their own
   attach, and DuckDB refuses to attach one file twice in a session. Put the file's reads and writes
   on the same connection.
+- **`append` matches columns by name, not position.** Appending into a table that predates the
+  pipeline, or whose column order differs from the pipeline's select list, lands every value under
+  its own column name rather than by position. A target column the pipeline does not produce keeps
+  its existing default; a column the pipeline produces that the target lacks is an error naming it.
 - **Duplicate keys within a merge batch collapse to one survivor.** DuckDB's `MERGE INTO` matches
   every staged row on its own against the target as it stood before the statement, so the generated
   statement keys the staged side unique first. Which duplicate survives is not defined; the engine

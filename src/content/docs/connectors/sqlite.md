@@ -64,6 +64,10 @@ neither a `Merge` nor a `ChangeCapture` capability.
 - `pz validate --connect` checks the file for the real SQLite header magic, not a network probe.
   A missing file is reported as will-be-created rather than an error; a missing parent directory
   is a permanent failure, since SQLite will not create directories for you.
+- **`append` matches columns by name, not position.** Appending into a table that predates the
+  pipeline, or whose column order differs from the pipeline's select list, lands every value under
+  its own column name rather than by position. A target column the pipeline does not produce keeps
+  its existing default; a column the pipeline produces that the target lacks is an error naming it.
 
 ## Related
 

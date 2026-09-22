@@ -118,7 +118,7 @@ incremental watermark and any bounded window pushed into the query.
 
 | Strategy | What runs |
 |---|---|
-| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`. |
+| `append` | `CREATE TABLE IF NOT EXISTS` from the staged rows' shape, then `insert`, matched by column name rather than position. |
 | `replace` | One `CREATE OR REPLACE TABLE … as SELECT`. |
 | `merge` | `CREATE TABLE IF NOT EXISTS`, then DuckDB's own `merge into`, matched on `keys:`. |
 
@@ -144,6 +144,9 @@ the [connections.yml reference](/reference/connections-yml/).
 
 - `ducklake` is native-only. Declaring `engine.force_universal` on a `ducklake` entity fails at
   plan time; remove that setting instead.
+- **`append` matches columns by name, not position.** A target column the pipeline does not
+  produce keeps its existing default; a column the pipeline produces that the target lacks is an
+  error naming it.
 - **Credentials never appear in an attach string or an error.** Postgres credentials, the quack
   token, the MotherDuck token, and storage credentials each ride a DuckDB secret or session
   setting. A failed attach names only a path, a URI, or a database.
@@ -162,7 +165,8 @@ the [connections.yml reference](/reference/connections-yml/).
 
 | Catalog | Check |
 |---|---|
-| `duckdb`, `sqlite` | An existing `path` must carry the right file header. A missing file is reported as will-be-created; a missing parent directory fails. |
+| `duckdb` | An existing `path` must carry the right file header; a zero-byte file is refused, matching what `pz run` does when it attaches. A missing file is reported as will-be-created; a missing parent directory fails. |
+| `sqlite` | An existing `path` must carry the right file header, except a zero-byte file, which is accepted — the sqlite extension initializes an empty file as a new catalog on attach, so the probe agrees. A missing file is reported as will-be-created; a missing parent directory fails. |
 | `postgres`, `quack` | TCP reachability of the host and port, with a five-second timeout. Credentials are verified by the first run. |
 | `motherduck` | Not checked. The first run authenticates. |
 

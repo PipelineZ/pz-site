@@ -89,6 +89,33 @@ everything a connector needs for one dataset or output, beyond connection config
 - `ReadHints` carries pushdown: requested `Columns`, an optional `PredicateSql`, and a `Limit`.
   Connectors ignore what they can't push.
 
+### `ReadHints` extraction and joins
+
+`ExtractReadHints` (`Pz.DuckDb/DuckDbSqlAstReader.cs`) walks the rendered pipeline SQL's own AST
+(DuckDB's own `json_serialize_sql`, not a hand-rolled parser) to decide what's safe to push down
+when the source is joined to other relations. Both halves fail toward "push nothing" on any shape
+the walk doesn't recognize, so an unrecognized join costs speed, never correctness:
+
+- **Predicate pushdown** only fires when every join between the target and the query's root
+  **preserves the target's rows** — `INNER`/`CROSS` on either side, `LEFT`/`SEMI`/`ANTI` with the
+  target on the left, `RIGHT` with the target on the right. `FULL`, `ASOF`, `POSITIONAL`, and any
+  join kind the walk doesn't recognize push nothing: filtering the target ahead of a join that can
+  null-extend it (the target sits on a nullable side) would silently change the result — pushing
+  `id IS NULL` to the source ahead of a left join and landing zero rows turns an anti-join into
+  "return every row". A self-join (one source feeding two aliases of the same table) also pushes
+  nothing, since a predicate written for one alias would starve the other. The target must also be
+  the query's *only* reference to that source — a second reference inside a CTE body or a subquery
+  needs rows this walk never inspects, so the whole extraction backs off.
+- **Column pruning** collects only column references it can attribute with certainty. An
+  unqualified column name is the target's only when the target is the FROM clause's sole relation;
+  with any other relation in scope, an unqualified reference is unattributable and pushes every
+  column. A qualified reference (`o.payload.kind`) is attributed by its first part against the
+  FROM's own aliases, and the column is the part right after it (`payload`, not the full path); a
+  first part that isn't a FROM alias — a schema qualifier, or the root of a struct path pz can't
+  resolve — is also unattributable. `select *` over the target, any subquery in scope, or a join
+  that matches columns by name (`USING`, `NATURAL`) all fall back to reading every column, since
+  none of them says which columns a bare name would need.
+
 `Pz.Connectors.Abstractions.Paths.PathTemplate` is the shared, connector-agnostic grammar and
 cover algorithm for calendar-token paths (`{yyyy}/{MM}/{dd}`). A connector that implements it
 declares `PathTemplating`; the `azureblob` connector is the one first-party implementor today.
@@ -122,8 +149,14 @@ letting it fail or silently degrade at run time.
 | `ApplyDeletes` | sink | Write sessions can implement `IDeleteApplyingWriteSession` for cdc-fed merge; `on_delete: delete\|soft` refused without it (`PZ0339`). |
 | `TextLengthStats` | sink | Wants per-column max text lengths via `OutputSpec.MaxTextLengths` before `BeginWriteAsync`, to size text DDL. |
 | `ColumnPartitionedWrites` | sink | The destination records its own `partition_by` layout, needing no `path:` template. Declared in the ABI; no first-party connector implements it today. |
+| `NativeOnlyRead` | source | No universal read path at all; `PlanReadAsync` always refuses. In process this is the marker interface `INativeOnlySource`; over PCP it is this bit, set by the C# SDK for any connector that implements the interface — an author declares the interface, never the flag. `pz connector test` reads it to skip the vectors that need `PlanRead` to succeed. |
 
 `append` needs no capability flag; every sink supports it.
+
+A sink may also implement `IOutputConfigSchema`, a JSON Schema for its own `write:`/`sink()`
+options — the write-side mirror of `DatasetConfigSchema` — checked at tier 3 the same way a
+dataset's read options are. It is a capability interface, not a `ConnectorCapabilities` flag,
+since it describes a schema rather than gating a mode.
 
 ## Hosting model
 
@@ -161,10 +194,32 @@ child process end to end:
   (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`). Nothing on
   that list can carry a secret; actual connection configuration crosses only through the
   handshake's Configure RPC, never through argv or the environment.
-- **The host owns every process it spawns.** Shutdown goes through a graceful cancel-then-kill
-  ladder. A process that dies mid-operation surfaces as `PZ0358`; a protocol violation
-  (malformed Arrow IPC, a reused write ticket) as `PZ0357`; a handshake failure as `PZ0356`; a
-  failure to spawn at all as `PZ0355`; no usable entrypoint for the host's RID as `PZ0354`.
+- **A child's stdout is drained and discarded, never inherited.** Redirecting it keeps a
+  connector's own stdout out of pz's own stdout (which may be the NDJSON event stream), and
+  draining it as raw bytes rather than line-by-line keeps a connector that writes a lot with no
+  newline from blocking on a full OS pipe buffer forever. **Stderr is the diagnostic channel**: a
+  bounded tail of it is folded into a failure's message. A connector author who wants a message to
+  reach pz's diagnosis should write it to stderr, or, better, log through the SDK (see
+  [Telemetry](/how-to/author-a-connector/#telemetry) and the `connector_log` run event) rather than
+  print to stdout.
+- **The host owns every process it spawns, one per open.** Shutdown goes through a graceful
+  cancel-then-kill ladder. **Disposing an opened source or sink reaps its process**: the engine
+  opens a connection once per node (a `SourceLoad`, a `SinkWrite`, a couple of planner probes, a
+  connectivity check), each inside its own `await using`/`finally`, so a child's lifetime tracks
+  nodes in flight (bounded by `engine.threads`), not connections declared in the project — the host
+  also reaps whatever is left, an open never disposed or one cut short by a failure, when it itself
+  is disposed at run end. A process that dies mid-operation surfaces as `PZ0358`; a protocol
+  violation (malformed Arrow IPC, a reused write ticket) as `PZ0357`; a handshake failure as
+  `PZ0356`; a failure to spawn at all as `PZ0355`; no usable entrypoint for the host's RID as
+  `PZ0354`. `PZ0356`/`PZ0358` name the child's exit code and, on Unix, the signal it decodes to
+  (`exited with code 137 (signal SIGKILL)`), when the process has already exited by the time the
+  failure is diagnosed.
+- **An unrecognized capability bit is a warning, never a handshake failure.** A connector built on
+  a newer SDK than the host's own `Pz.Connectors.Abstractions` may declare a capability bit this
+  build doesn't define; the host masks unknown bits out before comparing or naming capabilities and
+  warns once per open rather than refusing the handshake, so a connector stays usable on an older
+  `pz` for the capabilities that build does understand. This is the same additive-only policy the
+  Abstractions ABI itself follows (see [Architecture](/internals/architecture/)).
 - **Not every capability crosses the wire yet.** The host masks `CheckpointableReads`,
   `CheckpointableWrites`, and `ChangeCapture` on a process-hosted connector's declared
   capabilities, so the planner refuses a checkpointed or CDC dataset on it instead of silently
@@ -179,6 +234,31 @@ child process end to end:
 `pz connector test <entrypoint-or-package-dir> [--config file.yml]` runs black-box PCP protocol
 conformance checks against one out-of-process connector, independent of any pz project.
 
+### RPC surface
+
+Every RPC PCP defines, control plane unless noted:
+
+| RPC | Direction | Purpose |
+|---|---|---|
+| `Handshake` | host → child | First call; exchanges protocol version, capabilities, and SDK identity (`Hello`). |
+| `Configure` | host → child | Delivers connection config — the only path configuration ever crosses on. |
+| `Validate` | host → child | Offline cross-field config validation, no network. |
+| `CheckConnection` | host → child | Live connectivity probe (`pz validate --connect`). |
+| `GetSchema` | host → child | Dataset schema for a source. |
+| `TryNativeScan` | host → child | Asks for a native-tier DuckDB scan fragment. |
+| `PlanRead` | host → child | Streams the planned partition list for a read. |
+| `OpenReadStream` | host → child | Opens the paired data-plane socket for one partition's Arrow batches. |
+| `GetNaturalReadShape` | host → child | The connector's own natural partitioning, for `SyncState`. |
+| `GetReadState` | host → child | A partition's sync-state token, pulled once its data-plane drain finishes. |
+| `GetStreamFailure` | host → child | Side-effect-free: asks why a read or write stream truncated mid-transfer, so a failure raised after the first batch keeps its transience and retry-after instead of surfacing as a bare protocol violation. |
+| `TryNativeCopy` | host → child | Asks for a native-tier DuckDB copy fragment. |
+| `BeginWrite` | host → child | Opens a write session and the paired data-plane socket. |
+| `CommitWrite` | host → child | Commits an open write session. |
+| `AbortWrite` | host → child | Aborts an open write session. |
+| `Cancel` | host → child | Propagates run cancellation into an in-flight operation. |
+| `Shutdown` | host → child | Graceful shutdown request, ahead of the cancel-then-kill ladder. |
+| `HostChannel` | host ↔ child, bidirectional stream | The reverse channel: the host still dials it (as with every other RPC), but the connector is its semantic client — it authors every gate acquire/complete/budget request and log event on its outbox, while the host only ever answers with a gate grant on its own. Carries `GatedOperations` traffic and connector log lines. |
+
 ## Package layout: `pz.connector.json`
 
 A connector package ships a `pz.connector.json` manifest at its root, alongside the connector
@@ -186,7 +266,8 @@ assembly marked with `[assembly: PzConnector("name", typeof(MyConnector))]`:
 
 ```json
 { "name": "fakesource", "protocolMajorMin": 1, "protocolMajorMax": 1, "capabilities": ["source"],
-  "runtime": "process", "entrypoints": { "linux-x64": "native/pz-mysink" } }
+  "runtime": "process", "entrypoints": { "linux-x64": "native/pz-mysink" },
+  "sdk": { "name": "Pz.Connectors.Sdk", "version": "x.y.z" } }
 ```
 
 - `protocolMajorMin`/`protocolMajorMax` declare the inclusive range of
@@ -197,6 +278,12 @@ assembly marked with `[assembly: PzConnector("name", typeof(MyConnector))]`:
   omits both.
 - `projectDirectoryAnchor` (optional, default `false`) asks pz to resolve the connector's
   relative paths against the project directory rather than leaving them unanchored.
+- `sdk` (optional; name and version of the SDK that built the connector) is additive — an older
+  manifest with no `sdk` block reads as null. Both SDKs write it themselves (the C# SDK from the
+  assembly's own informational version, the Rust SDK from its crate name/version), so it needs no
+  authoring effort. The same identity crosses the handshake as `Hello.sdk`, shown in `pz
+  connectors`' `sdk` column and folded into `PZ0356`/`PZ0357` when the handshake or a protocol
+  violation names the connector.
 
 `pz restore` resolves declared packages and their transitive closures with in-process NuGet
 client libraries against configured feeds, writes `pz.lock.json` (exact versions, per-package
@@ -215,6 +302,20 @@ the executable specification, plus fixtures like `StubHttpServer` for scripted H
 no docker and no network. TestKit hooks are virtual and defaulted to null, so a connector that
 declares a new capability opts into the matching acceptance facts without every existing
 subclass having to change.
+
+`SinkConnectorAcceptanceTests` is the sink half: every builtin sink subclasses it. Beyond the
+lifetime and transactional facts, it covers a zero-batch commit, an already-cancelled
+`WriteBatchAsync` token (several first-party sinks failed to honor this until the fact existed),
+nulls in a nullable column, and, opt-in, a large multi-batch write and a full type-matrix
+round-trip:
+
+- `LargeBatchRows` (`protected virtual int`, default `20_000`) sizes the large-write fact, so a
+  destination throttled by an emulator can lower it rather than exclude the fact entirely.
+- `TypeMatrixOutput`/`ReadTypeMatrixCommittedAsync` (both null by default) opt a sink into a
+  round-trip fact for `decimal128`, `timestamp`, `date`, and `bool` columns; a subclass that sets
+  `TypeMatrixOutput` must also implement the read-back hook.
+- A sink implementing `IOutputConfigSchema` gets a self-detecting fact that its declared schema
+  actually validates the write options the sink accepts.
 
 ## The SDKs
 

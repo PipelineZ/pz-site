@@ -31,6 +31,8 @@ warehouse:
 | `user` | No | – | Login role. |
 | `password` | No | – | Login password. Always an `${ENV_VAR}` reference, never a literal. |
 | `ssl_mode` | No | – | Npgsql SSL mode string. |
+| `connect_timeout_seconds` | No | driver default (15s) | Connection timeout, 1–3600 seconds. |
+| `command_timeout_seconds` | No | driver default (30s) | Per-command timeout, 0–86400 seconds; `0` is unbounded. |
 
 ## Read options
 

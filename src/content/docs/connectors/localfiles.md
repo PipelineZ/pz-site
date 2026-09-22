@@ -91,6 +91,10 @@ Sink file: `<entity>.xlsx` for an xlsx write, same as every other format.
   as a single partition instead of splitting across `PartitionedRead`.
 - `strategy: merge` is refused: `localfiles` has no keyed upsert, since files have no primary key.
 - An absolute `path` on an entity ignores the connection's `root` entirely.
+- When the connection declares `root:`, a relative `path` whose `..` segments resolve outside it is
+  refused with [`PZ0365`](/reference/error-codes/), naming the connection and dataset/output.
+  With no `root:` declared (base = the project directory), relative paths are not contained this
+  way — an ordinary `path: ../shared/x.csv` layout beside the project still works.
 - `xlsx` and `avro` run through DuckDB's `excel`/`avro` extensions, installed and loaded on first
   use — see [DuckDB extensions](/concepts/connections-and-entities/#duckdb-extensions) for the
   one-time network download this needs.

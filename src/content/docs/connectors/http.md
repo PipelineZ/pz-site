@@ -26,7 +26,7 @@ github:
 | `headers` | No | `{}` | Static extra headers sent on every request. |
 | `check_path` | No | — | Request-relative path `pz validate --connect` probes to confirm connectivity. |
 | `timeout_seconds` | No | `30` | Per-request timeout, 1–3600 seconds. |
-| `max_response_mb` | No | `256` | Maximum response size, 1–4096 MiB. A page is buffered whole then parsed. |
+| `max_response_mb` | No | `256` | Maximum response size, 1–2047 MiB. A page is buffered whole then parsed. |
 | `allow_hosts` | No | `[]` | Extra bare hostnames this connection may follow, beyond `base_url`'s own origin. |
 
 ### Auth
@@ -108,6 +108,14 @@ Link-header and cursor-token crawls end when their own signal is absent (no next
 missing/null/empty token); an empty page alone does not end them. Page-number crawls, with no
 other signal, end on an empty page. A crawl exceeding `max_pages`, or one that revisits a URL it
 already requested, fails with a permanent error rather than looping.
+
+Page-number crawls also accept `pagination: { strategy: page, size: 100, stop_on_short_page: true,
+... }`: a page shorter than `size` ends the crawl, for APIs that clamp an out-of-range page number
+to the last real page instead of returning an empty one. It requires `size` (a short page is
+judged relative to the requested size) and is only valid with `strategy: page`. Two caveats: an
+API that serves fewer rows than `size` on every page stops the crawl after page one, and a total
+row count that is an exact multiple of `size` still needs `max_pages` to end the crawl, since every
+page it serves is full.
 
 ### Incremental extraction
 
