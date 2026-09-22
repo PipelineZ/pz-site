@@ -35,7 +35,7 @@ project that pins its own backend stays reproducible.
 | `PZ_STATE_EVENTS` | `state.events` | Persist the run-event stream to the backend. |
 | `PZ_STATE_URL` | `state.url` | Run-scoped endpoint for `backend: http`. |
 | `PZ_STATE_TOKEN` | none | Bearer token for `backend: http`. Has no `project.yml` spelling because it is a credential. |
-| `PZ_STATE_TIMEOUT_SECONDS` | `state.timeout_seconds` | How long a `backend: http` state request waits before the run's cancellation aborts it. |
+| `PZ_STATE_TIMEOUT_SECONDS` | `state.timeout_seconds` | Per-request timeout, in seconds, for `backend: http`. |
 
 The combination rules, such as `events` requiring `artifacts`, are in the
 [project.yml reference](/reference/project-yml/#state).

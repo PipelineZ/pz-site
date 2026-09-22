@@ -107,8 +107,9 @@ Renders the value of an environment variable.
 WHERE tenant_id = '{{ env('TENANT_ID') }}'
 ```
 
-An unset variable is `PZ0103`. Interpolating a value is `env()`'s job: its rendered value lands on
-disk like any other rendered SQL, under `.pz/target/manifest.json`.
+An unset variable is `PZ0103`. The rendered value is part of the compiled SQL, which is written to
+disk under `.pz/target/`, so never pass a secret through `env()` — put credentials in
+`connections.yml` as `${VAR}`, where they are redacted.
 
 ## Constants
 

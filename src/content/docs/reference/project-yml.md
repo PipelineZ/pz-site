@@ -138,7 +138,7 @@ state:
 | `events` | bool | `false` | `PZ_STATE_EVENTS` | Persist the NDJSON event stream to the backend, in addition to stdout. Requires `artifacts: true` (`PZ0124`). |
 | `url` | URL | none | `PZ_STATE_URL` | `backend: http` only. The run-scoped state endpoint a server issued for this run. Must be an absolute `http`/`https` URL (`PZ0125`). |
 | — | bearer token | none | `PZ_STATE_TOKEN` | `backend: http` only. Sent as `Authorization: Bearer …` when set. No `project.yml` spelling: it is a credential. |
-| `timeout_seconds` | integer, 1–3600 | the HTTP client's own default | `PZ_STATE_TIMEOUT_SECONDS` | `backend: http` only. How long a state request waits before the run's cancellation aborts it. |
+| `timeout_seconds` | integer, 1–3600 | `100` | `PZ_STATE_TIMEOUT_SECONDS` | `backend: http` only. How long one state request may take; past it the request fails with `PZ0518`. |
 
 Each backend accepts only its own keys; a key from a different backend is `PZ0124`.
 `backend: local` accepts `backend` alone; `backend: sqlserver` adds `connection`/`schema`/

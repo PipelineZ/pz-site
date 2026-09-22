@@ -53,8 +53,9 @@ endpoint instead. Read it once a project needs to run somewhere with no durable 
    `backend: http` covers watermarks and sync state only. Run results and the event stream stay
    local (`run_results.json` and stdout). Set `PZ_STATE_TOKEN` if the endpoint requires a bearer
    token; `pz` sends it only when the variable is set. Set `timeout_seconds` (or
-   `PZ_STATE_TIMEOUT_SECONDS`) to bound how long a state request waits before the run's
-   cancellation aborts it. Sending a bearer token to a plain `http://` URL warns (`PZ0530`)
+   `PZ_STATE_TIMEOUT_SECONDS`) to bound how long one state request may take (default 100 seconds);
+   a request that runs past it fails with `PZ0518`. Cancelling the run aborts an in-flight request
+   regardless. Sending a bearer token to a plain `http://` URL warns (`PZ0530`)
    unless the URL is a loopback address.
 
 3. **Grant DDL rights on the target database**, under `backend: sqlserver`. `pz` issues
