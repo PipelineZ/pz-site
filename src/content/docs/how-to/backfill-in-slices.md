@@ -79,11 +79,16 @@ run 20260902T091500118Z-9a1c: 2 succeeded, 0 failed, 0 skipped (.pz/runs/2026090
 ### 4. Drive the backfill to completion
 
 Repeat `pz run` until the backfill catches up. With `--log-format json`, every windowed source that has an
-`until` reports `caughtUp` on its `node_completed` event, so loop while any of them is still behind:
+`until` reports `caughtUp` on its `node_completed` event, so loop while the run succeeded and any of them is
+still behind:
 
 ```console
-$ while pz run --all --log-format json | grep -q '"caughtUp":false'; do :; done
+$ while out=$(pz run --all --log-format json) && grep -q '"caughtUp":false' <<<"$out"; do :; done
 ```
+
+The `&&` matters: a failed run stops the loop with pz's exit code instead of re-extracting the same slice
+forever or ending quietly as if the backfill were done. The run that loads the last slice still reports
+`false`, so expect one final run that moves nothing.
 
 Once the watermark reaches `until`, the entity is caught up: its `node_completed` says `"caughtUp":true`, the
 run prints a note that it's caught up, and it moves zero rows. A caught-up run still exits `0`. Without
@@ -112,6 +117,7 @@ first slice forever. Use it once to reset, then drop the flag.
 | If you see | Do |
 |---|---|
 | The loop stops after one run | `until` isn't set, so there's no caught-up signal (`caughtUp` is absent). Add `until`, or loop on the stored watermark yourself. |
+| The loop stops with a non-zero exit | A run failed. Fix the cause shown in the run output, then start the loop again; it resumes from the stored watermark. |
 | `PZ0214` at compile time | An incremental read feeds a plain `append` sink. Switch to `strategy: merge` with `keys:`, as above. |
 | Every run re-extracts the same first slice | `--full-refresh` is set on every loop iteration. Use it once to reset, then remove it. |
 | A source struggling under repeated large slices | Pace the loop, or lower `max_window`. See [Throttle a source](/how-to/throttle-a-source/). |
