@@ -298,6 +298,8 @@ $ pz cdc status
 | Option | Meaning | Default |
 |---|---|---|
 | `--project <project>` | Project directory. | current directory |
+| `--log-format <log-format>` | Output format: `text` or `json` (NDJSON `cdc_status` / `cdc_dropped` events, see [Events](/reference/events/)). | `text` |
+| `--state-url <state-url>` | Run-scoped HTTP state endpoint (absolute `http(s)` URL). Outranks `project.yml`'s `state:` and `PZ_STATE_*`; the token comes from `PZ_STATE_TOKEN`. | none |
 
 ### pz cdc drop
 
@@ -312,6 +314,8 @@ $ pz cdc drop crm.orders
 |---|---|---|
 | `<target>` | The CDC entity to drop, as `<connection>.<entity>`. Exactly one required. | required |
 | `--project <project>` | Project directory. | current directory |
+| `--log-format <log-format>` | Output format: `text` or `json` (NDJSON `cdc_status` / `cdc_dropped` events, see [Events](/reference/events/)). | `text` |
+| `--state-url <state-url>` | Run-scoped HTTP state endpoint (absolute `http(s)` URL). Outranks `project.yml`'s `state:` and `PZ_STATE_*`; the token comes from `PZ_STATE_TOKEN`. | none |
 
 See also: [Capture changes with CDC](/how-to/capture-changes-with-cdc/).
 
