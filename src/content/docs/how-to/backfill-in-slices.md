@@ -78,18 +78,17 @@ run 20260902T091500118Z-9a1c: 2 succeeded, 0 failed, 0 skipped (.pz/runs/2026090
 
 ### 4. Drive the backfill to completion
 
-Repeat `pz run` until the backfill catches up. A small loop on the stored watermark works well:
+Repeat `pz run` until the backfill catches up. With `--log-format json`, every windowed source that has an
+`until` reports `caughtUp` on its `node_completed` event, so loop while any of them is still behind:
 
 ```console
-$ until pz state show pg_prod.orders | grep -q "5000000"; do
-    pz run --all
-  done
+$ while pz run --all --log-format json | grep -q '"caughtUp":false'; do :; done
 ```
 
-Once the watermark reaches `until`, the entity is caught up: every run from then on prints a note
-that it's caught up and moves zero rows. A caught-up run still exits `0`. Without `until`, there
-is no caught-up state to reach: stop the loop yourself once a run moves zero rows, or once you
-know the watermark value you're driving toward.
+Once the watermark reaches `until`, the entity is caught up: its `node_completed` says `"caughtUp":true`, the
+run prints a note that it's caught up, and it moves zero rows. A caught-up run still exits `0`. Without
+`until`, there is no caught-up state and no `caughtUp` field: stop the loop yourself once you know the
+watermark value you're driving toward.
 
 ## Verify
 
@@ -112,7 +111,7 @@ first slice forever. Use it once to reset, then drop the flag.
 
 | If you see | Do |
 |---|---|
-| The loop never ends and every run moves zero rows | `until` isn't set, so there's no caught-up signal. Add `until`, or stop the loop once rows moved is zero. |
+| The loop stops after one run | `until` isn't set, so there's no caught-up signal (`caughtUp` is absent). Add `until`, or loop on the stored watermark yourself. |
 | `PZ0214` at compile time | An incremental read feeds a plain `append` sink. Switch to `strategy: merge` with `keys:`, as above. |
 | Every run re-extracts the same first slice | `--full-refresh` is set on every loop iteration. Use it once to reset, then remove it. |
 | A source struggling under repeated large slices | Pace the loop, or lower `max_window`. See [Throttle a source](/how-to/throttle-a-source/). |
