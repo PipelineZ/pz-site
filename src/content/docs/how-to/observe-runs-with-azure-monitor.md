@@ -95,6 +95,9 @@ Run the project by hand once with `PZ_OTEL_ENDPOINT` set, then check Application
   same trace, plus any spans and meters the connector itself records. Builtin connectors add none of
   their own — the engine's node span already covers them. See
   [Author a connector](/how-to/author-a-connector/#telemetry).
+- **A caller's trace:** when whatever starts pz sets `TRACEPARENT` (a scheduler, CI system or platform that
+  traces its own work), the `run` span is a child in that trace instead of a new root, so the caller's span and
+  pz's node spans read as one trace. See [Environment variables](/reference/environment-variables/).
 
 In Application Insights these land in the `customMetrics` table, with dimension names under
 `customDimensions`.
