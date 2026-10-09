@@ -126,6 +126,6 @@ should be visible in the task's exit code, which is what proves the schedule wor
 
 - [Secure connection config](/how-to/secure-connection-config/): getting secrets into the task's environment without a stored password.
 - [Move state off the local disk](/how-to/remote-state/): the alternative to local `.pz\state` for a host with no persistent disk.
-- [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/): forwarding `PZ_OTEL_ENDPOINT` telemetry from this task to Application Insights.
+- [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/): sending this task's telemetry straight to Application Insights over OTLP/HTTP.
 - [CLI reference](/reference/cli/): every `pz` exit code and flag used in the wrapper.
 - [Run events](/reference/events/): the NDJSON event stream the wrapper's log captures.
