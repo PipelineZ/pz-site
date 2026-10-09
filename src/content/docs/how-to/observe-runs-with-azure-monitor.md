@@ -1,119 +1,150 @@
 ---
 title: "Observe runs with Azure Monitor"
-description: "How to bridge pz's OpenTelemetry traces and metrics into Azure Monitor with an OpenTelemetry Collector, and alert on failed or missing runs."
+description: "How to send pz's OpenTelemetry traces and metrics straight to Application Insights over OTLP/HTTP, with a token pz re-reads during the run, and alert on failed or missing runs."
 sidebar:
   order: 14
 ---
 
-`pz run`, `pz test`, and `pz retry` export OpenTelemetry traces and metrics over OTLP when an
-endpoint is configured. This guide bridges that telemetry into Azure Monitor so you can see run
-health in Application Insights and alert when a run fails or never happens. Read it once you have
-a project running on a schedule.
+`pz run`, `pz test`, and `pz retry` export OpenTelemetry traces and metrics over OTLP when a target is
+configured. Application Insights accepts OTLP/HTTP directly when its OTLP ingestion is turned on, so pz
+can export to it with no collector in between. This guide sets that up and alerts when a run fails or
+never happens. Read it once you have a project running on a schedule.
+
+```
+pz (OTLP/HTTP, gzip, bearer token from a file) -> Azure Monitor OTLP ingestion -> Application Insights
+```
 
 ## Prerequisites
 
+- pz 0.9.1 or later, and connectors built on SDK 0.9.1 or later if you want their spans too (older
+  connectors export nothing over HTTP).
+- An Azure subscription where you can register providers and create resources, and the Azure CLI.
 - A project already running on a schedule, for example following
   [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/).
-- An Application Insights resource and its connection string.
-- Azure Monitor does not ingest raw OTLP directly from arbitrary processes, so this guide runs an
-  OpenTelemetry Collector on the host as the bridge:
-
-  ```
-  pz (OTLP, http://127.0.0.1:4317) -> otel collector -> Azure Monitor (Application Insights)
-  ```
 
 ## Steps
 
-1. **Install the collector on the host.** Download the latest `otelcol-contrib` release, the
-   *contrib* distribution that carries the `azuremonitor` exporter, and install it as a service
-   per its own README.
-
-2. **Configure the collector** (`C:\otelcol\config.yaml`):
-
-   ```yaml
-   receivers:
-     otlp:
-       protocols:
-         grpc:
-           endpoint: 127.0.0.1:4317
-   exporters:
-     azuremonitor:
-       connection_string: "${env:APPLICATIONINSIGHTS_CONNECTION_STRING}"
-   service:
-     pipelines:
-       traces:
-         receivers: [otlp]
-         exporters: [azuremonitor]
-       metrics:
-         receivers: [otlp]
-         exporters: [azuremonitor]
-   ```
-
-   Set `APPLICATIONINSIGHTS_CONNECTION_STRING` for the collector service to your Application
-   Insights resource's connection string. The collector listens on loopback only, so nothing is
-   exposed off the machine.
-
-3. **Point pz at the collector.** Set the endpoint in the scheduled task's environment:
+1. **Register the preview feature and the providers** (once per subscription):
 
    ```console
-   PZ_OTEL_ENDPOINT=http://127.0.0.1:4317
+   az feature register --namespace Microsoft.Insights --name OtlpApplicationInsights
+   az provider register --namespace Microsoft.Insights
+   az provider register --namespace Microsoft.Monitor
+   az provider register --namespace Microsoft.AlertsManagement
    ```
 
-   With neither `--otel-endpoint` nor `PZ_OTEL_ENDPOINT` set, telemetry is a zero-cost no-op. See
-   [Environment variables](/reference/environment-variables/).
+   Wait until `az feature show --namespace Microsoft.Insights --name OtlpApplicationInsights` says
+   `Registered`, then register `Microsoft.Insights` again so the feature takes effect.
 
-4. **Create an alert on failed runs.** In Application Insights > Logs, save this query:
+2. **Create an Application Insights resource with OTLP ingestion on.** OTLP ingestion is set when the
+   component is created (API version `2025-01-23-preview`) and cannot be turned off later:
 
-   ```kusto
-   customMetrics
-   | where name == "pz.run.completed"
-   | extend status = tostring(customDimensions["pz.run.status"])
-   | where status != "success"
+   ```console
+   az rest --method put \
+     --url "https://management.azure.com/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Insights/components/<name>?api-version=2025-01-23-preview" \
+     --body '{"location":"<region>","kind":"web","properties":{"Application_Type":"web","AzureMonitorWorkspaceIngestionMode":"Enabled"}}'
    ```
 
-   Create an alert rule on it, for example count > 0 over a 15-minute window evaluated every 5
-   minutes, and route it to your action group.
+   Azure creates a managed resource group next to it holding a Log Analytics workspace, an Azure
+   Monitor workspace, a data collection endpoint and a data collection rule.
 
-5. **Add a second alert for missing runs.** A crashed host or a hung run produces silence, not a
-   `fatal` status, so alert when `customMetrics | where name == "pz.run.completed"` returns zero
-   rows over the window you expect a scheduled run in.
+3. **Read the two ingestion URLs** from the component:
+
+   ```console
+   az rest --method get --url "https://management.azure.com/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Insights/components/<name>?api-version=2025-01-23-preview" \
+     --query "properties.{traces:OTLPTracesEndpoint, metrics:OTLPMetricsEndpoint, rule:DataCollectionRuleResourceId}"
+   ```
+
+   Each URL is complete (it ends in `/v1/traces` or `/v1/metrics`); pz uses it as-is.
+
+4. **Let the identity that runs pz publish.** Grant it the **Monitoring Metrics Publisher** role on
+   the data collection rule from step 3:
+
+   ```console
+   az role assignment create --assignee <principal-id> --role "Monitoring Metrics Publisher" --scope <rule>
+   ```
+
+5. **Give pz a token in a headers file.** Azure Monitor ingestion takes an Entra bearer token for
+   `https://monitor.azure.com`. Write it to a file only the run's account can read, one `Name=value`
+   line:
+
+   ```console
+   echo "Authorization=Bearer $(az account get-access-token --resource https://monitor.azure.com --query accessToken -o tsv)" > /run/pz/otel-headers
+   chmod 600 /run/pz/otel-headers
+   ```
+
+   pz re-reads the file before every export, so whatever runs pz can refresh the token while a long
+   run is going (tokens last about an hour). A missing or malformed file sends without it and prints
+   one `note:`; the file's content is never printed.
+
+6. **Point pz at Azure Monitor:**
+
+   ```console
+   pz run --otel-protocol http/protobuf \
+     --otel-traces-endpoint "<traces URL>" \
+     --otel-metrics-endpoint "<metrics URL>" \
+     --otel-headers-file /run/pz/otel-headers
+   ```
+
+   Or set `PZ_OTEL_PROTOCOL`, `PZ_OTEL_TRACES_ENDPOINT`, `PZ_OTEL_METRICS_ENDPOINT` and
+   `PZ_OTEL_HEADERS_FILE` in the scheduled task's environment. When any `--otel-*` flag is given, the
+   `PZ_OTEL_*` variables are ignored. See [Environment variables](/reference/environment-variables/).
+
+7. **Alert on failed runs.** Metrics land in the Azure Monitor workspace and are queried with PromQL.
+   Start from `{__name__="pz.run.completed"}` to see the series and their labels, then create a
+   Prometheus alert rule that fires when the count of runs whose status label is not `success`
+   increases over your window.
+
+8. **Alert on missing runs.** A crashed host or a hung run produces silence, not a `fatal` status, so
+   also alert when `{__name__="pz.run.completed"}` has no increase over the window you expect a
+   scheduled run in.
 
 ## Verify
 
-Run the project by hand once with `PZ_OTEL_ENDPOINT` set, then check Application Insights for a
-`run` root span with per-node `node.<Kind>` child spans, and a `pz.run.completed` metric with
-`pz.run.status = success` in `customMetrics`.
+Run the project by hand once with the flags above, then:
+
+- In Application Insights > Logs, `union requests, dependencies | where timestamp > ago(1h)` lists the
+  `run` span and its `node.<Kind>` children. Each span's `operation_Id` is the run's trace id, so
+  `union requests, dependencies | where operation_Id == '<trace id>'` shows exactly one run.
+- In the Azure Monitor workspace, `{__name__="pz.rows_moved"}` returns the run's rows.
 
 ## What arrives
 
-- **Traces:** a `run` root span (service name `pz`) with per-node `node.<Kind>` child spans.
-- **Metrics** (meter `Pz.Engine`): `pz.rows_moved`, `pz.bytes_moved`, `pz.batches`,
-  `pz.node.duration` (tag `pz.node.kind`), and `pz.run.completed`, a counter incremented once per
-  run with tag `pz.run.status` of `success`, `completed_with_failures`, or `fatal`.
+- **Traces:** a `run` root span (service name `pz`) with per-node `node.<Kind>` child spans, in the
+  classic `requests`/`dependencies` tables and in the workspace's `OTelSpans` table.
+- **Metrics** (meter `Pz.Engine`, delta, with a base-2 exponential `pz.node.duration`): `pz.rows_moved`,
+  `pz.bytes_moved`, `pz.batches`, `pz.node.duration` (label `pz.node.kind`), and `pz.run.completed`, a
+  counter incremented once per run with label `pz.run.status` of `success`, `completed_with_failures`,
+  or `fatal`. Every point carries `pz.run.id`, because Azure Monitor keeps no resource attributes on
+  metrics other than the service name and instance.
 - **External connector spans and metrics:** a `runtime: "process"` connector exports its own
   `pcp.<Rpc>` spans (service name `pz-connector`) nested under the engine's `node.<Kind>` span, in the
-  same trace, plus any spans and meters the connector itself records. Builtin connectors add none of
-  their own — the engine's node span already covers them. See
+  same trace, using the same URLs and headers file. Their metrics carry the run id only as a resource
+  attribute, which Azure Monitor drops, so connector metrics cannot be filtered by run there. See
   [Author a connector](/how-to/author-a-connector/#telemetry).
-- **A caller's trace:** when whatever starts pz sets `TRACEPARENT` (a scheduler, CI system or platform that
-  traces its own work), the `run` span is a child in that trace instead of a new root, so the caller's span and
-  pz's node spans read as one trace. See [Environment variables](/reference/environment-variables/).
+- **A caller's trace:** when whatever starts pz sets `TRACEPARENT`, the `run` span is a child in that
+  trace instead of a new root.
 
-In Application Insights these land in the `customMetrics` table, with dimension names under
-`customDimensions`.
+## Limits
+
+- **1 MB per request.** Larger requests are refused (`413 ContentLengthLimitExceeded`) and that batch
+  is dropped. pz gzips every body and sends at most 256 spans per request, which stays well under it.
+- **Label values are lowercased** in the Azure Monitor workspace; compare against lowercase values.
+- **The token expires.** A run that outlives the token in the file exports nothing after the expiry
+  unless something rewrites the file.
 
 ## Troubleshooting
 
 | If you see | Do |
 |---|---|
-| No spans or metrics arrive at all | Confirm `PZ_OTEL_ENDPOINT` is set in the task's environment, not just your interactive shell; the OTLP exporter flushes on process exit, so even a short run should still deliver its final events. |
-| A gap in metrics between expected runs | Normal for schedule-driven workloads. pz emits no metrics between runs. Design alerts around expected run windows, not a continuous signal. |
-| The failed-run alert never fires | Check the `pz.run.status` values you're filtering against `success`; a `fatal` run and a `completed_with_failures` run both count. |
+| `note: telemetry headers file '...' could not be read` | The path is wrong or the run's account cannot read it. |
+| No spans or metrics arrive, no note | Check the identity has Monitoring Metrics Publisher on the data collection rule, and that the token's resource is `https://monitor.azure.com`. |
+| Spans arrive but connector spans do not | The connector predates SDK 0.9.1; rebuild it on 0.9.1 or later. |
+| A gap in metrics between expected runs | Normal for schedule-driven workloads; pz emits no metrics between runs. |
 
 ## Related
 
-- [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/): the scheduled task this guide's `PZ_OTEL_ENDPOINT` environment variable is set inside.
-- [Environment variables](/reference/environment-variables/): every variable pz reads, including `PZ_OTEL_ENDPOINT`.
-- [Run events](/reference/events/): the full NDJSON event contract, for logs beyond what traces and metrics carry.
+- [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/): the scheduled task the flags or variables go into.
+- [Environment variables](/reference/environment-variables/): every variable pz reads, including the `PZ_OTEL_*` ones.
+- [CLI reference](/reference/cli/#pz-run): the `--otel-*` flags.
 - [Delivery guarantees](/concepts/delivery-guarantees/): what `completed_with_failures` and `fatal` mean for a run.
-- [CLI reference](/reference/cli/#pz-run): the `--otel-endpoint` flag and its defaults.

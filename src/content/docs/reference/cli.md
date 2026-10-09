@@ -142,7 +142,11 @@ $ pz run orders_enriched --full-refresh
 | `--all` | Select the whole project. Required when the project has 2+ independent flows. | — |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
 | `--log-format <log-format>` | Output format: `text` or `json` (NDJSON, one object per run event). | `text` |
-| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint (absolute `http(s)` URL). Falls back to `PZ_OTEL_ENDPOINT`. | none |
+| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint (absolute `http(s)` URL). Falls back to `PZ_OTEL_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-protocol <otel-protocol>` | `grpc` (default) or `http/protobuf`. Falls back to `PZ_OTEL_PROTOCOL` when no `--otel-*` flag is given. | `grpc` |
+| `--otel-traces-endpoint <url>` | `http/protobuf` only: the full traces URL, used as-is. Falls back to `PZ_OTEL_TRACES_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-metrics-endpoint <url>` | `http/protobuf` only: the full metrics URL, used as-is. Falls back to `PZ_OTEL_METRICS_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-headers-file <path>` | `http/protobuf` only: a file of `Name=value` header lines, re-read before every export. Falls back to `PZ_OTEL_HEADERS_FILE` when no `--otel-*` flag is given. | none |
 | `--state-url <state-url>` | Run-scoped HTTP state endpoint (absolute `http(s)` URL). Outranks `project.yml`'s `state:` and `PZ_STATE_*`. | none |
 
 See also: [How a run works](/concepts/how-a-run-works/), [Delivery guarantees](/concepts/delivery-guarantees/).
@@ -163,7 +167,11 @@ $ pz test --select tag:daily
 | `--select <select>` | dbt-style node selector narrowing which checks run. | none |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
 | `--log-format <log-format>` | Output format: `text` or `json`. | `text` |
-| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint. Falls back to `PZ_OTEL_ENDPOINT`. | none |
+| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint. Falls back to `PZ_OTEL_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-protocol <otel-protocol>` | `grpc` (default) or `http/protobuf`. Falls back to `PZ_OTEL_PROTOCOL` when no `--otel-*` flag is given. | `grpc` |
+| `--otel-traces-endpoint <url>` | `http/protobuf` only: the full traces URL, used as-is. Falls back to `PZ_OTEL_TRACES_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-metrics-endpoint <url>` | `http/protobuf` only: the full metrics URL, used as-is. Falls back to `PZ_OTEL_METRICS_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-headers-file <path>` | `http/protobuf` only: a file of `Name=value` header lines, re-read before every export. Falls back to `PZ_OTEL_HEADERS_FILE` when no `--otel-*` flag is given. | none |
 | `--state-url <state-url>` | Run-scoped HTTP state endpoint. | none |
 
 See also: [Checks](/concepts/checks/).
@@ -184,7 +192,11 @@ $ pz retry --fail-fast
 | `--full-refresh` | Ignore stored watermarks for this invocation; capture and watermark advancement still run and re-establish them from the full extract. | off |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
 | `--log-format <log-format>` | Output format: `text` or `json`. | `text` |
-| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint. Falls back to `PZ_OTEL_ENDPOINT`. | none |
+| `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint. Falls back to `PZ_OTEL_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-protocol <otel-protocol>` | `grpc` (default) or `http/protobuf`. Falls back to `PZ_OTEL_PROTOCOL` when no `--otel-*` flag is given. | `grpc` |
+| `--otel-traces-endpoint <url>` | `http/protobuf` only: the full traces URL, used as-is. Falls back to `PZ_OTEL_TRACES_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-metrics-endpoint <url>` | `http/protobuf` only: the full metrics URL, used as-is. Falls back to `PZ_OTEL_METRICS_ENDPOINT` when no `--otel-*` flag is given. | none |
+| `--otel-headers-file <path>` | `http/protobuf` only: a file of `Name=value` header lines, re-read before every export. Falls back to `PZ_OTEL_HEADERS_FILE` when no `--otel-*` flag is given. | none |
 | `--state-url <state-url>` | Run-scoped HTTP state endpoint. | none |
 
 See also: [Delivery guarantees](/concepts/delivery-guarantees/).

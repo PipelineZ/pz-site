@@ -286,12 +286,15 @@ Rules the SDK enforces so a connector cannot lie to the host:
 ### Telemetry
 
 An out-of-process connector exports its own traces and metrics to the same collector the engine uses,
-in the same run trace. When `pz run` is given `--otel-endpoint` (or `PZ_OTEL_ENDPOINT`), the host hands
-the endpoint and run id to your process at the handshake and puts a W3C `traceparent` on every RPC.
-Only then does the SDK:
+in the same run trace. When `pz run` exports telemetry, the host hands its target and the run id to your
+process at the handshake (`HostInfo`: `otel_endpoint` for gRPC, or `otel_protocol`, `otel_traces_endpoint`,
+`otel_metrics_endpoint` and `otel_headers_file` for `http/protobuf`) and puts a W3C `traceparent` on every
+RPC. Only then does the SDK:
 
-- export OTLP/gRPC with resource `service.name=pz-connector`, `service.version`, `pz.connector.name`,
-  and `pz.run.id`;
+- export OTLP with resource `service.name=pz-connector`, `service.version`, `pz.connector.name`, and
+  `pz.run.id`: over gRPC as before 0.9.1, or over HTTP to each signal's own URL, gzipped, with delta
+  metrics and exponential histograms, re-reading the headers file before every export. A connector built
+  on an SDK older than 0.9.1 exports nothing under `http/protobuf`;
 - open a `pcp.<Rpc>` server span per RPC — every RPC but `HostChannel` — under the engine's
   `node.<Kind>` span, tagged `pz.instance` (the connection name for an open the engine drives, else
   `<connector>#<n>`), plus a `pcp.read_stream`/`pcp.write_stream` span around each data-plane transfer;
