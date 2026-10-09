@@ -108,10 +108,14 @@ sync:
   until: now
 ```
 
-`now` is the time the run started, fixed for the whole run. The last window stops just before it, so a date cursor
-loads up to yesterday and never half of today, and rows that arrive during the run wait for the next one. Schedule
-the same loop as above: each night it loads one window at a time and stops once the window reaches the night's
-start. `until: now` on a numeric cursor is `PZ0213`.
+`now` is the time the run started, in UTC, fixed for the whole run. The last window stops just before it, so a date
+cursor loads up to yesterday and never half of today, and rows that arrive during the run wait for the next one.
+Schedule the same loop as above: it loads one window per run and stops once a run's window reaches that run's start.
+Each run resolves `now` again, so keep one run (including any wait before it starts) shorter than `max_window`, or the
+loop never catches up. `until: now` on a numeric cursor is `PZ0213`.
+
+The cursor must hold UTC values. An empty window moves the watermark to its end, so with a cursor in a local time
+behind UTC, a window can end in the source's future and the rows written there later are skipped.
 
 ## Verify
 

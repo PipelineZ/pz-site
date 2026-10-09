@@ -143,7 +143,7 @@ sync:
 | `cursor` | `incremental` | column name | The ordered column reads resume from. Required for `incremental`. |
 | `max_window` | `incremental` | duration or value | Bounds one run's extract to a window past the watermark, for backfill in slices. |
 | `initial` | `incremental` | value | The starting cursor value before any watermark exists. |
-| `until` | `incremental` | value or `now` | Where a windowed backfill stops. `now` (date and timestamp cursors) is the time the run started, for a scheduled job that keeps the source current. |
+| `until` | `incremental` | value or `now` | Where a windowed backfill stops. `now` (date and timestamp cursors) is the time the run started, in UTC, for a scheduled job that keeps the source current; the cursor must hold UTC values. |
 | `slot` | `cdc` | string | Names the server-side change-capture slot or instance, when a connector needs more than one. |
 
 `mode: incremental` without `cursor` is `PZ0334`. `mode: cdc` accepts only `mode` and `slot`;
