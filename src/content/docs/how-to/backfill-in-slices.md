@@ -78,18 +78,44 @@ run 20260902T091500118Z-9a1c: 2 succeeded, 0 failed, 0 skipped (.pz/runs/2026090
 
 ### 4. Drive the backfill to completion
 
-Repeat `pz run` until the backfill catches up. A small loop on the stored watermark works well:
+Repeat `pz run` until the backfill catches up. With `--log-format json`, every windowed source that has an
+`until` reports `caughtUp` on its `node_completed` event, so loop while the run succeeded and any of them is
+still behind:
 
 ```console
-$ until pz state show pg_prod.orders | grep -q "5000000"; do
-    pz run --all
-  done
+$ while out=$(pz run --all --log-format json) && grep -q '"caughtUp":false' <<<"$out"; do :; done
 ```
 
-Once the watermark reaches `until`, the entity is caught up: every run from then on prints a note
-that it's caught up and moves zero rows. A caught-up run still exits `0`. Without `until`, there
-is no caught-up state to reach: stop the loop yourself once a run moves zero rows, or once you
-know the watermark value you're driving toward.
+The `&&` matters: a failed run stops the loop with pz's exit code instead of re-extracting the same slice
+forever or ending quietly as if the backfill were done.
+
+The run whose window reaches `until` reports `"caughtUp":true`: it loads the last slice, and the loop ends after
+it. A run that starts with the watermark already at `until` also says `true`, prints a note that it's caught up,
+and moves zero rows; it still exits `0`. Without `until`, there is no caught-up state and no `caughtUp` field:
+stop the loop yourself once you know the watermark value you're driving toward.
+
+## Keep a source current in windows
+
+A scheduled job (nightly, hourly) can use the same windows when one day's data is too much for a single extract.
+Set `until: now` on a date or timestamp cursor:
+
+```yaml
+sync:
+  mode: incremental
+  cursor: updated_at
+  max_window: 1h
+  initial: "2026-01-01"
+  until: now
+```
+
+`now` is the time the run started, in UTC, fixed for the whole run. The last window stops just before it, so a date
+cursor loads up to yesterday and never half of today, and rows that arrive during the run wait for the next one.
+Schedule the same loop as above: it loads one window per run and stops once a run's window reaches that run's start.
+Each run resolves `now` again, so keep one run (including any wait before it starts) shorter than `max_window`, or the
+loop never catches up. `until: now` on a numeric cursor is `PZ0213`.
+
+The cursor must hold UTC values. An empty window moves the watermark to its end, so with a cursor in a local time
+behind UTC, a window can end in the source's future and the rows written there later are skipped.
 
 ## Verify
 
@@ -112,7 +138,8 @@ first slice forever. Use it once to reset, then drop the flag.
 
 | If you see | Do |
 |---|---|
-| The loop never ends and every run moves zero rows | `until` isn't set, so there's no caught-up signal. Add `until`, or stop the loop once rows moved is zero. |
+| The loop stops after one run | `until` isn't set, so there's no caught-up signal (`caughtUp` is absent). Add `until`, or loop on the stored watermark yourself. |
+| The loop stops with a non-zero exit | A run failed. Fix the cause shown in the run output, then start the loop again; it resumes from the stored watermark. |
 | `PZ0214` at compile time | An incremental read feeds a plain `append` sink. Switch to `strategy: merge` with `keys:`, as above. |
 | Every run re-extracts the same first slice | `--full-refresh` is set on every loop iteration. Use it once to reset, then remove it. |
 | A source struggling under repeated large slices | Pace the loop, or lower `max_window`. See [Throttle a source](/how-to/throttle-a-source/). |
