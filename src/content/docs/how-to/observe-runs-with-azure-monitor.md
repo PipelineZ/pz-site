@@ -119,7 +119,8 @@ Run the project by hand once with the flags above, then:
   metrics other than the service name and instance.
 - **External connector spans and metrics:** a `runtime: "process"` connector exports its own
   `pcp.<Rpc>` spans (service name `pz-connector`) nested under the engine's `node.<Kind>` span, in the
-  same trace, using the same URLs and headers file. See
+  same trace, using the same URLs and headers file. Their metrics carry the run id only as a resource
+  attribute, which Azure Monitor drops, so connector metrics cannot be filtered by run there. See
   [Author a connector](/how-to/author-a-connector/#telemetry).
 - **A caller's trace:** when whatever starts pz sets `TRACEPARENT`, the `run` span is a child in that
   trace instead of a new root.
