@@ -87,13 +87,31 @@ $ while out=$(pz run --all --log-format json) && grep -q '"caughtUp":false' <<<"
 ```
 
 The `&&` matters: a failed run stops the loop with pz's exit code instead of re-extracting the same slice
-forever or ending quietly as if the backfill were done. The run that loads the last slice still reports
-`false`, so expect one final run that moves nothing.
+forever or ending quietly as if the backfill were done.
 
-Once the watermark reaches `until`, the entity is caught up: its `node_completed` says `"caughtUp":true`, the
-run prints a note that it's caught up, and it moves zero rows. A caught-up run still exits `0`. Without
-`until`, there is no caught-up state and no `caughtUp` field: stop the loop yourself once you know the
-watermark value you're driving toward.
+The run whose window reaches `until` reports `"caughtUp":true`: it loads the last slice, and the loop ends after
+it. A run that starts with the watermark already at `until` also says `true`, prints a note that it's caught up,
+and moves zero rows; it still exits `0`. Without `until`, there is no caught-up state and no `caughtUp` field:
+stop the loop yourself once you know the watermark value you're driving toward.
+
+## Keep a source current in windows
+
+A scheduled job (nightly, hourly) can use the same windows when one day's data is too much for a single extract.
+Set `until: now` on a date or timestamp cursor:
+
+```yaml
+sync:
+  mode: incremental
+  cursor: updated_at
+  max_window: 1h
+  initial: "2026-01-01"
+  until: now
+```
+
+`now` is the time the run started, fixed for the whole run. The last window stops just before it, so a date cursor
+loads up to yesterday and never half of today, and rows that arrive during the run wait for the next one. Schedule
+the same loop as above: each night it loads one window at a time and stops once the window reaches the night's
+start. `until: now` on a numeric cursor is `PZ0213`.
 
 ## Verify
 
