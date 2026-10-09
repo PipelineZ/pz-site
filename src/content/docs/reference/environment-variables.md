@@ -16,7 +16,7 @@ This page lists every environment variable the `pz` command reads. Variables you
 | `PZ_CACHE_DIR` | `~/.pz/cache` | Where `pz restore` stores downloaded connector packages. |
 | `PZ_FEEDS` | `https://api.nuget.org/v3/index.json` | NuGet feeds `pz restore` resolves connector packages from. Separate several with `;`. The `--feeds` flag wins over the variable. |
 | `PZ_OTEL_ENDPOINT` | unset | OpenTelemetry collector endpoint for `pz run`, `pz test`, and `pz retry`. The `--otel-endpoint` flag wins over the variable. |
-| `TRACEPARENT` | unset | A W3C trace context. With telemetry on, `pz run`, `pz test` and `pz retry` start their `run` span as its child, joining the caller's trace. Invalid values are ignored with a note. |
+| `TRACEPARENT` | unset | A W3C trace context. With telemetry on, `pz run`, `pz test` and `pz retry` start their `run` span as its child, joining the caller's trace. An unsampled parent (flags `00`) means no spans are exported for the run; metrics still are. Invalid values are ignored with a note. |
 | `TRACESTATE` | unset | Vendor trace state carried with `TRACEPARENT`. Ignored without it. |
 | `PZ_DOCS_URL` | `https://pipelinez.dev` | Base URL the `pz mcp` server reads `llms.txt`/`llms-full.txt` from. Also accepts a `file://` directory holding the same two files, for air-gapped mirrors; each fetch is capped at 25MB (`PZ0610`). |
 | `CI` | unset | When set to any value, pz renders plain non-interactive output. Redirected output has the same effect. |
