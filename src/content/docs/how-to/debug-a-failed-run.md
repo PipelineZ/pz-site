@@ -23,9 +23,10 @@ indented underneath:
 ```console
 $ pz run --all; echo "exit $?"
 ok src_crm__orders 4200 rows 810ms
+ok orders_curated 4200 rows 42ms
 FAIL lake.orders_curated 0 rows 120ms
   PZ0501: sink 'lake' output 'orders_curated': connection reset by peer
-run 20260902T094011003Z-7c2a: 1 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094011003Z-7c2a/run_results.json)
+run 20260902T094011003Z-7c2a: 2 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094011003Z-7c2a/run_results.json)
 exit 1
 ```
 
@@ -78,6 +79,7 @@ list, including `source_drift_detected` and `breaker_state_changed`.
 $ pz plan
 strategy      node                        reason
 arrow_stream  src_crm__orders             arrow stream: connector 'postgres' has no native path
+duck_sql      orders_curated              duckdb sql: executes in-engine
 native_copy   lake.orders_curated         localfiles supports native copy
 ```
 
@@ -122,9 +124,10 @@ Once you've fixed the cause, resume instead of starting over:
 $ pz retry
 note: reusing staged data for 1 source load(s) from run 20260902T094011003Z-7c2a
 ok src_crm__orders 4200 rows 35ms
+ok orders_curated 4200 rows 39ms
 FAIL lake.orders_curated 0 rows 95ms
   PZ0501: sink 'lake' output 'orders_curated': connection reset by peer
-run 20260902T094530118Z-2b9d: 1 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094530118Z-2b9d/run_results.json)
+run 20260902T094530118Z-2b9d: 2 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094530118Z-2b9d/run_results.json)
 ```
 
 `pz retry` re-executes only the nodes that didn't succeed, plus their required ancestors.
