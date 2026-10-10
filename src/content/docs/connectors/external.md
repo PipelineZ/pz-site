@@ -1,6 +1,6 @@
 ---
 title: "External connectors"
-description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, cosmosdb, databricks, deltalake, elasticsearch, eventhubs, github, kafka, mongodb, and snowflake connectors it covers today."
+description: "First-party connectors the PipelineZ org publishes outside the pz binary, at a secondary support tier: what that tier means, and the bigquery, clickhouse, cosmosdb, databricks, deltalake, elasticsearch, eventhubs, github, kafka, mongodb, and snowflake connectors it covers today."
 sidebar:
   order: 17
 ---
@@ -52,6 +52,7 @@ least one direction hands DuckDB a native scan or copy instead of streaming thro
 | Connector | Package | Read | Write | Native DuckDB tier | Incremental | CDC | Merge |
 |---|---|---|---|---|---|---|---|
 | [bigquery](https://github.com/PipelineZ/pz-connector-bigquery) | `Pz.Connector.BigQuery` | ✓ | ✓ | – | ✓ | – | ✓ |
+| [clickhouse](https://github.com/PipelineZ/pz-connector-clickhouse) | `Pz.Connector.ClickHouse` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [cosmosdb](https://github.com/PipelineZ/pz-connector-cosmosdb) | `Pz.Connector.CosmosDb` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [databricks](https://github.com/PipelineZ/pz-connector-databricks) | `Pz.Connector.Databricks` | ✓ | ✓ | – | ✓ | – | ✓ |
 | [deltalake](https://github.com/PipelineZ/pz-connector-deltalake) | `Pz.Connector.DeltaLake` | ✓ | ✓ | ✓ (read only) | ✓ | – | ✓ |
@@ -89,6 +90,42 @@ watch those paths on your first run. The package is Native AOT and ships `linux-
 `osx-arm64`, and `win-x64`, but only `linux-x64` has actually been exercised by its own CI. See its
 [README](https://github.com/PipelineZ/pz-connector-bigquery#readme) for the type tables, the error
 codes, and the emulator setup.
+
+## clickhouse
+
+Reads and writes both go through ClickHouse's HTTP interface as Arrow (`FORMAT ArrowStream`), so
+no driver is involved and the binary is Native AOT. A read is one streamed query. Column pruning, a
+predicate and a limit become the `SELECT`, and a predicate ClickHouse cannot parse is dropped with a
+warning in pz's log while DuckDB still filters locally. Incremental cursor bounds travel as typed
+query parameters; `DateTime`/`DateTime64` bounds are compared as instants, so neither the column's
+nor the server's timezone can shift them. `query:` runs any ClickHouse SQL as written and still
+applies the cursor bounds. Types whose Arrow form is unusable are cast on the server: `Date`
+becomes `date32`, `DateTime` a timestamp with its timezone, and Enum, UUID, IP and 128/256-bit
+integers become strings. A query that fails partway through its result fails the read rather than
+landing a short one. The sink streams batches into a `_pz_stg_<tag>` staging table and finishes
+with one step on the target: `append` (`INSERT … SELECT`), `replace` (a shadow table swapped in
+with `EXCHANGE TABLES`, which keeps the target's own engine, `ORDER BY` and partitioning), or
+`merge`. Merge defaults to a `ReplacingMergeTree` versioned by the commit time; `merge_strategy:
+delete_insert` deletes the staged keys and re-inserts instead. Single servers, ClickHouse Cloud and
+self-managed clusters (`cluster:`, with `ON CLUSTER` DDL, `Replicated*` engines and `Distributed`
+targets) are supported. A private CA is set with `tls_ca_file`.
+
+```yaml title="project.yml"
+connectors:
+  - package: Pz.Connector.ClickHouse
+    version: 0.1.0
+```
+
+**Before you install it:** this connector is built on `Pz.Connectors.Sdk` 0.9.3, and its tests run
+against ClickHouse 25.8 (a single server and a 2 shard × 2 replica cluster). ClickHouse Cloud is
+supported by design but has not been tested against a live service. With `replacing`, rows are
+deduplicated by background merges, so read the target with `FINAL` (or `argMax`) to see exactly
+one row per key. `delete_insert` is exact without `FINAL` but not atomic: for a moment, readers can
+see the merged keys missing. On a cluster, every node's `{replica}` macro must be unique, and the
+staging data is copied to every node before the commit. Append is at-least-once. The binary is
+about 17 MB per platform. See the
+[README](https://github.com/PipelineZ/pz-connector-clickhouse#readme) for the type tables, the error
+codes, and the cluster notes.
 
 ## cosmosdb
 
