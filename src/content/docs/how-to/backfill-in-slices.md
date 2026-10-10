@@ -78,21 +78,42 @@ run 20260902T091500118Z-9a1c: 2 succeeded, 0 failed, 0 skipped (.pz/runs/2026090
 
 ### 4. Drive the backfill to completion
 
-Repeat `pz run` until the backfill catches up. With `--log-format json`, every windowed source that has an
-`until` reports `caughtUp` on its `node_completed` event, so loop while the run succeeded and any of them is
-still behind:
+Pass `--until-caught-up` and pz repeats the run until every windowed source with an `until` has caught up.
+The example above needs 500 slices (`until` 5,000,000 in windows of 10,000), more than the default limit of 100
+passes, so raise it:
 
 ```console
-$ while out=$(pz run --all --log-format json) && grep -q '"caughtUp":false' <<<"$out"; do :; done
+$ pz run --all --until-caught-up --max-runs 1000
+...
+run 20260902T094812004Z-31f7: 2 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T094812004Z-31f7/run_results.json)
+note: until-caught-up: 500 passes, stopped: caught up
 ```
 
-The `&&` matters: a failed run stops the loop with pz's exit code instead of re-extracting the same slice
-forever or ending quietly as if the backfill were done.
+Each pass is a full run: it loads one slice, writes the sinks, and advances the watermark before the next pass
+starts, so stopping (or crashing) loses at most the slice in flight. The loop ends:
 
-The run whose window reaches `until` reports `"caughtUp":true`: it loads the last slice, and the loop ends after
-it. A run that starts with the watermark already at `until` also says `true`, prints a note that it's caught up,
-and moves zero rows; it still exits `0`. Without `until`, there is no caught-up state and no `caughtUp` field:
-stop the loop yourself once you know the watermark value you're driving toward.
+| When | Exit code |
+|---|---|
+| Every windowed source with an `until` has caught up. The pass whose window reaches `until` is the last one. | `0` |
+| A pass fails. The loop doesn't retry it. | that pass's exit code |
+| You press Ctrl-C, or a supervisor sends `SIGTERM`/`SIGHUP`. | `3` |
+| `--max-runs` passes have run (default `100`). The next invocation continues from the stored watermarks. | `0` |
+| No windowed source in the selection has an `until`. It runs once and says so. | `0` |
+
+The last line, `note: until-caught-up: <N> passes, stopped: <reason>`, says which. Under `--log-format json` it
+goes to stderr, so stdout stays NDJSON. Instead of raising `--max-runs`, you can keep the default and schedule the
+command: each invocation picks up where the last one stopped.
+
+Without `until`, there is no caught-up state, and `--until-caught-up` runs once. Stop the backfill yourself once
+the watermark reaches the value you're driving toward.
+
+#### Driving it from a platform
+
+A platform that wants one run per slice (its own history per slice, other work between slices) can read the same
+signal: with `--log-format json`, every windowed source with an `until` reports `caughtUp` on its `node_completed`
+event and in `run_results.json`. Start another run while the last one succeeded and any source said `false`. The run
+whose window reaches `until` says `true`; a run that starts with the watermark already there also says `true`, moves
+zero rows, and exits `0`.
 
 ## Keep a source current in windows
 
@@ -110,7 +131,7 @@ sync:
 
 `now` is the time the run started, in UTC, fixed for the whole run. The last window stops just before it, so a date
 cursor loads up to yesterday and never half of today, and rows that arrive during the run wait for the next one.
-Schedule the same loop as above: it loads one window per run and stops once a run's window reaches that run's start.
+Schedule `pz run --until-caught-up`: it loads windows until a run's window reaches that run's start.
 Each run resolves `now` again, so keep one run (including any wait before it starts) shorter than `max_window`, or the
 loop never catches up. `until: now` on a numeric cursor is `PZ0213`.
 
@@ -131,17 +152,19 @@ pg_prod.orders — cursor id (bigint)
 
 `pz run --full-refresh` on a windowed entity ignores the stored watermark for that one run and
 starts the window over from `initial`. Watermark capture and advancement still run and overwrite
-whatever was stored. Don't pass it on every loop iteration, or each pass re-extracts the same
-first slice forever. Use it once to reset, then drop the flag.
+whatever was stored. With `--until-caught-up`, it applies to the first pass only, so
+`pz run --all --full-refresh --until-caught-up` restarts the backfill and drives it to the end. In a
+loop of your own, pass it once and then drop it, or each pass re-extracts the same first slice forever.
 
 ## Troubleshooting
 
 | If you see | Do |
 |---|---|
-| The loop stops after one run | `until` isn't set, so there's no caught-up signal (`caughtUp` is absent). Add `until`, or loop on the stored watermark yourself. |
-| The loop stops with a non-zero exit | A run failed. Fix the cause shown in the run output, then start the loop again; it resumes from the stored watermark. |
+| `stopped: no windowed source with a stop` | `until` isn't set, so there's no caught-up signal (`caughtUp` is absent). Add `until`, or loop on the stored watermark yourself. |
+| `stopped: run failed` | A pass failed, and the loop exits with its code. Fix the cause shown in the run output, then start again; it resumes from the stored watermark. |
+| `stopped: max runs (N) reached` | The backfill needs more than `N` slices. Run the command again, raise `--max-runs`, or raise `max_window`. |
 | `PZ0214` at compile time | An incremental read feeds a plain `append` sink. Switch to `strategy: merge` with `keys:`, as above. |
-| Every run re-extracts the same first slice | `--full-refresh` is set on every loop iteration. Use it once to reset, then remove it. |
+| Every run re-extracts the same first slice | Your own loop passes `--full-refresh` on every iteration. Use it once, or use `--until-caught-up`, which applies it to the first pass only. |
 | A source struggling under repeated large slices | Pace the loop, or lower `max_window`. See [Throttle a source](/how-to/throttle-a-source/). |
 
 ## Related

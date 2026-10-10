@@ -137,7 +137,9 @@ $ pz run orders_enriched --full-refresh
 | `--project <project>` | Project directory. | current directory |
 | `--vars <vars>` | JSON object of var overrides. | none |
 | `--fail-fast` | Cancel remaining nodes as soon as one fails. | off |
-| `--full-refresh` | Ignore stored watermarks and sync state for this run; capture and advancement still run and re-establish them from the full extract. | off |
+| `--full-refresh` | Ignore stored watermarks and sync state for this run; capture and advancement still run and re-establish them from the full extract. With `--until-caught-up`, the first pass only. | off |
+| `--until-caught-up` | Repeat the run while any windowed source with a stop (`until`, or a SQL ceiling) reports `caughtUp: false`. Each pass is a full run. Stops when every such source has caught up (exit `0`), a pass fails (its exit code), on a stop signal (`3`), or at `--max-runs` (`0`); with no such source it runs once. Ends with a `note: until-caught-up: …` line. See [Backfill in slices](/how-to/backfill-in-slices/). | off |
+| `--max-runs <n>` | With `--until-caught-up`: the most passes to run. Without it, or below `1`, it's a usage error (exit `2`). | `100` |
 | `--select <select>` | dbt-style node selector restricting which nodes are processed. | none |
 | `--all` | Select the whole project. Required when the project has 2+ independent flows. | — |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
