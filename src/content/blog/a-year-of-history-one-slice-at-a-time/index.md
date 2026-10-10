@@ -79,24 +79,32 @@ explicitly accept duplicates.
 
 ## Knowing when to stop
 
-A backfill is a loop of ordinary `pz run`s. With `--log-format json`, every windowed source that
-has an `until` reports `caughtUp` on its `node_completed` event, so the loop is one line:
+A backfill is a loop of ordinary `pz run`s, and pz runs the loop for you:
 
 ```console
-$ while out=$(pz run --all --log-format json) && grep -q '"caughtUp":false' <<<"$out"; do :; done
+$ pz run --all --until-caught-up
+...
+note: until-caught-up: 53 passes, stopped: caught up
 ```
 
-The `&&` is the important part. A failed run ends the loop with pz's exit code, instead of
-retrying the same slice forever or stopping quietly as if the backfill were done. Fix the cause,
-start the loop again, and it picks up from the stored watermark.
+Each pass is a full run that commits its slice and advances the watermark before the next pass
+starts. The loop ends on the pass whose window reaches `until`, so there's no extra empty run at
+the end. A failed pass ends it with that pass's exit code, instead of retrying the same slice
+forever or stopping quietly as if the backfill were done. Fix the cause, run the command again,
+and it picks up from the stored watermark. Ctrl-C cancels the slice in flight and starts no more, and
+`--max-runs` (default 100) caps how many passes one invocation makes.
 
-The run whose window reaches `until` loads the last slice and reports `"caughtUp":true`, and the
-loop ends after it. Running again after that is harmless: pz prints a note that the entity is
-caught up, moves zero rows, and exits `0`.
+Running it again once the entity has caught up is harmless: pz notes that it's caught up, moves
+zero rows, and exits `0`.
 
-If the source can't take back-to-back slices, put a `sleep` in the loop body or lower
-`max_window`. [Throttle a source](/how-to/throttle-a-source/) covers pacing in more depth,
-including `rate_limit:` pacing within a run.
+The signal behind the loop is public too. With `--log-format json`, every windowed source that has
+an `until` reports `caughtUp` on its `node_completed` event and in `run_results.json`. A platform
+that wants one run per slice, each with its own history, can start the next run while the last
+one succeeded and any source said `false`.
+
+If the source can't take back-to-back slices, lower `max_window`, or drive the loop yourself with
+a `sleep` between runs. [Throttle a source](/how-to/throttle-a-source/) covers pacing in more
+depth, including `rate_limit:` pacing within a run.
 
 ## The same windows, on a schedule
 
@@ -114,8 +122,8 @@ sync:
 
 `now` is the moment the run started, in UTC, fixed for the whole run. The last window stops just
 before it, so a date cursor loads up to yesterday and never half of today, and rows that arrive
-mid-run wait for the next one. Schedule the same loop: it takes one hourly slice per run and stops
-once a window reaches that run's start.
+mid-run wait for the next one. Schedule `pz run --until-caught-up`: it takes hourly slices and
+stops once a window reaches that run's start.
 
 Two rules keep this honest. Each run resolves `now` again, so one run, counting any wait before it
 starts, has to be shorter than `max_window`, or the loop chases a moving target and never catches
@@ -131,8 +139,9 @@ the quickest way to see how far a backfill has got. Two tools cover going backwa
 - **`pz state rollback`** moves a watermark back to the value a named earlier run left it at, so
   the next run re-extracts from there. The merge sink makes the overlap harmless.
 - **`pz run --full-refresh`** ignores the stored watermark for one run and starts the window over
-  from `initial`. Use it once, then drop the flag. Left on every loop iteration, it extracts the
-  same first slice forever.
+  from `initial`. With `--until-caught-up` it applies to the first pass only, so
+  `pz run --all --full-refresh --until-caught-up` restarts the backfill and drives it to the end.
+  In a loop of your own, use it once and drop it, or every iteration extracts the same first slice.
 
 ## Try it
 

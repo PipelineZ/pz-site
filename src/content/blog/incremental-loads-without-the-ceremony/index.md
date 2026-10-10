@@ -104,8 +104,8 @@ custom pipeline logic:
 
 A **backfill** needs to move a large amount of history without one unbounded extract hitting the
 source all at once. Adding `max_window` alongside `cursor:` bounds each run to a fixed-size
-slice instead, so a `pz run` moves one slice at a time and repeating the command drives the
-backfill forward. See [Backfill in slices](/how-to/backfill-in-slices/) for the full walkthrough.
+slice instead, so a `pz run` moves one slice at a time, and `pz run --until-caught-up` repeats it
+until the backfill is done. See [Backfill in slices](/how-to/backfill-in-slices/) for the full walkthrough.
 
 **Change data capture** replaces the cursor comparison entirely: `mode: cdc` reads inserts,
 updates, and deletes straight from the source's own change log, which is how deletes get
