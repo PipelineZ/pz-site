@@ -53,8 +53,8 @@ starting over:
 
 ```console
 $ pz retry
-ok src_raw__customers 3 rows 41ms
-note: reusing staged data for 1 source load(s)
+note: reusing staged data for 1 source load(s) from run 20260902T092411907Z-a83e
+ok src_raw__customers 3 rows 4ms
 ok stg_orders 3 rows 6ms
 ok orders_enriched 3 rows 5ms
 run 20260902T092530118Z-c41f: 3 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T092530118Z-c41f/run_results.json)

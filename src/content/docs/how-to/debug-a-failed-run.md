@@ -120,10 +120,11 @@ Once you've fixed the cause, resume instead of starting over:
 
 ```console
 $ pz retry
-note: reusing staged data for 1 source load(s)
+note: reusing staged data for 1 source load(s) from run 20260902T094011003Z-7c2a
+ok src_crm__orders 4200 rows 35ms
 FAIL lake.orders_curated 0 rows 95ms
   PZ0501: sink 'lake' output 'orders_curated': connection reset by peer
-run 20260902T094530118Z-2b9d: 0 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094530118Z-2b9d/run_results.json)
+run 20260902T094530118Z-2b9d: 1 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T094530118Z-2b9d/run_results.json)
 ```
 
 `pz retry` re-executes only the nodes that didn't succeed, plus their required ancestors.

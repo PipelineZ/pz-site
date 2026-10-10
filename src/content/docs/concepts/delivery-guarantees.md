@@ -147,19 +147,28 @@ After a network blip fails one write partway through a run:
 
 ```console
 $ pz run orders_enriched
+ok src_raw__orders 5 rows 31ms
+ok src_raw__customers 3 rows 28ms
 ok stg_orders 5 rows 12ms
 ok orders_enriched 5 rows 8ms
 FAIL lake.order_totals 0 rows 4ms
-run 20260902T101533221Z-4c1a: 2 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T101533221Z-4c1a/run_results.json)
+  PZ0501: sink 'lake' output 'order_totals': connection reset by peer
+run 20260902T101533221Z-4c1a: 4 succeeded, 1 failed, 0 skipped (.pz/runs/20260902T101533221Z-4c1a/run_results.json)
 
 $ pz retry
 note: reusing staged data for 2 source load(s) from run 20260902T101533221Z-4c1a
+ok src_raw__orders 5 rows 3ms
+ok src_raw__customers 3 rows 2ms
+ok stg_orders 5 rows 11ms
+ok orders_enriched 5 rows 7ms
 ok lake.order_totals 5 rows 6ms
-run 20260902T101602118Z-9e2f: 1 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T101602118Z-9e2f/run_results.json)
+run 20260902T101602118Z-9e2f: 5 succeeded, 0 failed, 0 skipped (.pz/runs/20260902T101602118Z-9e2f/run_results.json)
 ```
 
-`stg_orders` and `orders_enriched` already succeeded, so `pz retry` reuses their staged results
-instead of re-running the pipeline, and only `lake.order_totals` actually executes again.
+Both source loads already succeeded, so `pz retry` copies their staged tables from the failed run
+instead of contacting the source again. `stg_orders` and `orders_enriched` run again: pipelines
+are always recomputed, inside the staging database, from the copied tables. `lake.order_totals`
+is the only node that didn't succeed the first time, and the only write the retry performs.
 
 ## Errors
 
