@@ -40,6 +40,10 @@ below are built on `Pz.Connectors.Sdk` 0.6.1. Their earlier releases fail every 
 pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is not a leading prefix of
 the source's columns; pin these or later.
 
+Telemetry-enabled releases of every connector below, built on `Pz.Connectors.Sdk` for pz 0.11.0,
+report what they ask of their remote service (see [Telemetry](#telemetry)). Earlier releases keep
+working on pz 0.11.0; they just report nothing.
+
 A third-party connector that is not on this page may be perfectly good; it just isn't something
 PipelineZ has tested or will support. To get a connector onto this page, open an issue in
 [`pz`](https://github.com/PipelineZ/pz) proposing it move under the org.
@@ -374,6 +378,39 @@ option for GCP-hosted accounts, either. The package is self-contained rather tha
 against the project directory (the manifest declares a project-directory anchor). See its
 [README](https://github.com/PipelineZ/pz-connector-snowflake#readme) for connection keys, schema
 policy, and type mapping.
+
+## Telemetry
+
+From pz 0.11.0, a connector can report what it asked of its remote service: requests, wire bytes,
+remote time, throttles, a cost in the service's own unit, and connector-specific extras. They land
+on the node in `run_results.json`, in the NDJSON events and, with OpenTelemetry on, in `remote.*`
+spans. The contract is described in
+[Author a connector](/how-to/author-a-connector/#reporting-remote-stats), and the run-level view in
+[Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/). The telemetry-enabled
+releases below are built on pz 0.11.0.
+
+| Connector | Reports |
+|---|---|
+| bigquery | Requests, wire bytes and 429/503 throttles from the REST handler; each Storage Read stream counts as a request. Job statistics give remote time, cost in `bytes_billed`, and extras `bigquery.slot_ms`/`bigquery.bytes_processed`. |
+| clickhouse | HTTP requests, wire bytes and 429/503 throttles. `X-ClickHouse-Summary` gives remote time, cost in `bytes_scanned`, and extras `clickhouse.read_rows`/`clickhouse.written_rows` (data statements only). |
+| cosmosdb | Cost in `ru` (RequestCharge), remote time from `x-ms-request-duration-ms`, and document extras. Exports `Azure.Cosmos.Operation` spans. |
+| databricks | Requests, wire bytes and 429/503 throttles for every statement, poll and file call; extras `databricks.statements`/`databricks.chunks`. No remote time or cost. |
+| deltalake | Writes only: one request per delta-rs call, wire bytes are the Arrow payload, extra `deltalake.commits`. Reads report nothing. |
+| elasticsearch | Requests, wire bytes and 429/503 throttles; remote time from search and bulk `took`; extras `elasticsearch.shards_failed`/`elasticsearch.bulk_items_failed`. Exports `Elastic.Transport` spans. No cost. |
+| eventhubs | One request per receive or send batch, wire bytes, `ServiceBusy` as throttled; extras `eventhubs.events`/`eventhubs.batches`. No remote time or cost. |
+| github | Requests and wire bytes from the HTTP handler; cost is 1 `requests` unit per successful call. A primary rate-limit 403 counts as throttled. No remote time. |
+| kafka | librdkafka statistics deltas: requests from `tx`, plus wire bytes. No throttles: librdkafka's throttle is a rolling-window histogram. |
+| mongodb | Requests counted at the connector's call sites; extras `mongodb.documents`/`mongodb.get_mores`; error 16500 counts as throttled. Exports `MongoDB.Driver` spans. No remote time. |
+| snowflake | One request per statement and extra `snowflake.statements`. No throttles, remote time or cost. |
+
+Read the numbers as lower bounds: retries inside a connector's client library are invisible to
+the counters, so a count can be lower than the traffic on the wire.
+
+- **Snowflake** telemetry is validated by unit tests only; no account or emulator was available
+  to run it end to end.
+- **Delta Lake** reads run as a native `delta_scan` inside DuckDB, so no read bytes pass
+  through the connector and none are reported.
+- **Databricks** was validated against a fake; a run against a live workspace is pending.
 
 ## Related
 
