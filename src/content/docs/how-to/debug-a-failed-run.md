@@ -69,6 +69,15 @@ object holds the milliseconds each phase took (`loadMs`, `compileMs`, `validateM
 `planMs`, `executeMs`, `finalizeMs`), so a slow run can be narrowed to a phase, then a node, then a
 stage, from this one file. Every one of these fields is omitted when it does not apply.
 
+Since 0.11.0 a node whose connector reports on its remote system also has a `remote` object:
+`requests`, `wireBytes`, `remoteMs` (time spent waiting on the remote system, so concurrent requests can
+make it exceed `durationMs`), `throttled`, `cost` (`{units, unit}`, one unit per node) and `extras`
+(connector-named numbers). Unlike `stages`, which describe the last attempt, `remote` is summed across
+every attempt and partition, and it is present on a failed node, so the retries of a node that kept being
+throttled show up as one total. Zero values are omitted, as is the whole object when the connector
+reported nothing. A commit that failed, and a partition read abandoned early, contribute nothing, and the
+requests a hosted connector makes while opening, planning and fetching a schema are not counted.
+
 ### 3. Re-run with the event stream
 
 For a fuller picture of what led up to the failure, not just its final state, re-run with

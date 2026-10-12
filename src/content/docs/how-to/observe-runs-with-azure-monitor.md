@@ -125,16 +125,29 @@ Run the project by hand once with the flags above, then:
   - A failed node's span has an error status with a sanitized one-line description, `error.type` set to
     the `PZ####` code, and an `exception` event; each retry is a `retry_scheduled` event with `attempt`,
     `max_attempts`, `delay_ms` and a one-line `reason`.
+  - Since pz 0.11.0, a node whose connector reports remote stats also carries `pz.remote.requests`,
+    `pz.remote.wire_bytes`, `pz.remote.ms`, `pz.remote.throttled`, `pz.remote.cost` with
+    `pz.remote.cost_unit`, one `pz.remote.extra.<name>` per connector-defined figure, and
+    `pz.remote.spans_dropped` when the connector's per-operation cap of 200 `remote.*` spans was hit.
+    Each is written only when it is above zero.
   - Never on any span: SQL text, connection config, watermark values, sync tokens or CDC positions.
 - **Metrics** (meter `Pz.Engine`, delta, with a base-2 exponential `pz.node.duration`): `pz.rows_moved`,
   `pz.bytes_moved`, `pz.batches`, `pz.node.duration` (label `pz.node.kind`), and `pz.run.completed`, a
   counter incremented once per run with label `pz.run.status` of `success`, `completed_with_failures`,
   or `fatal`. Every point carries `pz.run.id`, because Azure Monitor keeps no resource attributes on
   metrics other than the service name and instance.
+- **Remote metrics** (since pz 0.11.0; meter `Pz.Engine`, recorded once per node, labels `pz.instance` and
+  `pz.connector`, plus `pz.run.id`): counters `pz.remote.requests`, `pz.remote.wire_bytes` (`By`) and
+  `pz.remote.throttled`; histogram `pz.remote.duration` (`ms`, time spent waiting on the remote system);
+  and counter `pz.remote.cost`, which also carries `pz.remote.cost_unit` and is never summed across units.
+  Connector-defined extras are on the span, not metrics.
 - **External connector spans and metrics:** a `runtime: "process"` connector exports its own
   `pcp.<Rpc>` spans (service name `pz-connector`) nested under the engine's `node.<Kind>` span, in the
   same trace, using the same URLs and headers file. Their metrics carry the run id only as a resource
-  attribute, which Azure Monitor drops, so connector metrics cannot be filtered by run there. See
+  attribute, which Azure Monitor drops, so connector metrics cannot be filtered by run there. A
+  connector built on the SDK also exports `remote.<operation>` client spans (`remote.http` for its HTTP
+  calls) for the requests it makes to its remote system, carrying the operation, and for HTTP the method,
+  host, port and status code, but never a URL path, query, header or error message (since pz 0.11.0). See
   [Author a connector](/how-to/author-a-connector/#telemetry).
 - **A caller's trace:** when whatever starts pz sets `TRACEPARENT`, the `run` span is a child in that
   trace instead of a new root.
@@ -153,7 +166,7 @@ Run the project by hand once with the flags above, then:
 |---|---|
 | `note: telemetry headers file '...' could not be read` | The path is wrong or the run's account cannot read it. |
 | No spans or metrics arrive, no note | Check the identity has Monitoring Metrics Publisher on the data collection rule, and that the token's resource is `https://monitor.azure.com`. |
-| Spans arrive but `phase.*` children or node facts are missing | pz is older than 0.10.0; upgrade it. |
+| Spans arrive but `phase.*` children or node facts are missing | pz is older than 0.10.0 (0.11.0 for `pz.remote.*`); upgrade it. |
 | Spans arrive but connector spans do not | The connector predates SDK 0.9.1; rebuild it on 0.9.1 or later. |
 | A gap in metrics between expected runs | Normal for schedule-driven workloads; pz emits no metrics between runs. |
 

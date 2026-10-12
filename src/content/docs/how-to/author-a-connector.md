@@ -313,6 +313,82 @@ To also export a client library's own `ActivitySource`/`Meter` (Npgsql, the AWS 
 configuration value in a span name, a tag, or a metric label — what is emitted is what the operator
 sees.
 
+### Reporting remote stats
+
+Since pz 0.11.0 (SDK 0.11.0) a connector can tell pz what its remote system did for a node. The figures
+land in `remote` on `node_completed` and in `run_results.json`
+([Run events](/reference/events/#node_completed)), and on the node's span and the `pz.remote.*` metrics
+([Observe runs](/how-to/observe-runs-with-azure-monitor/#what-arrives)). Declare
+`ConnectorCapabilities.ReportsStats`, then report from inside a read or write call through
+`ConnectorStats.Current` (a no-op outside an operation, so call it unconditionally):
+
+```csharp
+var stats = ConnectorStats.Current;
+stats.AddRequests(1);
+stats.AddWireBytes(page.Length);
+stats.AddRemoteMs(elapsedMs);
+stats.AddThrottled(1);                              // the remote system said slow down
+stats.AddCost(charge, "ru");                        // one billing unit per node
+stats.AddExtra("cosmos.partitions_scanned", 7);     // connector-specific
+```
+
+Reporting never fails a read or write: an invalid value is dropped, and pz prints one `note:` per run
+naming the connector and the rule that fired, never the value. The rules:
+
+- Every number is finite and at least 0.
+- A cost unit is one of `ru`, `bytes_billed`, `bytes_scanned`, `credits`, `dbu`, `requests`, or any
+  token matching `[a-z][a-z0-9_]{0,23}`. A node keeps the first unit it sees and drops amounts in
+  another; cost is never summed across units.
+- An extra is named `<connector>.<what>` (lowercase, dotted, `[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*`, at
+  most 40 characters). A node keeps at most 8 distinct extras; repeats of a name sum.
+
+Stats are summed across a node's attempts and partitions. A commit or abort that fails reports no stats
+for that call, and a partition read abandoned early reports none for that stream.
+
+`ctx.Remote` does the reporting and the tracing together. `ctx.Remote.Start("get_object")` opens a
+`remote.get_object` client span under the current span and counts one request when you dispose it; chain
+`WireBytes`, `RemoteMs`, `Throttled`, `Cost` and `Extra` on the call. Dispose cannot see an exception,
+so call `call.Fail(ex)` in the catch block first (the span records the exception type, never its
+message):
+
+```csharp
+using var call = ctx.Remote.Start("get_object");
+try
+{
+    var response = await client.GetAsync(key, ct);
+    call.WireBytes(response.Length).Cost(response.Charge, "ru");
+}
+catch (Exception ex)
+{
+    call.Fail(ex);
+    throw;
+}
+```
+
+The operation is a short fixed verb matching `[a-z][a-z0-9_]{0,31}` (anything else is recorded as
+`call`). For an `HttpClient`, `new HttpClient(ctx.Remote.HttpHandler())` wraps every request in a
+`remote.http` span and counts it, adds `Content-Length` bytes it can see, and counts HTTP 429 and 503 as
+throttled. It records the method, host, port and status code, and never the URL path or query,
+headers, bodies or exception messages. The span ends when the response headers arrive, so it times the
+wait for the response, not the body download. At most 200 `remote.*` spans open per operation; further
+calls still count as requests, and the number skipped is on the node span as `pz.remote.spans_dropped`.
+
+Spans from a client library you export through `PzConnectorHostOptions.ActivitySources` pass through a
+redactor first: it removes `db.statement`, `db.query.text`, `url.full`, `url.query`, `url.path`,
+`http.url`, `http.target`, `exception.message`, `db.query.parameter.*`, and message bodies and payloads
+(`messaging.message.body*`, `messaging.*.payload*`). Only tags are redacted, so the `exception` event a
+library records on failure keeps its message; the SDK's own `Pz.Connector` spans are untouched.
+
+Name your own instruments `<connector>.<what>` (`cosmos.partitions_scanned`), and keep labels to
+bounded, non-secret values; a label never carries a configuration value, a path, SQL or an identifier
+from the data.
+
+To test it, `Pz.Connectors.TestKit` runs `Reported_stats_are_valid` (sources) and
+`Reported_write_stats_are_valid` (sinks) for a connector that declares `ReportsStats`: they read or write
+a small dataset with an accumulator in place and fail if any rule above fired. Without the capability
+they skip. `pz connector test` adds a `commit-stats-valid` vector for the same connectors; it commits once
+more to the probe target, so point `write:` at a throwaway one.
+
 ### Packaging
 
 Native AOT per platform is the default; `<PzPackaging>self-contained</PzPackaging>` opts a connector
@@ -442,11 +518,33 @@ tracing::subscriber::set_global_default(
 Without that layer an author-installed subscriber wins and no span is exported (the handshake says so
 on stderr); meters are unaffected either way.
 
+### Reporting remote stats
+
+Since pz 0.11.0 the Rust SDK reports sinks' remote stats. `pz_connector::stats()` returns the handle for
+the write session the calling task runs in (a no-op outside one), with the same methods and the same
+validation rules as the C# `ConnectorStats` above, in snake case: `add_requests`, `add_wire_bytes`,
+`add_remote_ms`, `add_throttled`, `add_cost(units, "ru")`, `add_extra("vendor.metric", n)`.
+`pz_connector::remote::start` opens a `remote.<operation>` span and counts a request when the call drops;
+call `fail(&err)` first on an error (only the error's type name is recorded):
+
+```rust
+let call = pz_connector::remote::start("put_object");
+call.wire_bytes(body.len() as i64);
+match client.put(&key, body).await {
+    Ok(resp) => { call.cost(resp.charge, "ru"); }
+    Err(e) => { call.fail(&e); return Err(e.into()); }
+}
+```
+
+The handle is task-local, so it reaches only code awaited inside the SDK's call; work moved to
+`tokio::spawn` reports nowhere. Rust stats cover sinks only (there is no Rust source support), and the
+Rust SDK does not redact foreign `tracing` spans.
+
 ## Verify
 
 Two independent checks confirm your connector is ready to ship: `dotnet test` against the
 `Pz.Connectors.TestKit` acceptance suite passes with no skipped mode-honesty facts for the
-capabilities you declared, and, once packaged, `pz connector test <path> --config probe.yml`
+capabilities you declared (including `ReportsStats`, if you report [remote stats](#reporting-remote-stats)), and, once packaged, `pz connector test <path> --config probe.yml`
 exits `0` against your real binary.
 
 ## Troubleshooting
