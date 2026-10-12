@@ -131,7 +131,9 @@ Each run gets its own directory, `.pz/runs/<run-id>/`, holding:
 - `staging.duckdb`: the embedded [staging database](/concepts/key-concepts/) every read, pipeline,
   and write for that run went through.
 - `run_results.json`: per-node status, timings, and row counts, written incrementally as nodes
-  finish so a crash mid-run still leaves a readable file. `pz retry` reads this to know what to
+  finish so a crash mid-run still leaves a readable file. Since 0.10.0 it also records how long each
+  phase took and, per node, the connector, connection, data-plane tier, and stage times
+  ([fields](/how-to/debug-a-failed-run/#2-open-run_resultsjson)). `pz retry` reads this to know what to
   redo.
 
 Two more files live one level up, in the project-wide `.pz/target/` directory, and get

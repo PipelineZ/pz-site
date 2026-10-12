@@ -111,7 +111,21 @@ Run the project by hand once with the flags above, then:
 ## What arrives
 
 - **Traces:** a `run` root span (service name `pz`) with per-node `node.<Kind>` child spans, in the
-  classic `requests`/`dependencies` tables and in the workspace's `OTelSpans` table.
+  classic `requests`/`dependencies` tables and in the workspace's `OTelSpans` table. Since pz 0.10.0:
+  - The `run` span starts at the run's first phase and has a `phase.<name>` child per phase (`load`,
+    `compile`, `validate`, `restore_check`, `plan`, `execute`, `finalize`), so the gap before the first
+    node is visible. It carries `pz.run.status`, `pz.run.node_count` and `pz.run.nodes.succeeded`,
+    `pz.run.nodes.failed` and `pz.run.nodes.skipped`, and ends in error when the run fails or stops early.
+    Circuit-breaker transitions are `breaker.state_changed` events on it.
+  - A `node.<Kind>` span carries `pz.connector`, `pz.connection`, `pz.node.strategy`,
+    `pz.node.attempts`, `pz.node.rows`, per-stage times (`pz.stage.extract_ms`, `pz.stage.ingest_ms`,
+    `pz.stage.egress_ms`, `pz.stage.write_ms`), the producer and consumer stall in milliseconds, and,
+    where they apply, `pz.ops.*`, `pz.node.provenance`, `pz.node.caught_up`, `pz.partitions.*`,
+    `pz.delivery.*` and `pz.cdc.*` counts.
+  - A failed node's span has an error status with a sanitized one-line description, `error.type` set to
+    the `PZ####` code, and an `exception` event; each retry is a `retry_scheduled` event with `attempt`,
+    `max_attempts`, `delay_ms` and a one-line `reason`.
+  - Never on any span: SQL text, connection config, watermark values, sync tokens or CDC positions.
 - **Metrics** (meter `Pz.Engine`, delta, with a base-2 exponential `pz.node.duration`): `pz.rows_moved`,
   `pz.bytes_moved`, `pz.batches`, `pz.node.duration` (label `pz.node.kind`), and `pz.run.completed`, a
   counter incremented once per run with label `pz.run.status` of `success`, `completed_with_failures`,
@@ -139,6 +153,7 @@ Run the project by hand once with the flags above, then:
 |---|---|
 | `note: telemetry headers file '...' could not be read` | The path is wrong or the run's account cannot read it. |
 | No spans or metrics arrive, no note | Check the identity has Monitoring Metrics Publisher on the data collection rule, and that the token's resource is `https://monitor.azure.com`. |
+| Spans arrive but `phase.*` children or node facts are missing | pz is older than 0.10.0; upgrade it. |
 | Spans arrive but connector spans do not | The connector predates SDK 0.9.1; rebuild it on 0.9.1 or later. |
 | A gap in metrics between expected runs | Normal for schedule-driven workloads; pz emits no metrics between runs. |
 
