@@ -135,7 +135,7 @@ load ▶ compile ▶ validate ▶ restore-check ▶ plan ▶ dispatch ▶ finali
 | `.pz/target/manifest.json` | compile | The full node-and-edge graph: nodes, edges, content hashes, configs. |
 | `.pz/target/plan.json` | plan | Per-edge tier decisions and reasons, partition counts, batch sizes, a computed memory budget. |
 | `.pz/runs/<id>/staging.duckdb` | dispatch | The run's disk-backed DuckDB staging database. Retained after every run, success or failure. |
-| `.pz/runs/<id>/run_results.json` | dispatch, finalize | Run-level `runId`, `status`, `startedAt`, and `finishedAt` (the last written only once the run reaches a terminal status, so its absence distinguishes "still running" from a crashed run's last snapshot), plus one entry per node: status, rows moved, duration, error, and optional `provenance`/`watermark` fields. Rewritten after every node completes, not once at the end. |
+| `.pz/runs/<id>/run_results.json` | dispatch, finalize | Run-level `runId`, `status`, `startedAt`, and `finishedAt` (the last written only once the run reaches a terminal status, so its absence distinguishes "still running" from a crashed run's last snapshot), plus one entry per node: status, rows moved, duration, error, and optional `provenance`/`watermark` fields and, since 0.10.0, the node facts (`connector`, `connection`, `strategy`, `stages`, `attempts`). The terminal write adds `phases`, the milliseconds per run phase including `finalizeMs`. Rewritten after every node completes, not once at the end. |
 
 ## Observability
 
@@ -143,7 +143,19 @@ All spans are `ActivitySource("Pz.Engine")` activities (run, node, stage); all c
 `System.Diagnostics.Metrics` meters (`pz.rows_moved`, `pz.bytes_moved`, `pz.batches`,
 `pz.node.duration`). `pz.run.completed` increments once per run at completion, tagged
 `pz.run.status`. `--otel-endpoint` (or the matching environment variable) wires the OTLP
-exporter; the cost is zero when it's off. Executors never call `Console.WriteLine` directly.
+exporter; the cost is zero when it's off.
+
+Since 0.10.0 the spans carry the run's facts. The `run` span is back-dated to the run's first phase,
+has a `phase.<name>` child per phase, and carries `pz.run.status`, `pz.run.node_count` and
+`pz.run.nodes.succeeded`/`failed`/`skipped`. It ends in error when the run fails or stops early, naming
+the phase, and records a `breaker.state_changed` event for each circuit-breaker transition. A node span
+carries `pz.node.kind`, `pz.node.rows`, `pz.connector`, `pz.connection`, `pz.node.strategy`,
+`pz.node.attempts`, `pz.stage.{extract,ingest,egress,write}_ms`, `pz.ops.*`, the producer and consumer
+stall (`pz.node.producer_stall_ms`, `pz.node.consumer_stall_ms`), `pz.node.provenance`,
+`pz.node.caught_up`, and the `pz.partitions.*`, `pz.delivery.*` and `pz.cdc.*` counts, each only when it
+applies. A failed node gets an error status with a sanitized one-line description, `error.type` set to
+the `PZ####` code, and an `exception` event; each retry is a `retry_scheduled` span event. SQL text,
+connection config, watermark values, sync tokens and CDC positions never go on a span. Executors never call `Console.WriteLine` directly.
 They report through one typed event stream (`IRunEvents`/`RunEventBus`), and the console tree,
 the NDJSON renderer, and OTel are all views over the same events. The `run_results.json` writer
 is registered directly on the event fan-out, not through renderer machinery, so a hung or broken

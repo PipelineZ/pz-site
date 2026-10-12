@@ -298,6 +298,7 @@ RPC. Only then does the SDK:
 - open a `pcp.<Rpc>` server span per RPC — every RPC but `HostChannel` — under the engine's
   `node.<Kind>` span, tagged `pz.instance` (the connection name for an open the engine drives, else
   `<connector>#<n>`), plus a `pcp.read_stream`/`pcp.write_stream` span around each data-plane transfer;
+- from SDK 0.10.0, give a failing `pcp.<Rpc>` span an error status, `rpc.grpc.status_code` and `error.type` (the gRPC code name), never the error message;
 - flush on shutdown, bounded to three seconds.
 
 Your own instrumentation joins that trace with no extra wiring — start spans from `ctx.ActivitySource`

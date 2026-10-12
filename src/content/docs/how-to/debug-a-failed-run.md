@@ -58,6 +58,17 @@ they apply: `timings` (producer/consumer stall, for a channel-instrumented node)
 resume stats), `cdc`, `observed_schema` (under `on_source_drift`), and `watermark` (the candidate
 cursor value a source load produced).
 
+Since 0.10.0 each node also records which connector and connection it went through (`connector`,
+`connection`), the data-plane tier that moved its data (`strategy`: `native_scan`, `native_copy` or
+`arrow`), how many times it ran (`attempts`), and `stages`: the wall time of each stage
+(`extractMs`, `ingestMs`, `egressMs`, `writeMs`) and when it began, in milliseconds from the node's
+start (`extractStartMs` to `writeStartMs`). On the `arrow` tier the stages overlap, so they do not
+add up to `durationMs`; `timings` says which side waited. A retried node's stage offsets include the
+earlier attempts and their backoff. Once the run reaches a terminal status, a top-level `phases`
+object holds the milliseconds each phase took (`loadMs`, `compileMs`, `validateMs`, `restoreCheckMs`,
+`planMs`, `executeMs`, `finalizeMs`), so a slow run can be narrowed to a phase, then a node, then a
+stage, from this one file. Every one of these fields is omitted when it does not apply.
+
 ### 3. Re-run with the event stream
 
 For a fuller picture of what led up to the failure, not just its final state, re-run with
