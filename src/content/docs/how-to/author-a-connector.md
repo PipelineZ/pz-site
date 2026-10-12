@@ -308,10 +308,45 @@ and record on `ctx.Meter`:
 return await PzConnectorHost.RunAsync(args, ctx => new MyConnector(ctx.ActivitySource, ctx.Meter));
 ```
 
+With no endpoint nothing is built and every span is a BCL no-op. Never put a configuration value in a
+span name, a tag, or a metric label of your own — what you emit on `ctx.ActivitySource` and `ctx.Meter`
+is exported as written.
+
+#### Exporting a client library's telemetry
+
 To also export a client library's own `ActivitySource`/`Meter` (Npgsql, the AWS SDK), name them in
-`PzConnectorHostOptions`. With no endpoint nothing is built and every span is a BCL no-op. Never put a
-configuration value in a span name, a tag, or a metric label — what is emitted is what the operator
-sees.
+`PzConnectorHostOptions.ActivitySources` and `Meters`. Library telemetry fails closed:
+
+- Only a fixed set of safe attribute keys is exported; every other tag is dropped. The set covers
+  `db.system`, `db.system.name`, `db.operation.name`, `db.operation.batch.size`, `db.namespace`,
+  `db.collection.name`, `db.response.status_code`, `server.address`, `server.port`,
+  `network.peer.address`, `network.peer.port`, `network.transport`, `network.type`,
+  `network.protocol.name`, `network.protocol.version`, `http.request.method`,
+  `http.response.status_code`, `url.scheme`, `rpc.system`, `rpc.service`, `rpc.method`,
+  `rpc.grpc.status_code`, `messaging.system`, `messaging.operation.name`, `messaging.operation.type`,
+  `messaging.destination.name`, `messaging.batch.message_count`, `error.type`, `az.namespace` and
+  `otel.status_code`. Statements, parameters, URLs, headers, paths, ids and exception text are not on it.
+- Hostnames and resource names (`server.address`, `db.namespace`, `db.collection.name`) are exported
+  deliberately; they are what makes the spans useful, so do not point a library at a name you consider
+  secret.
+- A span is dropped, not exported, when it has any event not named `exception`, an event attribute other
+  than `exception.type`, or a link that carries attributes. Events and links cannot be edited, and
+  exception messages and event names can carry data values. A failed library call therefore loses its
+  span; your connector's own `pcp.*` and `remote.*` spans keep `error.type`. Children of a dropped span
+  keep a parent id that points at it.
+- A span's name is rebuilt as `<source> <operation>` (the operation is the first of `db.operation.name`,
+  `http.request.method`, `rpc.method` and `messaging.operation.name` it recorded, at most 96 characters),
+  and its status description is cleared.
+- A `Meter` named in `Meters` gets the same attribute allowlist; measurements that differ only by a
+  dropped attribute are aggregated together. Instruments you create yourself on `ctx.Meter` are not
+  filtered, so their labels must never carry configuration values or data.
+- Only the exact `Pz.Connector` source and meter are the SDK's own; a name such as `Pz.Connector.Foo` is
+  filtered like any library.
+
+Libraries built on Azure.Core emit their `ActivitySource` only when the AppContext switch
+`Azure.Experimental.EnableActivitySource` is set. Set it before creating any client, for example
+`AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);`, then list the source in
+`ActivitySources`.
 
 ### Reporting remote stats
 
@@ -342,8 +377,9 @@ naming the connector and the rule that fired, never the value. The rules:
 - An extra is named `<connector>.<what>` (lowercase, dotted, `[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*`, at
   most 40 characters). A node keeps at most 8 distinct extras; repeats of a name sum.
 
-Stats are summed across a node's attempts and partitions. A commit or abort that fails reports no stats
-for that call, and a partition read abandoned early reports none for that stream.
+Stats are summed across a node's attempts and partitions. A sink's stats are read after its write
+session is disposed, so figures reported while disposing are included. A commit or abort that fails
+reports no stats for that call, and a partition read abandoned early reports none for that stream.
 
 `ctx.Remote` does the reporting and the tracing together. `ctx.Remote.Start("get_object")` opens a
 `remote.get_object` client span under the current span and counts one request when you dispose it; chain
@@ -370,14 +406,14 @@ The operation is a short fixed verb matching `[a-z][a-z0-9_]{0,31}` (anything el
 `remote.http` span and counts it, adds `Content-Length` bytes it can see, and counts HTTP 429 and 503 as
 throttled. It records the method, host, port and status code, and never the URL path or query,
 headers, bodies or exception messages. The span ends when the response headers arrive, so it times the
-wait for the response, not the body download. At most 200 `remote.*` spans open per operation; further
+wait for the response, not the body download, but the bytes of streamed (chunked) request and response
+bodies are counted as they are sent and read. A synchronous `HttpClient.Send` is not counted. At most 200 `remote.*` spans open per operation; further
 calls still count as requests, and the number skipped is on the node span as `pz.remote.spans_dropped`.
 
-Spans from a client library you export through `PzConnectorHostOptions.ActivitySources` pass through a
-redactor first: it removes `db.statement`, `db.query.text`, `url.full`, `url.query`, `url.path`,
-`http.url`, `http.target`, `exception.message`, `db.query.parameter.*`, and message bodies and payloads
-(`messaging.message.body*`, `messaging.*.payload*`). Only tags are redacted, so the `exception` event a
-library records on failure keeps its message; the SDK's own `Pz.Connector` spans are untouched.
+Spans from a client library you export through `PzConnectorHostOptions.ActivitySources` are filtered as
+described under [Exporting a client library's telemetry](#exporting-a-client-librarys-telemetry); the
+SDK's own `Pz.Connector` spans are untouched. In a unit test you can build a `RemoteCalls` yourself: it
+has a public constructor taking an `ActivitySource`.
 
 Name your own instruments `<connector>.<what>` (`cosmos.partitions_scanned`), and keep labels to
 bounded, non-secret values; a label never carries a configuration value, a path, SQL or an identifier

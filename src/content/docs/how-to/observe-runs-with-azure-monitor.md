@@ -122,9 +122,12 @@ Run the project by hand once with the flags above, then:
     `pz.stage.egress_ms`, `pz.stage.write_ms`), the producer and consumer stall in milliseconds, and,
     where they apply, `pz.ops.*`, `pz.node.provenance`, `pz.node.caught_up`, `pz.partitions.*`,
     `pz.delivery.*` and `pz.cdc.*` counts.
-  - A failed node's span has an error status with a sanitized one-line description, `error.type` set to
-    the `PZ####` code, and an `exception` event; each retry is a `retry_scheduled` event with `attempt`,
-    `max_attempts`, `delay_ms` and a one-line `reason`.
+  - A failed node's span has an error status whose description is the error code (for example `PZ0501`),
+    `error.type` set to the same code, and an `exception` event carrying only `exception.type` and
+    `pz.error.code`: no message and no stack trace, because a connector's message can echo data values.
+    Each retry is a `retry_scheduled` event with `attempt`, `max_attempts`, `delay_ms`, `exception.type`
+    and `pz.error.code`, and no `reason`. A code that is not identifier-shaped is exported as `PZ0501`.
+    The full messages stay in `run_results.json`, the NDJSON events and the console output.
   - Since pz 0.11.0, a node whose connector reports remote stats also carries `pz.remote.requests`,
     `pz.remote.wire_bytes`, `pz.remote.ms`, `pz.remote.throttled`, `pz.remote.cost` with
     `pz.remote.cost_unit`, one `pz.remote.extra.<name>` per connector-defined figure, and
@@ -149,6 +152,12 @@ Run the project by hand once with the flags above, then:
   calls) for the requests it makes to its remote system, carrying the operation, and for HTTP the method,
   host, port and status code, but never a URL path, query, header or error message (since pz 0.11.0). See
   [Author a connector](/how-to/author-a-connector/#telemetry).
+- **Client-library spans and metrics:** a connector can also export the `ActivitySource` and `Meter` of
+  a library it uses. Their attributes are filtered to an allowlist of safe keys, and a span whose events
+  could carry data is dropped, so a failed library call has no span of its own (the connector's
+  `pcp.*` and `remote.*` spans still carry `error.type`). Server addresses and database or collection
+  names are exported on purpose. The rules are under
+  [Author a connector](/how-to/author-a-connector/#exporting-a-client-librarys-telemetry).
 - **A caller's trace:** when whatever starts pz sets `TRACEPARENT`, the `run` span is a child in that
   trace instead of a new root.
 

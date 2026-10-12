@@ -78,6 +78,10 @@ throttled show up as one total. Zero values are omitted, as is the whole object 
 reported nothing. A commit that failed, and a partition read abandoned early, contribute nothing, and the
 requests a hosted connector makes while opening, planning and fetching a schema are not counted.
 
+If you export the run's spans to a tracing backend, a failed node's span carries only the error code
+(`PZ####`) and exception type, never the message, because a message can echo data values. Read the message
+text in `run_results.json`, the NDJSON events or the console output.
+
 ### 3. Re-run with the event stream
 
 For a fuller picture of what led up to the failure, not just its final state, re-run with

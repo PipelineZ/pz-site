@@ -153,8 +153,11 @@ carries `pz.node.kind`, `pz.node.rows`, `pz.connector`, `pz.connection`, `pz.nod
 `pz.node.attempts`, `pz.stage.{extract,ingest,egress,write}_ms`, `pz.ops.*`, the producer and consumer
 stall (`pz.node.producer_stall_ms`, `pz.node.consumer_stall_ms`), `pz.node.provenance`,
 `pz.node.caught_up`, and the `pz.partitions.*`, `pz.delivery.*` and `pz.cdc.*` counts, each only when it
-applies. A failed node gets an error status with a sanitized one-line description, `error.type` set to
-the `PZ####` code, and an `exception` event; each retry is a `retry_scheduled` span event. SQL text,
+applies. A failed node gets an error status whose description is the error code, `error.type` set to
+that code, and an `exception` event with only `exception.type` and `pz.error.code`; each retry is a
+`retry_scheduled` span event with `attempt`, `max_attempts`, `delay_ms`, `exception.type` and
+`pz.error.code`. Messages never go on a span; they stay in `run_results.json`, the NDJSON events and the
+console. SQL text,
 connection config, watermark values, sync tokens and CDC positions never go on a span. Executors never call `Console.WriteLine` directly.
 They report through one typed event stream (`IRunEvents`/`RunEventBus`), and the console tree,
 the NDJSON renderer, and OTel are all views over the same events. The `run_results.json` writer
