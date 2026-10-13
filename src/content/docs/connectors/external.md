@@ -35,10 +35,13 @@ for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**.
 deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
 or later.
 
-The bigquery, cosmosdb, databricks, deltalake, elasticsearch, mongodb and snowflake versions pinned
-below are built on `Pz.Connectors.Sdk` 0.6.1. Their earlier releases fail every column-pruned read on
-pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is not a leading prefix of
-the source's columns; pin these or later.
+The versions pinned below are built on `Pz.Connectors.Sdk` 0.11.0. Earlier releases of the
+bigquery, cosmosdb, databricks, deltalake, elasticsearch, mongodb and snowflake connectors fail
+every column-pruned read on pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is
+not a leading prefix of the source's columns; pin these or later.
+
+These releases report what they ask of their remote service (see [Telemetry](#telemetry)); earlier
+releases keep working on pz 0.11.0, they just report nothing.
 
 A third-party connector that is not on this page may be perfectly good; it just isn't something
 PipelineZ has tested or will support. To get a connector onto this page, open an issue in
@@ -78,7 +81,7 @@ last-write-wins on the session's own sequence and null-safe keys). Auth is a ser
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.BigQuery
-    version: 0.1.1
+    version: 0.2.0
 ```
 
 **Before you install it:** views are refused on read — point `query:` at them instead. a `BIGNUMERIC`
@@ -113,10 +116,10 @@ targets) are supported. A private CA is set with `tls_ca_file`.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.ClickHouse
-    version: 0.1.0
+    version: 0.2.0
 ```
 
-**Before you install it:** this connector is built on `Pz.Connectors.Sdk` 0.9.3, and its tests run
+**Before you install it:** this connector is built on `Pz.Connectors.Sdk` 0.11.0, and its tests run
 against ClickHouse 25.8 (a single server and a 2 shard × 2 replica cluster). ClickHouse Cloud is
 supported by design but has not been tested against a live service. With `replacing`, rows are
 deduplicated by background merges, so read the target with `FINAL` (or `argMax`) to see exactly
@@ -144,7 +147,7 @@ truncate.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.CosmosDb
-    version: 0.1.0
+    version: 0.2.0
 ```
 
 **Before you install it:** the container must already exist — partition key and throughput are
@@ -177,7 +180,7 @@ Auth is a personal access token or a service principal's OAuth client credential
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Databricks
-    version: 0.1.1
+    version: 0.2.0
 ```
 
 **Before you install it:** every read and every commit runs statements on the warehouse, billed as
@@ -199,7 +202,7 @@ DuckDB has no native Delta write path.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.DeltaLake
-    version: 0.2.1
+    version: 0.3.0
 ```
 
 **Before you install it:** it's a 200 MB download — the package ships a Native AOT binary plus
@@ -225,7 +228,7 @@ atomic aliases request.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Elasticsearch
-    version: 0.1.0
+    version: 0.2.0
 ```
 
 **Before you install it:** it targets Elasticsearch 9.x through the official 9.x client — nothing
@@ -255,7 +258,7 @@ Entra credential chain, a service principal, or managed identity.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.EventHubs
-    version: 0.1.0
+    version: 0.2.0
 ```
 
 **Before you install it:** there's no checkpoint store / Event Processor and no Schema Registry —
@@ -284,7 +287,7 @@ JSON, kept off the same AOT-compatibility bet the elasticsearch connector above 
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Github
-    version: 0.1.0
+    version: 0.2.0
 ```
 
 **Before you install it:** a run created before the watermark advances past it, but which keeps
@@ -309,7 +312,7 @@ giving at-least-once delivery across runs.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Kafka
-    version: 0.1.1
+    version: 0.2.0
 ```
 
 **Before you install it:** there's no Schema Registry / Avro / Protobuf decoding — `value` arrives
@@ -338,7 +341,7 @@ server-side rename.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.MongoDb
-    version: 0.1.1
+    version: 0.2.0
 ```
 
 **Before you install it:** an inferred schema is only as stable as the head of the collection —
@@ -362,7 +365,7 @@ password-auth surface.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Snowflake
-    version: 0.2.1
+    version: 0.3.0
 ```
 
 **Before you install it:** prefer a glibc Linux host over Alpine — the driver's documented Linux
@@ -374,6 +377,39 @@ option for GCP-hosted accounts, either. The package is self-contained rather tha
 against the project directory (the manifest declares a project-directory anchor). See its
 [README](https://github.com/PipelineZ/pz-connector-snowflake#readme) for connection keys, schema
 policy, and type mapping.
+
+## Telemetry
+
+From pz 0.11.0, a connector can report what it asked of its remote service: requests, wire bytes,
+remote time, throttles, a cost in the service's own unit, and connector-specific extras. They land
+on the node in `run_results.json`, in the NDJSON events and, with OpenTelemetry on, in `remote.*`
+spans. The contract is described in
+[Author a connector](/how-to/author-a-connector/#reporting-remote-stats), and the run-level view in
+[Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/). Telemetry ships from
+BigQuery, ClickHouse, Cosmos DB, Databricks, Elasticsearch, Event Hubs, GitHub, Kafka and MongoDB
+0.2.0, and from Delta Lake and Snowflake 0.3.0.
+
+| Connector | Reports |
+|---|---|
+| bigquery | Requests, wire bytes and 429/503 throttles from the REST handler; each Storage Read stream counts as a request. Job statistics give remote time, cost in `bytes_billed`, and extras `bigquery.slot_ms`/`bigquery.bytes_processed`. |
+| clickhouse | HTTP requests, wire bytes and 429/503 throttles. `X-ClickHouse-Summary` gives remote time, cost in `bytes_scanned`, and extras `clickhouse.read_rows`/`clickhouse.written_rows` (data statements only). |
+| cosmosdb | Cost in `ru` (RequestCharge), remote time from `x-ms-request-duration-ms`, and document extras. Exports `Azure.Cosmos.Operation` spans. |
+| databricks | Requests, wire bytes and 429/503 throttles for every statement, poll and file call; extras `databricks.statements`/`databricks.chunks`. No remote time or cost. |
+| deltalake | Writes only: one request per delta-rs call, wire bytes are the Arrow payload, extra `deltalake.commits`. Reads report nothing. |
+| elasticsearch | Requests, wire bytes and 429/503 throttles; remote time from search and bulk `took`; extras `elasticsearch.shards_failed`/`elasticsearch.bulk_items_failed`. Exports `Elastic.Transport` spans. No cost. |
+| eventhubs | One request per receive or send batch, wire bytes, `ServiceBusy` as throttled; extras `eventhubs.events`/`eventhubs.batches`. No remote time or cost. |
+| github | Requests and wire bytes from the HTTP handler; cost is 1 `requests` unit per successful call. A primary rate-limit 403 counts as throttled. No remote time. |
+| kafka | librdkafka statistics deltas: requests from `tx`, plus wire bytes. No throttles: librdkafka's throttle is a rolling-window histogram. |
+| mongodb | Requests counted at the connector's call sites; extras `mongodb.documents`/`mongodb.get_mores`; error 16500 counts as throttled. Exports `MongoDB.Driver` spans. No remote time. |
+| snowflake | One request per statement and extra `snowflake.statements`. No throttles, remote time or cost. |
+
+Read the numbers as lower bounds: retries inside a connector's client library are invisible to
+the counters, so a count can be lower than the traffic on the wire.
+
+- **Snowflake** telemetry is validated by unit tests only; no account or emulator was available
+  to run it end to end.
+- **Delta Lake** reads run as a native `delta_scan` inside DuckDB, so no read bytes pass
+  through the connector and none are reported.
 
 ## Related
 
