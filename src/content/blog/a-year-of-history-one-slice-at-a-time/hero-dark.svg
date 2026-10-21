@@ -1,10 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
 	<defs>
-		<!-- Dark Background Radial Glow -->
-		<radialGradient id="bg-grad-slices" cx="20%" cy="50%" r="90%">
+		<!-- Background gradient base (stepped variant of the pipeline-circuit background) -->
+		<radialGradient id="bg-glow-slices" cx="70%" cy="15%" r="70%">
 			<stop offset="0%" stop-color="#1A1A1A"/>
 			<stop offset="100%" stop-color="#0D0D0D"/>
 		</radialGradient>
+
+		<!-- Subtle Accent Glow -->
+		<radialGradient id="accent-glow-slices" cx="72%" cy="22%" r="35%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.08"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Faint Warm Sweep -->
+		<linearGradient id="sweep-slices" x1="98%" y1="37%" x2="2%" y2="63%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.035"/>
+			<stop offset="60%" stop-color="#FAC409" stop-opacity="0"/>
+		</linearGradient>
 
 		<!-- Accent Glow Filter -->
 		<filter id="yellow-glow-slices" x="-20%" y="-20%" width="140%" height="140%">
@@ -12,18 +24,33 @@
 			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
 		</filter>
 
-		<!-- Linear Grid -->
-		<pattern id="grid-lines-slices" width="80" height="80" patternUnits="userSpaceOnUse">
-			<path d="M 80 0 L 0 0 0 80" fill="none" stroke="#262626" stroke-width="1" opacity="0.35"/>
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-slices" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#262626" stroke-width="1" stroke-opacity="0.4"/>
+			<circle cx="60" cy="60" r="1.5" fill="#4C4C4C" opacity="0.3"/>
 		</pattern>
 	</defs>
 
 	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
 	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
 	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
-		<!-- Base Surface -->
-		<rect width="1920" height="1080" fill="url(#bg-grad-slices)"/>
-		<rect width="1920" height="1080" fill="url(#grid-lines-slices)"/>
+		<!-- Base Surface, Grid, Ambient Accent, and Sweep (stepped variant) -->
+		<rect width="1920" height="1080" fill="url(#bg-glow-slices)"/>
+		<rect width="1920" height="1080" fill="url(#grid-slices)"/>
+		<rect width="1920" height="1080" fill="url(#accent-glow-slices)"/>
+		<rect width="1920" height="1080" fill="url(#sweep-slices)"/>
+
+		<!-- Background Pipeline Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 600 0 L 600 90 L 980 90 L 1220 330 L 1920 330" stroke="#262626" stroke-width="12"/>
+			<path d="M 1500 0 L 1500 200 L 1800 500 L 1800 1080" stroke="#1A1A1A" stroke-width="8"/>
+			<path d="M 1050 1080 L 1300 830 L 1920 830" stroke="#262626" stroke-width="6"/>
+		</g>
+		<circle cx="1220" cy="330" r="10" fill="#262626"/>
+		<circle cx="1300" cy="830" r="8" fill="#4C4C4C"/>
+
+		<!-- Watermark Z Silhouette -->
+		<path d="M 1620 120 L 1700 120 L 1640 180 L 1700 180" fill="none" stroke="#262626" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
 
 		<!-- Subtle Dark Background Tracks -->
 		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -64,12 +91,9 @@
 		<path d="M 990 820 L 990 640 L 1220 410 L 2020 410" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 		<circle cx="1220" cy="410" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-slices)"/>
 		<circle cx="1560" cy="410" r="18" fill="#0D0D0D" stroke="hsl(46, 96%, 50%)" stroke-width="7"/>
-
-		<!-- Corner Decorative Accent Block -->
-		<path d="M 1840 120 L 1880 120 L 1880 160" fill="none" stroke="#4C4C4C" stroke-width="3"/>
 	</svg>
 
 	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
-	<text x="70" y="220" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Backfill</text>
-	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">in slices</text>
+	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Backfill</text>
+	<text x="70" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">in slices</text>
 </svg>

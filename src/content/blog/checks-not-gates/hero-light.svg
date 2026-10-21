@@ -1,55 +1,95 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
 	<defs>
-		<!-- Vignette Gradient -->
-		<radialGradient id="vignette-light" cx="50%" cy="50%" r="70%">
-			<stop offset="60%" stop-color="#FAFAFA" stop-opacity="0"/>
-			<stop offset="100%" stop-color="#E6E6E6" stop-opacity="0.8"/>
+		<!-- Background gradient base (mirrored variant of the pipeline-circuit background) -->
+		<radialGradient id="bg-glow-light-checks" cx="80%" cy="80%" r="70%">
+			<stop offset="0%" stop-color="#FFFFFF"/>
+			<stop offset="100%" stop-color="#FAFAFA"/>
 		</radialGradient>
 
-		<!-- Subtle Soft Glow -->
-		<filter id="soft-glow-light" x="-10%" y="-10%" width="120%" height="120%">
-			<feGaussianBlur stdDeviation="12" result="blur"/>
+		<!-- Subtle Accent Glow -->
+		<radialGradient id="accent-glow-light-checks" cx="85%" cy="72%" r="35%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.12"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Faint Warm Sweep -->
+		<linearGradient id="sweep-light-checks" x1="88%" y1="18%" x2="12%" y2="82%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.03"/>
+			<stop offset="60%" stop-color="#FAC409" stop-opacity="0"/>
+		</linearGradient>
+
+		<!-- Accent Glow Filter -->
+		<filter id="yellow-glow-light-checks" x="-20%" y="-20%" width="140%" height="140%">
+			<feGaussianBlur stdDeviation="8" result="blur"/>
 			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
 		</filter>
+
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-light-checks" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#E6E6E6" stroke-width="1" stroke-opacity="0.6"/>
+			<circle cx="60" cy="60" r="1.5" fill="#CCCCCC" opacity="0.6"/>
+		</pattern>
 	</defs>
 
 	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
 	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
 	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
-		<!-- Background Base -->
-		<rect width="1920" height="1080" fill="#FAFAFA"/>
+		<!-- Base Surface, Grid, Ambient Accent, and Sweep (mirrored variant) -->
+		<rect width="1920" height="1080" fill="url(#bg-glow-light-checks)"/>
+		<rect width="1920" height="1080" fill="url(#grid-light-checks)"/>
+		<rect width="1920" height="1080" fill="url(#accent-glow-light-checks)"/>
+		<rect width="1920" height="1080" fill="url(#sweep-light-checks)"/>
 
-		<!-- Large Abstraction of the Pipeline 'Z' Logo Mark -->
-		<g transform="translate(1000, -80) scale(1.6)" opacity="0.12">
-			<!-- Outer Track Shadow -->
-			<path d="M 180 200 L 520 200 L 260 560 L 600 560" fill="none" stroke="#333333" stroke-width="110" stroke-linecap="round" stroke-linejoin="round"/>
+		<!-- Background Pipeline Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 1100 1080 L 1100 840 L 1380 560 L 1920 560" stroke="#E6E6E6" stroke-width="12"/>
+			<path d="M 1300 1080 L 1300 900 L 1650 550 L 1650 0" stroke="#F6F6F6" stroke-width="8"/>
+			<path d="M 800 0 L 1150 350 L 1920 350" stroke="#E6E6E6" stroke-width="6"/>
+		</g>
+		<circle cx="1380" cy="560" r="10" fill="#E6E6E6"/>
+		<circle cx="1150" cy="350" r="8" fill="#CCCCCC"/>
 
-			<!-- Inner Accent Flow Line -->
-			<path d="M 180 200 L 520 200 L 260 560 L 600 560" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+		<!-- Watermark Z Silhouette -->
+		<path d="M 1750 860 L 1830 860 L 1770 920 L 1830 920" fill="none" stroke="#E6E6E6" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 
-			<!-- Logo Nodes -->
-			<circle cx="180" cy="200" r="45" fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="20"/>
-			<circle cx="600" cy="560" r="55" fill="hsl(46, 96%, 50%)"/>
+		<!-- Subtle Light Background Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M -100 990 L 2020 990" stroke="#F6F6F6" stroke-width="24"/>
+			<path d="M -100 1035 L 2020 1035" stroke="#E6E6E6" stroke-width="8"/>
 		</g>
 
-		<!-- Left Side Technical Grid Accent Lines -->
-		<g stroke="#E6E6E6" stroke-width="1.5">
-			<line x1="120" y1="0" x2="120" y2="1080"/>
-			<line x1="0" y1="840" x2="1920" y2="840"/>
+		<!-- Probes: each check hangs off the graph and watches, without sitting in the flow -->
+		<g fill="none" stroke="#CCCCCC" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14">
+			<path d="M 520 800 L 520 882"/>
+			<path d="M 1520 580 L 1520 662"/>
+		</g>
+		<path d="M 980 800 L 980 882" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14"/>
+
+		<!-- The pipeline: one path, never interrupted -->
+		<path d="M -100 800 L 980 800 L 1200 580 L 2020 580" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+		<circle cx="520" cy="800" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-light-checks)"/>
+		<circle cx="980" cy="800" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-light-checks)"/>
+		<circle cx="1200" cy="580" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-light-checks)"/>
+		<circle cx="1520" cy="580" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-light-checks)"/>
+		<circle cx="1780" cy="580" r="18" fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="7"/>
+
+		<!-- Passing checks -->
+		<g fill="#FAFAFA" stroke="#CCCCCC" stroke-width="6">
+			<circle cx="520" cy="930" r="40"/>
+			<circle cx="1520" cy="710" r="40"/>
+		</g>
+		<g fill="none" stroke="#CCCCCC" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 501 931 L 515 946 L 541 915"/>
+			<path d="M 1501 711 L 1515 726 L 1541 695"/>
 		</g>
 
-		<!-- Focal Yellow Accent Node in Bottom-Left Intersection -->
-		<g transform="translate(120, 840)">
-			<line x1="-40" y1="0" x2="40" y2="0" stroke="hsl(46, 96%, 50%)" stroke-width="2"/>
-			<line x1="0" y1="-40" x2="0" y2="40" stroke="hsl(46, 96%, 50%)" stroke-width="2"/>
-			<circle cx="0" cy="0" r="6" fill="hsl(46, 96%, 50%)" filter="url(#soft-glow-light)"/>
-		</g>
-
-		<!-- Vignette Overlay -->
-		<rect width="1920" height="1080" fill="url(#vignette-light)"/>
+		<!-- A failing check: it flags the problem, and the pipeline keeps flowing past it -->
+		<circle cx="980" cy="930" r="40" fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="6" filter="url(#yellow-glow-light-checks)"/>
+		<path d="M 980 910 L 980 935" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="7" stroke-linecap="round"/>
+		<circle cx="980" cy="952" r="5.5" fill="hsl(46, 96%, 50%)"/>
 	</svg>
 
 	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
-	<text x="220" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#0D0D0D">Checks,</text>
-	<text x="220" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">not gates</text>
+	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#0D0D0D">Checks,</text>
+	<text x="70" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">not gates</text>
 </svg>
