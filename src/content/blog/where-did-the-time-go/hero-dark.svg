@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Background gradient base (risers variant of the pipeline-circuit background) -->
+		<radialGradient id="bg-glow-trace" cx="85%" cy="45%" r="70%">
+			<stop offset="0%" stop-color="#1A1A1A"/>
+			<stop offset="100%" stop-color="#0D0D0D"/>
+		</radialGradient>
+
+		<!-- Subtle Accent Glow -->
+		<radialGradient id="accent-glow-trace" cx="88%" cy="50%" r="35%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.08"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Faint Warm Sweep -->
+		<linearGradient id="sweep-trace" x1="100%" y1="50%" x2="0%" y2="50%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.035"/>
+			<stop offset="60%" stop-color="#FAC409" stop-opacity="0"/>
+		</linearGradient>
+
+		<!-- Accent Glow Filter -->
+		<filter id="yellow-glow-trace" x="-20%" y="-20%" width="140%" height="140%">
+			<feGaussianBlur stdDeviation="8" result="blur"/>
+			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
+		</filter>
+
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-trace" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#262626" stroke-width="1" stroke-opacity="0.4"/>
+			<circle cx="60" cy="60" r="1.5" fill="#4C4C4C" opacity="0.3"/>
+		</pattern>
+	</defs>
+
+	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
+	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<!-- Base Surface, Grid, Ambient Accent, and Sweep (risers variant) -->
+		<rect width="1920" height="1080" fill="url(#bg-glow-trace)"/>
+		<rect width="1920" height="1080" fill="url(#grid-trace)"/>
+		<rect width="1920" height="1080" fill="url(#accent-glow-trace)"/>
+		<rect width="1920" height="1080" fill="url(#sweep-trace)"/>
+
+		<!-- Background Pipeline Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 1180 1080 L 1180 520 L 1460 240 L 1920 240" stroke="#262626" stroke-width="12"/>
+			<path d="M 1560 1080 L 1560 760 L 1760 560 L 1920 560" stroke="#1A1A1A" stroke-width="8"/>
+			<path d="M 1000 0 L 1000 200 L 1180 380" stroke="#262626" stroke-width="6"/>
+		</g>
+		<circle cx="1460" cy="240" r="10" fill="#262626"/>
+		<circle cx="1560" cy="760" r="8" fill="#4C4C4C"/>
+
+		<!-- Watermark Z Silhouette -->
+		<path d="M 1750 860 L 1830 860 L 1770 920 L 1830 920" fill="none" stroke="#262626" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+
+		<!-- Subtle Dark Background Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M -100 930 L 2020 930" stroke="#1A1A1A" stroke-width="24"/>
+			<path d="M -100 990 L 2020 990" stroke="#262626" stroke-width="8"/>
+		</g>
+
+		<!-- Trace waterfall: the run, its phases, its nodes -->
+		<g>
+			<rect x="900" y="246" width="900" height="28" rx="6" fill="#4C4C4C"/>
+			<rect x="900" y="306" width="50" height="28" rx="6" fill="#333333"/>
+			<rect x="950" y="366" width="60" height="28" rx="6" fill="#333333"/>
+			<rect x="1010" y="426" width="50" height="28" rx="6" fill="#333333"/>
+			<rect x="1060" y="486" width="700" height="28" rx="6" fill="#4C4C4C"/>
+			<rect x="1700" y="606" width="30" height="28" rx="6" fill="#4C4C4C"/>
+			<rect x="1730" y="666" width="26" height="28" rx="6" fill="#4C4C4C"/>
+			<rect x="1760" y="726" width="40" height="28" rx="6" fill="#333333"/>
+		</g>
+
+		<!-- The slow node -->
+		<rect x="1070" y="542" width="630" height="36" rx="8" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-trace)"/>
+
+		<!-- Time axis -->
+		<path d="M 120 860 L 1820 860" fill="none" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+		<g fill="none" stroke="#333333" stroke-width="4" stroke-linecap="round">
+			<path d="M 300 840 L 300 880"/>
+			<path d="M 600 840 L 600 880"/>
+			<path d="M 900 840 L 900 880"/>
+			<path d="M 1200 840 L 1200 880"/>
+			<path d="M 1500 840 L 1500 880"/>
+			<path d="M 1800 840 L 1800 880"/>
+		</g>
+
+		<!-- Where the time went: the slow span's end, marked on the axis -->
+		<path d="M 1700 600 L 1700 836" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 16"/>
+		<path d="M 1070 860 L 1700 860" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="10" stroke-linecap="round"/>
+		<circle cx="1700" cy="860" r="18" fill="#0D0D0D" stroke="hsl(46, 96%, 50%)" stroke-width="7" filter="url(#yellow-glow-trace)"/>
+		<circle cx="1070" cy="860" r="12" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-trace)"/>	</svg>
+
+	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
+	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Where did</text>
+	<text x="70" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">the time go?</text>
+</svg>

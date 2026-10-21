@@ -19,7 +19,7 @@
 		<rect width="1920" height="1080" fill="url(#dot-grid)"/>
 
 		<!-- Dark Structural Frame Lines -->
-		<line x1="160" y1="0" x2="160" y2="1080" stroke="#1A1A1A" stroke-width="2"/>
+		<line x1="60" y1="0" x2="60" y2="1080" stroke="#1A1A1A" stroke-width="2"/>
 		<line x1="1760" y1="0" x2="1760" y2="1080" stroke="#1A1A1A" stroke-width="2"/>
 		<line x1="0" y1="920" x2="1920" y2="920" stroke="#1A1A1A" stroke-width="2"/>
 
@@ -39,11 +39,11 @@
 		<circle cx="1760" cy="360" r="12" fill="#0D0D0D" stroke="hsl(46, 96%, 50%)" stroke-width="4"/>
 
 		<!-- Subtle Top Left Tag Accent -->
-		<rect x="160" y="120" width="12" height="12" fill="hsl(46, 96%, 50%)"/>
-		<line x1="188" y1="126" x2="300" y2="126" stroke="#4C4C4C" stroke-width="2" stroke-dasharray="6 6"/>
+		<rect x="60" y="120" width="12" height="12" fill="hsl(46, 96%, 50%)"/>
+		<line x1="88" y1="126" x2="200" y2="126" stroke="#4C4C4C" stroke-width="2" stroke-dasharray="6 6"/>
 	</svg>
 
 	<!-- Post heading, overlaid on the plainer lower-left of the cropped background -->
-	<text x="220" y="430" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Inside</text>
-	<text x="220" y="510" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">a run</text>
+	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Inside</text>
+	<text x="70" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">a run</text>
 </svg>

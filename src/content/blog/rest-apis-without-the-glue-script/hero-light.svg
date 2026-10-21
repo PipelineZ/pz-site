@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Background gradient base (circuit variant of the pipeline-circuit background) -->
+		<radialGradient id="bg-glow-light-rest" cx="80%" cy="20%" r="70%">
+			<stop offset="0%" stop-color="#FFFFFF"/>
+			<stop offset="100%" stop-color="#FAFAFA"/>
+		</radialGradient>
+
+		<!-- Subtle Accent Glow -->
+		<radialGradient id="accent-glow-light-rest" cx="85%" cy="30%" r="35%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.12"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Faint Warm Sweep -->
+		<linearGradient id="sweep-light-rest" x1="93%" y1="25%" x2="7%" y2="75%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.03"/>
+			<stop offset="60%" stop-color="#FAC409" stop-opacity="0"/>
+		</linearGradient>
+
+		<!-- Accent Glow Filter -->
+		<filter id="yellow-glow-light-rest" x="-20%" y="-20%" width="140%" height="140%">
+			<feGaussianBlur stdDeviation="8" result="blur"/>
+			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
+		</filter>
+
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-light-rest" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#E6E6E6" stroke-width="1" stroke-opacity="0.6"/>
+			<circle cx="60" cy="60" r="1.5" fill="#CCCCCC" opacity="0.6"/>
+		</pattern>
+	</defs>
+
+	<!-- Background artwork, drawn at its native 1920x1080 and center-cropped to this
+	     post's 1200x630 hero frame (nested <svg> clips to its box by default). -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<!-- Base Surface, Grid, Ambient Accent, and Sweep (circuit variant) -->
+		<rect width="1920" height="1080" fill="url(#bg-glow-light-rest)"/>
+		<rect width="1920" height="1080" fill="url(#grid-light-rest)"/>
+		<rect width="1920" height="1080" fill="url(#accent-glow-light-rest)"/>
+		<rect width="1920" height="1080" fill="url(#sweep-light-rest)"/>
+
+		<!-- Background Pipeline Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 1100 0 L 1100 240 L 1380 520 L 1920 520" stroke="#E6E6E6" stroke-width="12"/>
+			<path d="M 1300 0 L 1300 180 L 1650 530 L 1650 1080" stroke="#F6F6F6" stroke-width="8"/>
+			<path d="M 800 1080 L 1150 730 L 1920 730" stroke="#E6E6E6" stroke-width="6"/>
+		</g>
+		<circle cx="1380" cy="520" r="10" fill="#E6E6E6"/>
+		<circle cx="1150" cy="730" r="8" fill="#CCCCCC"/>
+
+		<!-- Watermark Z Silhouette -->
+		<path d="M 1750 160 L 1830 160 L 1770 220 L 1830 220" fill="none" stroke="#E6E6E6" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+
+		<!-- Subtle Light Background Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M -100 960 L 2020 960" stroke="#F6F6F6" stroke-width="24"/>
+			<path d="M -100 1010 L 2020 1010" stroke="#E6E6E6" stroke-width="8"/>
+		</g>
+
+		<g transform="translate(0, 60)">
+		<!-- Response pages already fetched on earlier runs -->
+		<g fill="#FAFAFA" stroke="#CCCCCC" stroke-width="4">
+			<rect x="120" y="720" width="120" height="150" rx="10"/>
+			<rect x="320" y="720" width="120" height="150" rx="10"/>
+			<rect x="520" y="720" width="120" height="150" rx="10"/>
+		</g>
+		<g stroke="#DDDDDD" stroke-width="6" stroke-linecap="round">
+			<path d="M 145 760 L 215 760 M 145 790 L 215 790 M 145 820 L 190 820"/>
+			<path d="M 345 760 L 415 760 M 345 790 L 415 790 M 345 820 L 390 820"/>
+			<path d="M 545 760 L 615 760 M 545 790 L 615 790 M 545 820 L 590 820"/>
+		</g>
+
+		<!-- Next links between earlier pages -->
+		<g fill="none" stroke="#CCCCCC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 252 795 L 306 795 M 294 783 L 306 795 L 294 807"/>
+			<path d="M 452 795 L 506 795 M 494 783 L 506 795 L 494 807"/>
+			<path d="M 652 795 L 706 795 M 694 783 L 706 795 L 694 807"/>
+		</g>
+
+		<!-- This run's pages: only what changed since the watermark -->
+		<g fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="6">
+			<rect x="720" y="720" width="120" height="150" rx="10" filter="url(#yellow-glow-light-rest)"/>
+			<rect x="920" y="720" width="120" height="150" rx="10" filter="url(#yellow-glow-light-rest)"/>
+		</g>
+		<g stroke="hsl(46, 96%, 50%)" stroke-width="6" stroke-linecap="round" opacity="0.7">
+			<path d="M 745 760 L 815 760 M 745 790 L 815 790 M 745 820 L 790 820"/>
+			<path d="M 945 760 L 1015 760 M 945 790 L 1015 790 M 945 820 L 990 820"/>
+		</g>
+		<path d="M 852 795 L 906 795 M 894 783 L 906 795 L 894 807" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+		<!-- Into the metered gate -->
+		<path d="M 1040 795 L 1400 795" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="10" stroke-linecap="round"/>
+
+		<!-- Rate-limit gate: two posts and a token bucket -->
+		<g stroke="#CCCCCC" stroke-width="6" stroke-linecap="round">
+			<path d="M 1190 650 L 1190 940"/>
+			<path d="M 1270 650 L 1270 940"/>
+		</g>
+		<g>
+			<circle cx="1230" cy="670" r="11" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="4"/>
+			<circle cx="1230" cy="705" r="11" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="4"/>
+			<circle cx="1230" cy="740" r="11" fill="hsl(46, 96%, 50%)"/>
+			<circle cx="1230" cy="850" r="11" fill="hsl(46, 96%, 50%)"/>
+			<circle cx="1230" cy="885" r="11" fill="hsl(46, 96%, 50%)"/>
+			<circle cx="1230" cy="920" r="11" fill="hsl(46, 96%, 50%)"/>
+		</g>
+
+		<!-- On into the pipeline -->
+		<path d="M 1400 795 L 1560 560 L 2020 560" fill="none" stroke="hsl(46, 96%, 50%)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+		<circle cx="1560" cy="560" r="14" fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-light-rest)"/>
+		<circle cx="1780" cy="560" r="18" fill="#FAFAFA" stroke="hsl(46, 96%, 50%)" stroke-width="7"/>
+		</g>
+	</svg>
+
+	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
+	<text x="70" y="300" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#0D0D0D">REST APIs</text>
+	<text x="70" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">without glue</text>
+</svg>

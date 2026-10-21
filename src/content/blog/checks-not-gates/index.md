@@ -5,7 +5,7 @@ date: 2026-09-12
 heroImage:
   dark: ./hero-dark.svg
   light: ./hero-light.svg
-  alt: "The words Checks, not gates, next to a large translucent PipelineZ Z-mark watermark."
+  alt: "The words Checks, not gates, above an unbroken yellow pipeline with checks hanging off it as probes: two show a tick, one flags a warning, and the pipeline keeps flowing past it."
 ---
 
 The instinct with data quality is to bolt on a separate test suite: a different tool, a
