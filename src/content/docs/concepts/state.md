@@ -108,8 +108,8 @@ elsewhere, set under `state:` in `project.yml`:
 
 The `local` backend needs no configuration. `sqlserver` and `http` exist for hosts with no
 persistent disk, such as a container that disappears between scheduled runs. See
-[Move state off the local disk](/how-to/remote-state/) for the full `state:` block, the
-`PZ_STATE_*` environment variables, and a Container Apps recipe.
+[Move state off the local disk](/how-to/remote-state/) for the full `state:` block and the
+`PZ_STATE_*` environment variables.
 
 The `sqlserver` backend migrates its own schema forward automatically the first time a newer `pz`
 build connects to an older schema — there's nothing to run by hand. A migration that can't
