@@ -95,7 +95,8 @@ The whole run shares **one serialized DuckDB connection**, gated by a `Semaphore
 Concurrency comes from the dispatcher overlapping different kinds of work, not from parallel
 DuckDB connections. A single `DuckDBConnection` is not safe for concurrent statement execution,
 and unguarded dispatch used to race on DuckDB's native pending-query state; the gate is a
-correctness fix.
+correctness fix. The earlier "close to free" measurement (concurrent/sequential ratio 0.94 to 1.04) holds only
+for DuckDB-local work; it does not cover a slow external source or sink.
 
 Loading a source takes the gate once to create the table and once per batch, so a slow
 source (Postgres, SQL Server, SFTP, Azure Blob, GCS) does not hold up other nodes: a local chain
