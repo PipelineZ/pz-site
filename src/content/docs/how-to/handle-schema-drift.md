@@ -105,6 +105,7 @@ after a schema-driven edit.
 | A write refusing `schema_policy: evolve` | Neither `postgres` nor `sqlserver` implements automatic evolution. Use `fail_on_change` or `additive` instead. |
 | A retype that never surfaced until `--connect` | A retype landing on the same underlying Arrow type is invisible at run time. Run `--connect` after any suspected upstream DDL change. |
 | A source column added upstream, doing nothing | This is by design: extra fetched columns are tolerated and pruned. Add it to `columns:` when you want it. |
+| A new column never shows up in a run-time drift warning | Since pz 0.12.0, run-time drift on a native scan covers only the columns the pipeline reads. See [Detect source drift at run time](/how-to/schema-drift/#what-is-compared). |
 
 ## Related
 

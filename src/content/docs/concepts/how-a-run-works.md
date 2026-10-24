@@ -77,7 +77,9 @@ restored ones as their own process. This is also where a selection (a flow name,
 For every edge, `pz` decides how the data actually moves: a native path when the connector can
 hand DuckDB the work directly (`native_scan` for a read, `native_copy` for a write), or the
 universal batch path (`duck_sql`) otherwise. `pz plan` prints this table without running
-anything; `pz run` computes the same plan and writes it to `.pz/target/plan.json`.
+anything; `pz run` computes the same plan and writes it to `.pz/target/plan.json`. Since 0.12.0 the
+plan also shows what a `native_scan` read pushes down: the columns and the filter the pipeline
+needs, which the native scan applies so it stages only those columns and the matching rows.
 
 ### Dispatch
 
@@ -131,7 +133,9 @@ Each run gets its own directory, `.pz/runs/<run-id>/`, holding:
 - `staging.duckdb`: the embedded [staging database](/concepts/key-concepts/) every read, pipeline,
   and write for that run went through.
 - `run_results.json`: per-node status, timings, and row counts, written incrementally as nodes
-  finish so a crash mid-run still leaves a readable file. Since 0.10.0 it also records how long each
+  finish so a crash mid-run still leaves a readable file. Since 0.12.0 the file is written in the
+  background, except right after a sink commit. A native `SourceLoad`'s `rows` is the count of
+  filtered staged rows. Since 0.10.0 it also records how long each
   phase took and, per node, the connector, connection, data-plane tier, and stage times
   ([fields](/how-to/debug-a-failed-run/#2-open-run_resultsjson)). `pz retry` reads this to know what to
   redo.
