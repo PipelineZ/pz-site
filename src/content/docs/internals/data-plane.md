@@ -45,6 +45,19 @@ attach. A connector
 declares this on the read side with `ConnectorCapabilities.NativeScan`
 (`ISource.TryGetNativeScan`) and on the write side with `NativeCopy` (`ISink.TryGetNativeCopy`).
 
+Since pz 0.12.0 a native scan also applies the pipeline's pushdown. The compiler extracts the
+columns and the filter the reading pipeline needs (see
+[`ReadHints` extraction and joins](/internals/connector-architecture/#readhints-extraction-and-joins)),
+and the staging statement wraps the connector's fragment in a projection and a `where`, both run
+by DuckDB whatever the connector advertises. `ColumnPruning` and `PredicatePushdown` gate only the
+universal tier. A pipeline that selects three columns with a filter stages those three columns and
+the matching rows, not the whole file, and a native `SourceLoad`'s `rows` count is the number of
+rows staged after that filter. If a hinted column or the predicate does not bind against the scan,
+the engine stages the full read instead and prints a notice; the pipeline's own SQL still runs
+over the staged table, so the result is unchanged. A native-scan connector can narrow its own read
+as well by implementing
+[`IProjectingNativeScan`](/how-to/author-a-connector/#narrow-a-native-scan-to-the-columns-read).
+
 The planner chooses the tier **per edge, per run**, prefers the native path, and logs which
 tier each edge used. `pz plan` shows the choice and the reason before anything runs.
 
@@ -121,6 +134,39 @@ native-only connector, is `PZ0312`, naming the option, dataset, and connector.
 Because staging is disk-backed and the .NET side only ever holds in-flight batches, a dataset
 larger than RAM is the default case, not a special mode. DuckDB's `memory_limit` governs spill;
 the engine's own memory use stays bounded by the channel formula above.
+
+## Performance
+
+:::note
+Since pz 0.12.0 (unreleased). The figures below are the engine's own measurements from the
+0.12.0 changelog: minimums of three runs on the maintainers' machine, so read them as relative
+improvements rather than guarantees for your hardware.
+:::
+
+| Case | Before | After (0.12.0) |
+|---|---|---|
+| Compile a project with 200 sources | 2250 ms | 284 ms |
+| Universal egress, 1M rows | 246 ms | 73 ms |
+| Universal egress, mixed `utf8`/`decimal`/`timestamp`/`date` columns | 576 ms | 102 ms |
+| Native-scan `SourceLoad`, 2M-row, 50-column Parquet, `select id, c1 ... where k = 7` | 19.8 s | 63 ms |
+| Execute, 600-node project (wide-200 in `scripts/scale-bench.sh`) | 2014 ms | 1963 ms |
+
+What changed:
+
+- **Compile** reuses one DuckDB parse session per command instead of one per source, and the dry
+  compile runs in memory.
+- **Universal egress** concatenates DuckDB result chunks column by column before building Arrow
+  batches.
+- **Native scans** stage only what the pipeline reads. In the Parquet case above, the staged table
+  holds 3 columns and 20,000 rows instead of 50 columns and 2,000,000 rows. `pz plan` shows it as
+  `[pushed: 3 columns + filter]` on the native-scan node.
+- **Per-node overhead** drops because `run_results.json` is written in the background (except right
+  after a sink commit) and watermark and sync-state writes are batched for the local state store.
+  The HTTP and SQL Server state backends still write per key.
+
+The benchmark harnesses are described in [Contributing](/internals/contributing/#benchmarks).
+Memory behavior is unchanged: staging stays disk-backed and the .NET side stays bounded by the
+channel formula (see [Larger than memory](#larger-than-memory)).
 
 ## Related
 
