@@ -43,7 +43,7 @@
 }
 [data-has-hero] .hero .tagline {
 	font-size: clamp(1.05rem, 1.4vw, 1.2rem);
-	max-width: 34ch;
+	max-width: 44ch;
 }
 .pz-hero-line { display: block; }
 .pz-hero-flame {
@@ -74,7 +74,8 @@
 [data-has-hero] .hero .actions {
 	gap: 0.75rem 1rem;
 }
-[data-has-hero] .hero .sl-link-button {
+[data-has-hero] .hero .sl-link-button,
+.pz-final-actions .sl-link-button {
 	font-family: var(--pz-font-display);
 	font-size: var(--sl-text-base);
 	font-weight: 700;
@@ -83,21 +84,25 @@
 	border-radius: var(--pz-radius-sm);
 	transition: filter 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
-[data-has-hero] .hero .sl-link-button.primary {
+[data-has-hero] .hero .sl-link-button.primary,
+.pz-final-actions .sl-link-button.primary {
 	background: var(--sl-color-accent);
 	border-color: var(--sl-color-accent);
 	color: #0d0d0d;
 }
-[data-has-hero] .hero .sl-link-button.primary:hover {
+[data-has-hero] .hero .sl-link-button.primary:hover,
+.pz-final-actions .sl-link-button.primary:hover {
 	color: #0d0d0d;
 	filter: brightness(1.1);
 }
-[data-has-hero] .hero .sl-link-button.secondary {
+[data-has-hero] .hero .sl-link-button.secondary,
+.pz-final-actions .sl-link-button.secondary {
 	background: transparent;
 	border-color: var(--sl-color-gray-4);
 	color: var(--sl-color-white);
 }
-[data-has-hero] .hero .sl-link-button.secondary:hover {
+[data-has-hero] .hero .sl-link-button.secondary:hover,
+.pz-final-actions .sl-link-button.secondary:hover {
 	border-color: var(--sl-color-gray-2);
 	background: var(--sl-color-gray-6);
 }
@@ -249,10 +254,8 @@
    heading and its intro are matched through that wrapper. */
 .pz-section > .sl-heading-wrapper,
 .pz-why-head > .sl-heading-wrapper,
-.pz-oss-head > .sl-heading-wrapper,
 .pz-section > .sl-heading-wrapper > h2,
-.pz-why-head > .sl-heading-wrapper > h2,
-.pz-oss-head > .sl-heading-wrapper > h2 {
+.pz-why-head > .sl-heading-wrapper > h2 {
 	margin-top: 0 !important;
 }
 [data-has-hero] .sl-markdown-content h2 {
@@ -266,8 +269,7 @@
 }
 /* Intro copy sits close under its heading, at a readable measure. */
 .pz-section > .sl-heading-wrapper + p,
-.pz-why-head > .sl-heading-wrapper + p,
-.pz-oss-head > .sl-heading-wrapper + p {
+.pz-why-head > .sl-heading-wrapper + p {
 	margin-top: 0.75rem !important;
 	max-width: var(--pz-measure);
 	color: var(--sl-color-gray-2);
@@ -328,7 +330,7 @@
 	flex: 1;
 }
 
-/* ---- Dev-lifecycle: pipeline change shown as a reviewed PR diff ------- */
+/* ---- Approval step: the agent's pull request, reviewed by an engineer -- */
 .pz-pr-row { display: grid; gap: 2rem; grid-template-columns: 1fr; margin-top: 2.5rem; align-items: center; }
 @media (min-width: 60rem) { .pz-pr-row { grid-template-columns: 0.85fr 1.15fr; } }
 .pz-pr-copy h3 {
@@ -473,7 +475,7 @@
 	50% { opacity: 0; }
 }
 
-/* ---- Why PipelineZ: four tiles, one per claim ------------------------- */
+/* ---- Why pz is the safe layer: four tiles, one per claim -------------- */
 .pz-bento {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
@@ -522,53 +524,84 @@
 	color: var(--sl-color-white);
 }
 
-/* ---- Built with open source: heading block on the left, the dependency
-   row (OssMarquee.astro) filling the rest, stacking only once it can't fit. */
-.pz-oss-strip {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 2rem 3rem;
+/* ---- Step labels: a small mono label over each step of the
+   question-to-pipeline flow. */
+.pz-step {
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: 0.72rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--sl-color-text-accent);
+	margin: 0 0 0.6rem !important;
 }
-.pz-oss-head {
-	flex: 1 1 16rem;
-	max-width: 22rem;
+.pz-prompt .pz-step { margin-bottom: 0 !important; }
+.pz-term .err { color: #e8835f; }
+/* The setup note under the question-to-pipeline flow: how an assistant gets
+   connected, and that running stays opt-in. */
+.pz-note {
+	margin-top: 2rem !important;
+	max-width: var(--pz-measure);
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-2);
+	border-left: 2px solid var(--sl-color-accent);
+	padding-left: 0.9rem;
 }
-.pz-oss-head > .sl-heading-wrapper + p { font-size: var(--sl-text-base); }
-.pz-oss-accent { color: var(--sl-color-text-accent); }
-/* Let the logo row give up width to the heading block instead of sizing to
-   its own content and squeezing the heading into a narrow column. */
-.pz-oss-strip > .pz-oss-row-list { flex: 1 1 40rem; min-width: 0; }
-.pz-oss-strip .pz-oss-item { padding-inline: 0.5rem; }
-.pz-oss-head .pz-link-arrow { margin-top: 1rem; }
 
-/* ---- Closing hand-off to the article series --------------------------- */
-.pz-cta { margin-top: 1.5rem; }
-.pz-cta .sl-link-card {
+/* ---- Connectors: one tile per connector, mark + name + category ------- */
+.pz-conn-grid {
+	list-style: none;
+	padding: 0;
+	margin-top: 2rem !important;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+	gap: 0.6rem;
+}
+.pz-conn-grid li { margin: 0 !important; }
+.pz-conn {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	height: 100%;
+	padding: 0.65rem 0.8rem;
 	border: 1px solid var(--sl-color-gray-5);
+	border-radius: var(--pz-radius-sm);
 	background: var(--sl-color-gray-6);
-	border-radius: var(--pz-radius);
-	box-shadow: none;
-	padding: 1.25rem 1.5rem;
+	color: var(--sl-color-white);
+	text-decoration: none;
 	transition: border-color 150ms ease;
 }
-.pz-cta .sl-link-card:hover {
-	background: var(--sl-color-gray-6);
-	border-color: var(--sl-color-gray-3);
+.pz-conn:hover { border-color: var(--sl-color-gray-3); color: var(--sl-color-white); }
+.pz-conn-mark {
+	flex: none;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--sl-color-gray-1);
 }
-.pz-cta .sl-link-card .title {
-	font-family: var(--pz-font-display);
-	font-weight: 700;
-}
-.pz-cta .sl-link-card .description {
-	max-width: var(--pz-measure);
+.pz-conn-mark svg { width: 1.3rem; height: 1.3rem; }
+.pz-conn-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pz-conn-name { font-family: var(--pz-font-display); font-weight: 600; font-size: var(--sl-text-sm); }
+.pz-conn-label { font-size: 0.72rem; color: var(--sl-color-gray-2); }
+
+/* ---- Closing call to action: centered, the hero's two buttons again ---- */
+.pz-final { text-align: center; }
+.pz-final > .sl-heading-wrapper + p { margin-inline: auto; }
+.pz-final-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem 1rem;
+	margin-top: 1.75rem !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.pz-spoke { animation: none; }
 	.pz-term-zone:last-child pre::after { animation: none; }
 	.pz-link-arrow span,
-	.pz-cta .sl-link-card,
+	.pz-conn,
 	[data-has-hero] .hero .sl-link-button { transition: none; }
 }
 

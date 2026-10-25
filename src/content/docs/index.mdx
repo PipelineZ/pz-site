@@ -3,9 +3,10 @@ title: PipelineZ
 description: A lightweight, developer-first batch data pipeline engine for SQL-based ETL/ELT, powered by DuckDB, that can run anywhere without requiring a data platform.
 template: splash
 hero:
-  title: '<span class="pz-hero-line">Data ingestion</span><span class="pz-hero-line pz-hero-flame">for the future.</span>'
+  title: '<span class="pz-hero-line">The future of</span><span class="pz-hero-line pz-hero-flame">data pipelines.</span>'
   tagline: >-
-    Write SQL. Git-review it. Run it. Anywhere.
+    Built on the SQL you already know. Write it yourself or let your agent
+    draft it. pz checks it and runs it anywhere, with no platform needed.
   actions:
     - text: Get Started
       link: /quickstart/
@@ -84,8 +85,8 @@ hero:
         </div>
 ---
 
-import { LinkCard, Steps } from '@astrojs/starlight/components';
-import OssMarquee from '../../components/OssMarquee.astro';
+import { LinkButton } from '@astrojs/starlight/components';
+import ConnectorGrid from '../../components/ConnectorGrid.astro';
 
 export const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -124,160 +125,127 @@ lake:
 ```
 
 </div>
+</div>
+
+<div class="pz-section">
+## From a question to a pipeline.
+
+An analyst asks their AI assistant for the data they need. The assistant
+drafts the pipeline, and `pz` tells it exactly what's wrong until it's right.
+An engineer reviews a few lines of SQL and merges it.
+
+<div class="pz-demo">
+<div class="pz-prompt">
+<p class="pz-step">1 · The ask</p>
+<div>
+<div class="pz-bubble-tag">Analyst</div>
+<div class="pz-bubble pz-bubble-you">Can I get daily revenue per region in the warehouse? Refreshed every night.</div>
+</div>
+<div>
+<div class="pz-bubble-tag">AI assistant · pz over MCP</div>
+<div class="pz-bubble">On it. Drafting <code>daily_revenue.sql</code> and validating it against the project.</div>
+</div>
+</div>
+<div class="pz-term">
+<div class="pz-term-bar"><i></i><i></i><i></i><span>2 · The draft — pipelines/daily_revenue.sql</span></div>
+<div class="pz-term-zone">
+<pre><span class="kw">INSERT INTO</span> {'{'}{'{'} <span class="fn">sink</span>('warehouse', 'daily_revenue', strategy: 'merge') {'}'}{'}'}
+<span class="kw">SELECT</span> order_date <span class="kw">AS</span> day, region, sum(amount) <span class="kw">AS</span> revenue
+<span class="kw">FROM</span> {'{'}{'{'} <span class="fn">source</span>('shop', 'orders') {'}'}{'}'}
+<span class="kw">GROUP BY</span> day, region</pre>
+</div>
+<div class="pz-term-zone">
+<pre><span class="dim">$</span> pz validate
+<span class="err">error PZ0209</span>: sink 'warehouse.daily_revenue' has
+strategy: 'merge' but declares no keys {'--'} merge needs at
+least one key column to match rows by
+<span class="dim">hint: sink('warehouse', 'daily_revenue',</span>
+<span class="dim">        strategy: 'merge', keys: ['&lt;column&gt;'])</span>
+<span class="dim">› agent adds keys: ['day', 'region']</span>
+<span class="dim">$</span> pz validate
+<span class="ok">validation passed</span> (4 pipelines, 3 connections checked)</pre>
+</div>
+</div>
+</div>
 
 <div class="pz-pr-row">
 <div class="pz-pr-copy">
-### Change it, and someone reads the diff.
+<p class="pz-step">3 · The approval</p>
 
-No config UI holds the logic hostage — a bad join or a silent strategy
-change gets caught in review, not in production.
+### An engineer still signs off.
+
+The agent opens a pull request like anyone else. Someone who knows the
+warehouse reads it, and nothing reaches production without that review.
 </div>
 
 <div class="pz-diff">
 <div class="pz-diff-head">
-<span class="fname">pipelines/orders_enriched.sql</span>
-<span class="stat"><span class="add">+3</span> <span class="rem">-1</span></span>
+<span class="fname">pipelines/daily_revenue.sql</span>
+<span class="stat"><span class="add">+4</span> <span class="rem">-0</span></span>
 </div>
-<pre><span class="dl rem"><span class="mark-rem">-</span>INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated', strategy: 'replace', format: 'parquet') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>INSERT INTO {'{'}{'{'} sink('lake', 'orders_curated', strategy: 'merge', keys: ['id'], format: 'parquet') {'}'}{'}'}</span><span class="dl ctx"> SELECT</span><span class="dl ctx">     o.id,</span><span class="dl ctx">     o.amount,</span><span class="dl ctx">     c.email</span><span class="dl ctx"> FROM {'{'}{'{'} ref('stg_orders') {'}'}{'}'} AS o</span><span class="dl ctx"> JOIN {'{'}{'{'} source('raw', 'customers') {'}'}{'}'} AS c</span><span class="dl ctx">     ON c.id = o.customer_id</span><span class="dl add"><span class="mark">+</span>WHERE o.amount &gt; 0</span></pre>
+<pre><span class="dl add"><span class="mark">+</span>INSERT INTO {'{'}{'{'} sink('warehouse', 'daily_revenue', strategy: 'merge', keys: ['day', 'region']) {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>SELECT order_date AS day, region, sum(amount) AS revenue</span><span class="dl add"><span class="mark">+</span>FROM {'{'}{'{'} source('shop', 'orders') {'}'}{'}'}</span><span class="dl add"><span class="mark">+</span>GROUP BY day, region</span></pre>
 <div class="pz-review">
-<span class="pz-avatar">MR</span>
+<span class="pz-avatar">DE</span>
 <div class="pz-review-body">
-LGTM — <code>replace</code> was silently dropping late updates.
-<div class="pz-review-chip">✓ pz validate — 2 checks passed</div>
-</div>
+Keys look right. Merging, it runs with tonight's batch.
+<div class="pz-review-chip">✓ pz validate — passed</div>
 </div>
 </div>
 </div>
 </div>
 
-<div class="pz-section">
-## Ingestion, spoken into existence.
-
-Describe the pipeline. An MCP-connected agent writes valid SQL, `pz`
-verifies every edit, and it's running before you've finished your coffee.
-
-<div class="pz-demo">
-<div class="pz-prompt">
-<div>
-<div class="pz-bubble-tag">You</div>
-<div class="pz-bubble pz-bubble-you">Add a pipeline for total order value per customer, merged into postgres.</div>
-</div>
-<div>
-<div class="pz-bubble-tag">pz agent · via MCP</div>
-<div class="pz-bubble">Drafting <code>customer_order_summary.sql</code>, validating against the current DAG…</div>
-</div>
-</div>
-<div class="pz-term">
-<div class="pz-term-bar"><i></i><i></i><i></i><span>pz mcp — customer_order_summary.sql</span></div>
-<div class="pz-term-zone">
-<div class="file-tag">pipelines/customer_order_summary.sql</div>
-<pre><span class="kw">INSERT INTO</span> {'{'}{'{'} <span class="fn">sink</span>('postgres', 'customer_order_summary', strategy: 'merge', key: ['customer_id']) {'}'}{'}'}
-<span class="kw">SELECT</span>
-    c.id <span class="kw">AS</span> customer_id,
-    count(o.id) <span class="kw">AS</span> order_count,
-    sum(o.amount) <span class="kw">AS</span> total_amount
-<span class="kw">FROM</span> {'{'}{'{'} <span class="fn">ref</span>('stg_orders') {'}'}{'}'} <span class="kw">AS</span> o
-<span class="kw">JOIN</span> {'{'}{'{'} <span class="fn">source</span>('raw', 'customers') {'}'}{'}'} <span class="kw">AS</span> c
-    <span class="kw">ON</span> c.id = o.customer_id
-<span class="kw">GROUP BY</span> c.id;</pre>
-</div>
-<div class="pz-term-zone">
-<pre><span class="dim">$</span> pz validate
-validation passed (3 pipelines, 2 connections checked)
-<span class="dim">$</span> pz run --all
-<span class="ok">ok</span>  customer_order_summary  <span class="dim">3 rows 18ms</span></pre>
-</div>
-</div>
-</div>
+<p class="pz-note"><code>pz mcp init</code> connects Claude Code, VS Code, Copilot CLI or OpenCode to a project, and any other MCP client can launch <code>pz mcp</code> directly. The assistant can read, write and validate pipelines; running them stays off unless the server starts with <code>{'--allow-run'}</code>.</p>
 </div>
 
 <div class="pz-section">
 <div class="pz-why-head">
-## Why PipelineZ?
+## Why pz is the safe layer
 
-PipelineZ combines the power of modern data systems with a
-developer-friendly experience.
+The same things that make pz easy for you make it safe to hand to an agent.
 </div>
 
 <div class="pz-bento">
 	<div class="pz-tile">
-		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /></svg>
-		<p class="pz-tile-title">Blazingly Fast</p>
-		<p>Built on top of DuckDB and vectorized execution for extreme performance.</p>
+		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+		<p class="pz-tile-title">Credentials stay put</p>
+		<p>Pipelines name entities, not connection strings. Secrets live in one file an agent never needs to read.</p>
 	</div>
 	<div class="pz-tile">
-		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" /></svg>
-		<p class="pz-tile-title">Ecosystem First</p>
-		<p>Connect to your data wherever it lives. Extensible connectors and formats.</p>
+		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m8.5 12 2.5 2.5 4.5-5" /></svg>
+		<p class="pz-tile-title">Errors agents can fix</p>
+		<p>Every error carries a <code>PZ</code> code, the file, the cause and a hint, so a mistake gets fixed before anyone reviews it.</p>
 	</div>
 	<div class="pz-tile">
-		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
-		<p class="pz-tile-title">Reliable by Design</p>
-		<p>Idempotent execution, automatic retries, and strong guarantees.</p>
+		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" /><path d="M3 21v-5h5" /></svg>
+		<p class="pz-tile-title">Safe to retry</p>
+		<p>Incremental loads, retries that pick up where a run failed, and merges that never duplicate rows.</p>
 	</div>
 	<div class="pz-tile">
-		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 16 4-4-4-4" /><path d="m6 8-4 4 4 4" /><path d="m14.5 4-5 16" /></svg>
-		<p class="pz-tile-title">Developer Experience</p>
-		<p>YAML and SQL. Local first. Great DX from development to production.</p>
+		<svg class="pz-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M2 20h20" /></svg>
+		<p class="pz-tile-title">No platform to buy</p>
+		<p>One binary with DuckDB inside. It runs on a laptop, a VM or in CI.</p>
 	</div>
 </div>
 </div>
 
 <div class="pz-section">
-## Running in five minutes
+## Connects to what you already use.
 
-<Steps>
+Fifteen connectors ship inside `pz`. Eleven more install as packages, and the
+connector SDK lets you write your own.
 
-1. Install the CLI as a .NET global tool:
+<ConnectorGrid />
 
-   ```console
-   $ dotnet tool install --global pz
-   ```
-
-2. Scaffold a small, complete, runnable project:
-
-   ```console
-   $ pz init demo --template sample && cd demo
-   ```
-
-   (Bare `pz init` scaffolds the minimal template instead — the right start for your own
-   data. `--template sample` is what ships the bundled CSVs this walkthrough runs;
-   `pz init --list-templates` shows all five.)
-
-3. Run both flows — sources, pipelines, checks, and sinks in one command:
-
-   ```console
-   $ pz run --all
-   ```
-
-</Steps>
-
-<a class="pz-link-arrow" href={base + '/quickstart/'}>Continue with the quickstart<span aria-hidden="true">&#8594;</span></a>
+<a class="pz-link-arrow" href={base + '/connectors/'}>Browse all connectors<span aria-hidden="true">&#8594;</span></a>
 </div>
 
-<div class="pz-section">
-<div class="pz-oss-strip">
-<div class="pz-oss-head">
-## Built with<br /><span class="pz-oss-accent">open source.</span>
+<div class="pz-section pz-final">
+## Start with one pipeline.
 
-PipelineZ is 100% built with open-source projects we love. We believe in
-transparency, community, and open data.
+Install `pz`, scaffold a project and run it, or point your agent at it and ask.
 
-<a class="pz-link-arrow" href="https://github.com/PipelineZ/pz">View the source on GitHub<span aria-hidden="true">&#8594;</span></a>
-</div>
-
-<OssMarquee />
-</div>
-</div>
-
-<div class="pz-section">
-## New to data pipelines?
-
-<div class="pz-cta">
-<LinkCard
-	title="Data Engineering Introduction"
-	description="A 10-part, beginner-friendly article series: nine vendor-neutral articles on pipeline fundamentals built around one running example, then one on how pz maps onto every one of them."
-	href={base + '/book/'}
-/>
+<div class="pz-final-actions">
+<LinkButton href={base + '/quickstart/'} variant="primary">Quickstart</LinkButton>
+<LinkButton href={base + '/how-to/use-with-an-ai-agent/'} variant="secondary">Connect your agent</LinkButton>
 </div>
 </div>
