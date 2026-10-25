@@ -85,6 +85,10 @@ A node waiting out a retry backoff or an open breaker doesn't count against `max
 or `engine.threads`. It has no connection open while it waits, so the slot goes to another node
 and the waiting node queues for one again before its next attempt.
 
+Because a node waiting out a `Retry-After` no longer holds its `max_concurrency` slot, a sibling
+node on the same connection may start during that delay. To keep a struggling connection quiet, use
+`rate_limit:` (pacing) and `engine.breaker` (stop after repeated failures).
+
 ### 4. Back off a failing instance with engine.breaker
 
 ```yaml title="project.yml"
@@ -127,9 +131,9 @@ needs fewer simultaneous connections. Add `engine.breaker` when a struggling ins
 run to back off entirely, rather than retrying node after node into the same outage.
 
 :::tip
-On a connection with many nodes, pair `engine.breaker` with `max_concurrency`. A node
-open-waiting on a tripped breaker still holds its dispatch slot for up to `2 × cool_down` before
-giving up, so an uncapped connection can have every node parked in that wait at once.
+Nodes waiting on a tripped breaker hold no dispatch slot, so several of a connection's nodes can
+open-wait at once. Each gives up with a retryable `PZ0506` after at most `2 × cool_down`, which
+bounds the total waiting.
 :::
 
 ## Troubleshooting
@@ -139,7 +143,7 @@ giving up, so an uncapped connection can have every node parked in that wait at 
 | `PZ0317` at compile time | `rate_limit:` is declared on a connector without `GatedOperations`. Remove it, or switch to a gate-aware connector. |
 | `PZ0318` at compile time | `rate_limit:` is malformed, out of range, or declared under `read:`/`write:` instead of the connection. |
 | `PZ0506` on a node | The connection's breaker is open. Wait for `cool_down` to elapse, then `pz retry`. |
-| A node parked for a long time before failing | A tripped breaker's waiting nodes hold their dispatch slot for up to `2 × cool_down`. Pair `max_concurrency` with `engine.breaker` to bound how many nodes wait at once. |
+| A node parked for a long time before failing | It is open-waiting on a tripped breaker. It holds no dispatch slot and gives up with a retryable `PZ0506` after at most `2 × cool_down`; then `pz retry`. |
 | The database itself is still overloaded | pz-side throttling only bounds what pz sends. Add database-side limits for continuous, unconditional protection. |
 
 ## Related
