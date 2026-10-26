@@ -166,7 +166,8 @@ codes from the YAML author's side.
 
 | Code | Name | Meaning | Where it surfaces |
 |---|---|---|---|
-| `PZ0401` | SqlDryCompile | A pipeline's rendered SQL fails a dry compile against DuckDB before any run starts. | `pz run`/`pz validate` pre-flight |
+| `PZ0401` | SqlDryCompile | A pipeline's rendered SQL fails a dry compile against DuckDB before any run starts. An unknown function gets a hint to list its DuckDB extension under `extensions:`. | `pz run`/`pz validate` pre-flight |
+| `PZ0402` | ExtensionLoadFailed | An extension listed under project.yml's `extensions:` could not be installed or loaded: a wrong name, no network, or a file DuckDB refuses. Reported for every listed extension, naming the folder to copy the file into on a machine without internet access. | `pz run`/`pz validate` pre-flight |
 
 ## 05xx: Runtime
 
