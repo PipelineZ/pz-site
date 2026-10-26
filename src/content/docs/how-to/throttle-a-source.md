@@ -81,10 +81,6 @@ pg_prod:
 connections: an entity's own `partitions:` still governs connection fan-out within one node, so
 the worst case is `max_concurrency × partitions`.
 
-A node waiting out a retry backoff or an open breaker doesn't count against `max_concurrency`
-or `engine.threads`. It has no connection open while it waits, so the slot goes to another node
-and the waiting node queues for one again before its next attempt.
-
 ### 4. Back off a failing instance with engine.breaker
 
 ```yaml title="project.yml"
