@@ -54,9 +54,7 @@ loop:
 1. Every node tracks how many dependencies it's still waiting on.
 2. A node with zero outstanding dependencies is dispatched immediately, up to `engine.threads`
    concurrent nodes at once, gated by a `SemaphoreSlim` (and by its connection's
-   `max_concurrency`, when set). A node waiting out a retry backoff or an open circuit breaker
-   hands both slots back and takes them again before its next attempt, so a sleeping node never
-   holds up a ready one.
+   `max_concurrency`, when set).
 3. When a node succeeds, it decrements each child's counter; a child that hits zero is
    dispatched right then.
 4. When a node fails, every descendant is marked `Skipped` (`CascadeSkip`). Siblings elsewhere
