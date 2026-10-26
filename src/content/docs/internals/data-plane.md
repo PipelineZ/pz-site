@@ -149,7 +149,6 @@ improvements rather than guarantees for your hardware.
 | Universal egress, 1M rows | 246 ms | 73 ms |
 | Universal egress, mixed `utf8`/`decimal`/`timestamp`/`date` columns | 576 ms | 102 ms |
 | Native-scan `SourceLoad`, 2M-row, 50-column Parquet, `select id, c1 ... where k = 7` | 19.8 s | 63 ms |
-| Execute, 600-node project (wide-200 in `scripts/scale-bench.sh`) | 2014 ms | 1963 ms |
 
 What changed:
 
@@ -160,9 +159,6 @@ What changed:
 - **Native scans** stage only what the pipeline reads. In the Parquet case above, the staged table
   holds 3 columns and 20,000 rows instead of 50 columns and 2,000,000 rows. `pz plan` shows it as
   `[pushed: 3 columns + filter]` on the native-scan node.
-- **Per-node overhead** drops because `run_results.json` is written in the background (except right
-  after a sink commit) and watermark and sync-state writes are batched for the local state store.
-  The HTTP and SQL Server state backends still write per key.
 
 The benchmark harnesses are described in [Contributing](/internals/contributing/#benchmarks).
 Memory behavior is unchanged: staging stays disk-backed and the .NET side stays bounded by the
