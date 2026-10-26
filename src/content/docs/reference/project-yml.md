@@ -23,6 +23,11 @@ connectors:
   - package: Some.Connector.Package
     version: 1.0.0
 
+# DuckDB extensions pipeline SQL calls, installed and loaded before any SQL runs.
+extensions:
+  - jev
+  - spatial
+
 # Referenced in SQL via {{ var('min_amount') }}. Values may use ${VAR} interpolation.
 vars:
   min_amount: 10
@@ -63,12 +68,41 @@ gets the targeted `PZ0347`.
 | `version` | string | required (`PZ0101`) | The project's own version string. Free text; nothing checks it. |
 | `pz` | string | none | Engine version constraint, e.g. `">=1.0 <2.0"`. Reserved and accepted; not enforced against the running build yet. |
 | `connectors` | list of `{package, version}` | empty | Non-builtin connector packages `pz restore` resolves. Builtin connectors ([localfiles](/connectors/localfiles/), [postgres](/connectors/postgres/), [s3](/connectors/s3/), [sqlserver](/connectors/sqlserver/), [azureblob](/connectors/azureblob/), [gcs](/connectors/gcs/), [http](/connectors/http/), [mysql](/connectors/mysql/), [sqlite](/connectors/sqlite/), [duckdb](/connectors/duckdb/), [ducklake](/connectors/ducklake/), [motherduck](/connectors/motherduck/), [quack](/connectors/quack/), [iceberg](/connectors/iceberg/), [sftp](/connectors/sftp/)) need no entry. Quote `version:`, e.g. `version: "1.10"` — a bare decimal like `1.10` is the YAML number `1.1`, a different package, and is refused rather than silently restored wrong. |
+| `extensions` | list of extension names | empty | DuckDB extensions, core or community, that pipeline SQL calls. See [`extensions:`](#extensions) below. |
 | `vars` | map of name to value | empty | Project variables, read in SQL via `{{ var('name') }}`. Overridable per invocation with `pz run --vars '{...}'`. Values may reference `${VAR}`. |
 | `engine` | map | see below | Concurrency, batching, and DuckDB settings. |
 | `retention` | map, or `off`/`false`/`no` | `keep_last: 10` | Automatic disk reclamation at the end of every run. |
 | `state` | map | `backend: local` | Where watermarks, run results, and the run-event stream live. |
 | `on_source_drift` | `ignore`\|`warn`\|`fail` | `ignore` | Run-time schema drift policy for contract-less source entities. |
 | `feeds` | — | retired | Removed. Declaring it is `PZ0352`: feeds are host configuration (`PZ_FEEDS` or `pz restore --feeds`), not project authoring. |
+
+## `extensions:`
+
+A list of DuckDB extension names, core (`spatial`, …) or community (`jev`, `h3`, …).
+Before any SQL runs, in every session that runs or validates the project, pz installs and loads
+each one the way DuckDB does: `INSTALL <name>` for a core extension, `INSTALL <name> FROM community`
+for any other name, then `LOAD <name>`. Every pipeline sees the same extensions, whatever order the
+pipelines run in.
+
+```yaml
+extensions:
+  - jev
+```
+
+- **Names** are lowercase letters, digits and underscores, listed once each. Anything else
+  (`Jev`, ` jev`, a number, a duplicate) is `PZ0101`.
+- **List only what pipeline SQL calls directly.** The extensions connectors and file formats need
+  (`httpfs`, `azure`, `iceberg`, `excel`, …) are loaded by those connectors.
+- **Write no `INSTALL`/`LOAD` in pipeline files.** A pipeline is one query.
+- **Offline:** an extension file already in DuckDB's extensions folder is used without a download.
+  See [Use a DuckDB extension](/how-to/use-a-duckdb-extension/).
+- **Failure:** a listed extension that cannot be installed or loaded is `PZ0402`, reported for
+  every such extension before any node runs. A pipeline calling a function from an extension that
+  is not listed fails the pre-run SQL check (`PZ0401`) with a hint to list it.
+- **Run record:** the terminal `run_results.json` lists each loaded extension with the build DuckDB
+  reports for it, so a behaviour change can be traced to a new extension build.
+- **Security:** an extension is native code that runs inside pz with the run's data and
+  credentials. A community extension can be published by anyone; list one only if you trust it.
 
 ## `engine:`
 
@@ -175,6 +209,7 @@ publishes a `source_drift_detected` event and continues; `fail` fails the load n
 | [`PZ0331`](/reference/error-codes/) | A source's observed schema drifted from its baseline under `on_source_drift: fail`. |
 | [`PZ0347`](/reference/error-codes/) | A top-level `outputs:` block is present. That block is retired; declare each place as a connection in `connections.yml`. |
 | [`PZ0352`](/reference/error-codes/) | A top-level `feeds:` key is present. Feeds are host configuration now, set via `PZ_FEEDS` or `pz restore --feeds`. |
+| [`PZ0402`](/reference/error-codes/) | An extension listed under `extensions:` could not be installed or loaded. |
 | [`PZ0525`](/reference/error-codes/) | A node's attempt ran longer than `engine.node_timeout` and was cancelled. |
 | [`PZ0526`](/reference/error-codes/) | A node cancelled for exceeding `engine.node_timeout` did not stop within the grace period. |
 

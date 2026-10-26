@@ -142,7 +142,7 @@ export default defineConfig({
 							],
 						},
 						{ label: 'AI agents', items: ['how-to/use-with-an-ai-agent'] },
-						{ label: 'Extend', items: ['how-to/author-a-connector'] },
+						{ label: 'Extend', items: ['how-to/use-a-duckdb-extension', 'how-to/author-a-connector'] },
 					],
 				},
 				{

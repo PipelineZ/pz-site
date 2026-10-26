@@ -36,6 +36,7 @@ Each guide solves one task and shows how to verify the result. If you are new to
 
 ## Extend
 
+- [Use a DuckDB extension](/how-to/use-a-duckdb-extension/): call an extension's functions from pipeline SQL, online or offline.
 - [Author a connector](/how-to/author-a-connector/): build, test, and package a connector.
 
 ## Related
