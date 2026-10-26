@@ -87,7 +87,9 @@ everything a connector needs for one dataset or output, beyond connection config
   `SchemaPolicy`, an `Options` map, and `Attempt` (see
   [Resume internals: attempt identity](/internals/resume-internals/#attempt-identity)).
 - `ReadHints` carries pushdown: requested `Columns`, an optional `PredicateSql`, and a `Limit`.
-  Connectors ignore what they can't push.
+  Connectors ignore what they can't push. On a native scan the engine applies both halves itself
+  in DuckDB, whatever the connector declares; see
+  [Data plane](/internals/data-plane/).
 
 ### `ReadHints` extraction and joins
 
@@ -131,7 +133,7 @@ letting it fail or silently degrade at run time.
 | `ColumnPruning` | source | Honors `ReadHints.Columns`. |
 | `PredicatePushdown` | source | Honors `ReadHints.PredicateSql`. |
 | `PartitionedRead` | source | `PlanReadAsync` may return more than one partition. |
-| `NativeScan` | source | Can hand DuckDB a native scan via `TryGetNativeScan`. |
+| `NativeScan` | source | Can hand DuckDB a native scan via `TryGetNativeScan`. A source that also implements `IProjectingNativeScan` (since 0.12.0) can narrow that scan to the columns the pipeline reads. |
 | `NativeCopy` | sink | Can hand DuckDB a native copy via `TryGetNativeCopy`. |
 | `Merge` | sink | Supports `mode: merge`. |
 | `Transactional` | sink | Commit is atomic (temp-swap or equivalent). |
@@ -331,7 +333,10 @@ round-trip:
   destination throttled by an emulator can lower it rather than exclude the fact entirely.
 - `TypeMatrixOutput`/`ReadTypeMatrixCommittedAsync` (both null by default) opt a sink into a
   round-trip fact for `decimal128`, `timestamp`, `date`, and `bool` columns; a subclass that sets
-  `TypeMatrixOutput` must also implement the read-back hook.
+  `TypeMatrixOutput` must also implement the read-back hook. Since 0.12.0 the same hooks also
+  drive `Decimal_beyond_system_decimal_commits_exactly_or_fails_permanently`: a `decimal128(38,9)`
+  value beyond .NET `decimal` must commit with every digit or fail with a permanent
+  `PzConnectorException` naming the column.
 - A sink implementing `IOutputConfigSchema` gets a self-detecting fact that its declared schema
   actually validates the write options the sink accepts.
 

@@ -53,7 +53,8 @@ loop:
 
 1. Every node tracks how many dependencies it's still waiting on.
 2. A node with zero outstanding dependencies is dispatched immediately, up to `engine.threads`
-   concurrent nodes at once, gated by a `SemaphoreSlim`.
+   concurrent nodes at once, gated by a `SemaphoreSlim` (and by its connection's
+   `max_concurrency`, when set).
 3. When a node succeeds, it decrements each child's counter; a child that hits zero is
    dispatched right then.
 4. When a node fails, every descendant is marked `Skipped` (`CascadeSkip`). Siblings elsewhere
@@ -95,7 +96,21 @@ The whole run shares **one serialized DuckDB connection**, gated by a `Semaphore
 Concurrency comes from the dispatcher overlapping different kinds of work, not from parallel
 DuckDB connections. A single `DuckDBConnection` is not safe for concurrent statement execution,
 and unguarded dispatch used to race on DuckDB's native pending-query state; the gate is a
-correctness fix, measured close to free (concurrent/sequential ratio 0.94 to 1.04).
+correctness fix. The earlier "close to free" measurement (concurrent/sequential ratio 0.94 to 1.04) holds only
+for DuckDB-local work; it does not cover a slow external source or sink.
+
+Loading a source keeps the gate, and one open appender, only while nothing else is waiting for
+it. As soon as another operation waits, the load commits the rows appended so far and hands the
+gate over, and it never holds a gate someone wants while it waits on the network. So a slow source
+(Postgres, SQL Server, SFTP, Azure Blob, GCS) does not hold up other nodes: a local chain next to a
+9-second Postgres read finishes in about a quarter of a second. An uncontended load still commits
+once per 122,880 rows, so tiny batches cost what they always did.
+
+Writing a sink holds the gate until all but its last buffered batches have been read out of
+DuckDB, so a slow sink that drains many batches still blocks other nodes' DuckDB work, while a
+drain of one or two batches does not. Transactions hold the gate throughout. Waiting for the gate
+never occupies a thread-pool thread: every call awaits the gate first, then runs its native
+statement.
 
 ## The eight phases, in order
 
@@ -133,7 +148,7 @@ load ▶ compile ▶ validate ▶ restore-check ▶ plan ▶ dispatch ▶ finali
 | Artifact | Written by | Contains |
 |---|---|---|
 | `.pz/target/manifest.json` | compile | The full node-and-edge graph: nodes, edges, content hashes, configs. |
-| `.pz/target/plan.json` | plan | Per-edge tier decisions and reasons, partition counts, batch sizes, a computed memory budget. |
+| `.pz/target/plan.json` | plan | Per-edge tier decisions and reasons, partition counts, batch sizes, a computed memory budget, and, since 0.12.0, the pushdown (columns and filter) of native-scan nodes as well as universal ones. |
 | `.pz/runs/<id>/staging.duckdb` | dispatch | The run's disk-backed DuckDB staging database. Retained after every run, success or failure. |
 | `.pz/runs/<id>/run_results.json` | dispatch, finalize | Run-level `runId`, `status`, `startedAt`, and `finishedAt` (the last written only once the run reaches a terminal status, so its absence distinguishes "still running" from a crashed run's last snapshot), plus one entry per node: status, rows moved, duration, error, and optional `provenance`/`watermark` fields and, since 0.10.0, the node facts (`connector`, `connection`, `strategy`, `stages`, `attempts`). The terminal write adds `phases`, the milliseconds per run phase including `finalizeMs`, and, when `project.yml` lists `extensions:`, an `extensions` array of each loaded extension's `name` and the `version` DuckDB reports. Rewritten after every node completes, not once at the end. |
 

@@ -32,6 +32,17 @@ already types and prunes the read.
 The first `warn`/`fail` run for each entity has no baseline yet, so it seeds one silently from
 what it observes. The node succeeds normally. From the second run on, drift detection is live.
 
+### What is compared
+
+Since pz 0.12.0, a native scan stages only the columns (and rows) the reading pipeline needs,
+so drift detection on a native scan covers the columns the pipeline reads. A column added to the
+source that no pipeline reads is not reported, the same as on the universal tier with a
+column-pruning connector. A removed or retyped column that the pipeline reads is reported, and a
+`select *` still sees every column. The baseline re-seeds once, silently, on the first run after
+you upgrade to 0.12.0, so expect no warning from that run even if the shape changed in between.
+If a column the pipeline reads is missing from the scan, pz falls back to reading the whole
+source, prints a notice, and compares drift only on the columns the pipeline reads.
+
 ### 3. Read a drift warning
 
 Under `warn`, a drifted run publishes a `source_drift_detected` event, prints a console warning
@@ -84,6 +95,7 @@ so the sequence is:
 | `PZ0127` from `pz schema accept` | The named entity has no recorded observed schema in the latest run. Run once more under `warn`/`fail` first, or accept before retrying a run that reused staged data. |
 | The same warning repeats every run | The baseline only advances when you accept it. Run `pz schema accept`. |
 | A retry doesn't clear a drift warning | A `pz retry` that reuses a previously staged `SourceLoad` doesn't re-run the drift gate for that node, so it carries no fresh observed schema. Accept before retrying, or run once more without reuse. |
+| A column added upstream raised no warning | On a native scan the check covers the columns your pipeline reads (since pz 0.12.0). Reference the column in the pipeline, or use `select *`, and the next run reports it. |
 | An entity you didn't expect got checked | `localfiles` and `azureblob` csv/json entities with no `columns:` are covered too, since their native scan already infers a schema. |
 
 ## Related

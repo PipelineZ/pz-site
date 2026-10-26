@@ -64,10 +64,33 @@ dotnet test tests/Pz.Core.Tests -c Release
 dotnet test tests/Pz.Engine.Tests -c Release --filter "FullyQualifiedName~Watermark"
 ```
 
-`PZ_TESTS_OFFLINE=1` skips network-dependent tests. Benchmarks live in `tests/Pz.Benchmarks`
-(BenchmarkDotNet) plus `scripts/macro-bench.sh` and its per-connector variants
-(`macro-bench-s3.sh`, `macro-bench-postgres.sh`, `macro-bench-mssql.sh`,
-`macro-bench-azureblob.sh`).
+`PZ_TESTS_OFFLINE=1` skips network-dependent tests.
+
+### Benchmarks
+
+Benchmarks live in `tests/Pz.Benchmarks` (BenchmarkDotNet) plus the end-to-end harnesses in
+`scripts/`:
+
+```bash
+dotnet run -c Release --project tests/Pz.Benchmarks -- --filter '*Egress*'
+scripts/macro-bench.sh     # fixed-dataset throughput: native, universal, process-hosted
+scripts/scale-bench.sh     # project-size scaling: 10, 50, and 200 chains, plus a deep chain
+```
+
+- Since pz 0.12.0 (unreleased), `scripts/macro-bench.sh` times the built CLI rather than
+  `dotnet run`.
+- `scripts/scale-bench.sh` generates projects of 10, 50, and 200 independent chains and one
+  chain of that depth, runs `pz run --all` against the built `Pz.Cli.dll` (override with
+  `PZ_DLL`), and reports wall time plus the `run_completed` phase breakdown. Each case takes the
+  minimum of 3 samples, since interference only ever adds time.
+- Set `PZ_BENCH_INPROCESS=1` to run the BenchmarkDotNet jobs in-process. Do this when a worktree
+  is nested inside the checkout (for example under `.claude/worktrees/`): the out-of-process
+  toolchain refuses to build when another `Pz.Benchmarks.csproj` exists below the repo root.
+- The per-connector variants are `macro-bench-s3.sh`, `macro-bench-postgres.sh`,
+  `macro-bench-mssql.sh`, and `macro-bench-azureblob.sh`.
+
+The resulting figures are summarized under
+[Data plane: Performance](/internals/data-plane/#performance).
 
 No direct pushes to `main`; land changes through a PR, and CI must be green.
 

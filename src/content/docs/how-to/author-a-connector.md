@@ -229,6 +229,68 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    $ pz connectors
    ```
 
+## Optional interfaces and helpers
+
+### Narrow a native scan to the columns read
+
+Since pz 0.12.0, a native scan stages only the columns and rows the reading pipeline needs: the
+engine wraps your `TryGetNativeScan` fragment in a projection and a `where`, and DuckDB applies
+both. That already saves staging, but your fragment still reads every column from the source. A
+source whose native scan can read less implements the optional `IProjectingNativeScan`
+(`Pz.Connectors.Abstractions`) on the object `OpenAsync` returns, next to `ISource`:
+
+```csharp title="Source.cs"
+public sealed class Source : ISource, IProjectingNativeScan
+{
+    public bool TryGetNativeScan(DatasetSpec spec, IReadOnlyList<string> columns,
+        [NotNullWhen(true)] out NativeScan? scan)
+    {
+        // Build the same fragment as the plain TryGetNativeScan, but select only `columns`.
+        scan = BuildScan(spec, columns);
+        return scan is not null;
+    }
+    // ... ISource members, including the plain TryGetNativeScan
+}
+```
+
+- The engine calls it instead of the plain `TryGetNativeScan` only when the pipeline's read
+  names columns; otherwise it calls the plain method. Keep the plain method working.
+- `columns` is a subset of the dataset's columns, unqualified.
+- **No predicate is ever passed.** Engine predicates are written in DuckDB's dialect, and your
+  inner query may not speak it. The engine still wraps your fragment and applies the predicate in
+  DuckDB, so you cannot make the result wrong by ignoring it.
+- If a requested column does not bind against your fragment, the engine asks the plain
+  `TryGetNativeScan` for the whole source, prints a notice, and the pipeline's own SQL runs over
+  that. Return `false` when you cannot narrow the read, and the engine uses the plain scan.
+- Out-of-process (PCP) connectors do not receive it: the interface exists only for in-process
+  `Pz.Connectors.Abstractions` connectors, and the C# SDK does not serve it over the wire.
+
+### Exact `decimal128` reads and writes
+
+Arrow's `Decimal128Array.GetValue` returns a .NET `decimal`, which holds at most 28 significant
+digits and a scale of 28. A `decimal128(38,x)` value beyond that comes back with digits silently
+dropped. Since pz 0.12.0, `Pz.Connectors.Abstractions.Batches.Decimal128Cells` reads a cell
+exactly:
+
+| Member | Returns |
+|---|---|
+| `FitsSystemDecimal(array, row)` | `true` when the non-null cell is exactly representable as `decimal`. |
+| `GetExactValue(array, row)` | A boxed `decimal` when it fits, otherwise a `System.Data.SqlTypes.SqlDecimal` carrying all 38 digits. |
+| `GetExactString(array, row)` | Invariant decimal text, identical to `decimal`'s own formatting when the value fits, else the exact digit string. |
+
+`ArrowBatchBuilder` accepts either a `decimal` or a `SqlDecimal` for a decimal column, so a
+connector that re-batches values needs no special case. A sink that cannot carry such a value
+(a driver that only takes `decimal`) must not drop digits: throw a `PzConnectorException` with
+`isTransient: false` that names the column. The Postgres sink does exactly this; see
+[Postgres](/connectors/postgres/#decimal-values).
+
+The `Pz.Connectors.TestKit` sink suite checks it through the type-matrix hooks
+(`TypeMatrixOutput` and `ReadTypeMatrixCommittedAsync`). The fact
+`Decimal_beyond_system_decimal_commits_exactly_or_fails_permanently` writes a `decimal128(38,9)`
+value with a 29-digit integer part and requires that it either reads back with every digit or
+the write fails with a permanent error naming the column. It is a no-op for a sink that has not
+set the hooks.
+
 ## C# SDK
 
 `Pz.Connectors.Sdk` serves any `Pz.Connectors.Abstractions` connector over PCP and packs it as a

@@ -117,6 +117,10 @@ where updated_at > {{ watermark('erp', 'dbo.orders') }}
 - CDC reads need SQL Server change data capture enabled on the source table; see
   [Capture changes with CDC](/how-to/capture-changes-with-cdc/).
 
+- Since pz 0.12.0, a `decimal(38,x)` value beyond .NET `decimal`'s range (more than 28 significant
+  digits) is written to SQL Server with every digit. The Postgres sink refuses such a value
+  instead; see [Postgres: decimal values](/connectors/postgres/#decimal-values).
+
 ## Related
 
 - [Capture changes with CDC](/how-to/capture-changes-with-cdc/) covers enabling CDC on the server.

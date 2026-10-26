@@ -351,7 +351,9 @@ intermediate table of the run lives there, on disk, so datasets bigger than RAM 
 One detail worth knowing early because it's counterintuitive: the whole run shares **one**
 DuckDB connection, serialized by a `SemaphoreSlim`. Parallelism does not come from parallel
 connections; it comes from the dispatcher overlapping *different kinds of work* (one node
-extracting from Postgres while another writes Parquet while DuckDB crunches a third).
+extracting from Postgres while DuckDB crunches another). A source load hands the gate over
+whenever another node wants it, so a slow source does not block other nodes; a sink write holds
+it until nearly all of its drain has been read out, so a slow sink still does.
 
 ### The dispatcher
 

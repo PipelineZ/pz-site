@@ -95,6 +95,17 @@ see the [connections.yml reference](/reference/connections-yml/).
 - The session is pinned to UTC so watermark and window comparisons against a `timestamptz` cursor
   stay exact; this is internal and needs no configuration.
 
+### Decimal values
+
+A `decimal` or `numeric` column up to 28 significant digits, with a scale of at most 28, writes
+exactly. Since pz 0.12.0, a universal-tier write of a `decimal(38,x)` value beyond .NET
+`decimal`'s range (more than 28 significant digits, or a scale above 28) fails with a permanent
+error that names the column, instead of silently writing a wrong number. The Postgres driver
+(Npgsql) writes `numeric` only from a .NET `decimal`, so it cannot carry such a value. Round or
+cast the column in the pipeline before it reaches the sink, for example
+`cast(amount as decimal(28, 9))`. SQL Server, NDJSON, CSV, and the partitioned Azure Blob, GCS, and
+SFTP writers carry every digit.
+
 ## Related
 
 - [Capture changes with CDC](/how-to/capture-changes-with-cdc/) sets up the publication a CDC read needs.

@@ -110,6 +110,14 @@ which nodes `pz run` with the same selection would execute, so a connector's pla
 $ pz plan orders_enriched
 ```
 
+Since pz 0.12.0, a `native_scan` node reports its pushdown like any other read. A native scan
+applies the pipeline's column projection and filter in DuckDB, and the printed row ends with
+the counts, for example `[pushed: 3 columns + filter]`; `plan.json` carries the same figures as
+`pushdown` (`columns_pushed`, `predicate_pushed`). The filter's text is never printed. Because a
+native scan stages only the pushed columns and the rows that match, a native `SourceLoad`'s `rows`
+in `run_results.json` and in the NDJSON `node_completed` event is the number of filtered staged
+rows, not the size of the source.
+
 | Option | Meaning | Default |
 |---|---|---|
 | `<names>` | Flow name(s): filter the printed table to each node plus every ancestor and descendant. | every node |

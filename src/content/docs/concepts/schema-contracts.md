@@ -84,6 +84,15 @@ active. `warn` publishes a `source_drift_detected` event, prints a warning, and 
 succeed; the baseline does not move on its own, so the same warning repeats every run until
 someone accepts it. `fail` fails the load node outright, with `PZ0331`.
 
+**What is compared.** The observed schema is the landed table's, and a read lands only what the
+pipeline needs. Since pz 0.12.0 that holds on native scans as well as on the universal tier with
+column-pruning connectors, so a column added to the source that no pipeline reads is not reported,
+while a removed or retyped column the pipeline reads is. A `select *` reads, and so watches, every
+column. The baseline re-seeds once on the first run after upgrading to 0.12.0. If a column the
+pipeline reads is missing from a native scan, pz falls back to reading the whole source, prints a
+notice, and compares drift only on those columns. See
+[Detect source drift at run time](/how-to/schema-drift/#what-is-compared).
+
 `pz schema accept` promotes the latest run's observed schema into the baseline:
 
 ```console
