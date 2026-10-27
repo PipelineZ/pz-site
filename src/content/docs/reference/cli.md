@@ -152,6 +152,7 @@ $ pz run orders_enriched --full-refresh
 | `--all` | Select the whole project. Required when the project has 2+ independent flows. | — |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
 | `--log-format <log-format>` | Output format: `text` or `json` (NDJSON, one object per run event). | `text` |
+| `--log-sql` | Publish a [`node_sql`](/reference/events/#node_sql) event with the exact statement each pipeline node and `custom_sql` check hands DuckDB, once per attempt, before it runs. Needs `--log-format json` (otherwise exit `2`). The text can carry values `env()` inlined: mask it before showing or storing it. | off |
 | `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint (absolute `http(s)` URL). Falls back to `PZ_OTEL_ENDPOINT` when no `--otel-*` flag is given. | none |
 | `--otel-protocol <otel-protocol>` | `grpc` (default) or `http/protobuf`. Falls back to `PZ_OTEL_PROTOCOL` when no `--otel-*` flag is given. | `grpc` |
 | `--otel-traces-endpoint <url>` | `http/protobuf` only: the full traces URL, used as-is. Falls back to `PZ_OTEL_TRACES_ENDPOINT` when no `--otel-*` flag is given. | none |
@@ -202,6 +203,7 @@ $ pz retry --fail-fast
 | `--full-refresh` | Ignore stored watermarks for this invocation; capture and watermark advancement still run and re-establish them from the full extract. | off |
 | `--no-lock-check` | Skip `pz.lock.json` drift verification against `project.yml`. | off |
 | `--log-format <log-format>` | Output format: `text` or `json`. | `text` |
+| `--log-sql` | Publish a [`node_sql`](/reference/events/#node_sql) event with the exact statement each pipeline node and `custom_sql` check hands DuckDB, once per attempt, before it runs. Needs `--log-format json` (otherwise exit `2`). The text can carry values `env()` inlined: mask it before showing or storing it. | off |
 | `--otel-endpoint <otel-endpoint>` | OTLP/grpc collector endpoint. Falls back to `PZ_OTEL_ENDPOINT` when no `--otel-*` flag is given. | none |
 | `--otel-protocol <otel-protocol>` | `grpc` (default) or `http/protobuf`. Falls back to `PZ_OTEL_PROTOCOL` when no `--otel-*` flag is given. | `grpc` |
 | `--otel-traces-endpoint <url>` | `http/protobuf` only: the full traces URL, used as-is. Falls back to `PZ_OTEL_TRACES_ENDPOINT` when no `--otel-*` flag is given. | none |
