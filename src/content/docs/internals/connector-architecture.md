@@ -197,9 +197,21 @@ child process end to end:
   (`http_proxy`/`HTTP_PROXY`, `https_proxy`/`HTTPS_PROXY`, `no_proxy`/`NO_PROXY`). On Windows
   it also passes `SystemRoot`, `windir`, `SystemDrive`, `TEMP`, `TMP`, `USERPROFILE`, `APPDATA`,
   `LOCALAPPDATA`, `PATHEXT`, and `ComSpec`: without `SystemRoot`, Winsock cannot load its
-  providers and the child's first socket fails. Nothing on that list can carry a secret; actual
+  providers and the child's first socket fails. None of that list is meant to carry a secret; actual
   connection configuration crosses only through the handshake's Configure RPC, never through argv
   or the environment.
+- **Ambient identity is added per package, by declaration.** A manifest's `ambientIdentity` array
+  (written by the SDK from `<PzAmbientIdentity>`) is read by `ManifestReader` into
+  `ConnectorManifest.AmbientIdentity`. `ConnectorProcess.Spawn` takes it as `ambientIdentity` and
+  appends that group's variables (`ProcessHosting/AmbientIdentity.cs`) after the allowlist, copying
+  each one only when the host has it set. Every spawn path passes it: the process host from the
+  package's manifest, and `pz connector test`'s conformance suite from the target package's, so a
+  conformance run sees the same environment a run does (a bare entrypoint has no manifest and gets
+  none). A group name this pz does not know forwards nothing and produces one warning at load; a name
+  with a control character is dropped when the manifest is read, since the names are echoed to a
+  terminal by `pz restore`. The group names live in `Pz.Connectors.Abstractions`
+  (`AmbientIdentityGroups`) so the SDK can refuse a typo at pack time; the variable lists are the
+  host's alone.
 - **The socket directory is owner-only.** The control socket carries connection credentials, so the
   host creates the directory holding both sockets with mode `0700` on Unix, and on Windows with a
   protected DACL that grants only the current user. On Windows the socket files inherit that DACL.
