@@ -68,7 +68,7 @@ ends — deleting one by hand reintroduces the exact race it exists to prevent.
 |---|---|
 | `pz state show [key]` | List every stored watermark and sync state entry, or one entity's full run history with `<source>.<entity>`. |
 | `pz state rollback <key> --to-run <id>` | Roll a watermark back to the value a named prior run advanced it to. Backward only. |
-| `pz state set <key> --value <v>` | Set an existing entry's value directly, in either direction. |
+| `pz state set <key> --value <v>` | Set an entry's value directly, in either direction. Add `--cursor` and `--type` to create a missing entry. |
 | `pz state clear <key>` | Remove an entry entirely, so the next run extracts that entity in full. |
 
 Every write through `pz state` appends a line to `.pz/state/audit.jsonl` recording the old value,

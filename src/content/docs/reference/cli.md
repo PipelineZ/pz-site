@@ -402,17 +402,21 @@ $ pz state rollback crm.orders --to-run 20260901T120000Z --yes
 
 ### pz state set
 
-Set a stored watermark's value directly, in either direction. Existing entries only: the cursor
-column and type are inherited, so this cannot invent an entry.
+Set a watermark's value directly, in either direction. An existing entry keeps its cursor column
+and type. A missing entry is created from `--cursor` and `--type`, so a fresh clone can start
+from a known position instead of extracting in full.
 
 ```console
 $ pz state set crm.orders --value 2026-09-01T00:00:00Z --yes
+$ pz state set crm.orders --value 2026-09-01T00:00:00Z --cursor updated_at --type timestamp --yes
 ```
 
 | Option | Meaning | Default |
 |---|---|---|
 | `<key>` | The `<connection>.<entity>` whose watermark to set. | required |
 | `--project <project>` | Project directory. | current directory |
+| `--cursor <column>` | The cursor column. Required to create a missing entry; must match an existing one. | none |
+| `--type <type>` | The cursor type: `int`, `bigint`, `decimal`, `date` or `timestamp`. Required to create a missing entry; must match an existing one. | none |
 | `--value <value>` | The new cursor value, canonicalized against the stored cursor type. | required |
 | `--reason <reason>` | Free text recorded in `.pz/state/audit.jsonl`. | none |
 | `--dry-run` | Print what would change, and change nothing. | off |
