@@ -99,6 +99,13 @@ refuses while a run is in flight, and records what it replaced.
    $ pz state set erp.dbo.orders --value 2026-07-01 --reason "skipping corrupt batch"
    ```
 
+   If there is no entry yet, for example in a fresh clone, name the cursor column and its type
+   too. Copy them from wherever the entry lives, such as another environment's `pz state show`:
+
+   ```console
+   $ pz state set erp.dbo.orders --value 2026-07-01 --cursor updated_at --type date --reason "start where prod did"
+   ```
+
 4. **If the entry itself is broken**, a cursor type pz doesn't recognize, remove it and let the
    next run extract in full:
 

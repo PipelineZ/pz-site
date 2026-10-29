@@ -195,10 +195,10 @@ maintenance.
 | `PZ0510` | CheckFailed | A data-quality check found violating rows. | `pz test`, `pz run` |
 | `PZ0511` | CleanSelectorConflict | `pz clean` was given both `--keep-last` and `--older-than`. | `pz clean` |
 | `PZ0512` | CleanSelectorInvalid | `pz clean`'s selector argument is unusable: an unparseable or non-positive `--older-than`, or a negative `--keep-last`. | `pz clean` |
-| `PZ0513` | StateKeyNotFound | `pz state`'s key names no stored watermark. | `pz state` |
+| `PZ0513` | StateKeyNotFound | `pz state`'s key names no stored watermark. `pz state set` creates one when given `--cursor` and `--type`. | `pz state` |
 | `PZ0514` | StateRollbackTargetInvalid | `pz state rollback --to-run` names a run that recorded no usable watermark for this key. | `pz state rollback` |
 | `PZ0515` | StateValueInvalid | A requested state value cannot be used for this operation: unparseable for the stored cursor type, or a rollback that would move the watermark forward. | `pz state` |
-| `PZ0516` | StateArgumentInvalid | A `pz state` subcommand's required argument is missing, or `--yes` was not passed on a non-interactive terminal. | `pz state` |
+| `PZ0516` | StateArgumentInvalid | A `pz state` subcommand's required argument is missing, `pz state set --type` is not a known cursor type, `--cursor` or `--type` differs from the stored entry, or `--yes` was not passed on a non-interactive terminal. | `pz state` |
 | `PZ0517` | StateRunInFlight | A run holds the run-directory lock, so a `pz state` edit would be overwritten by its watermark advancement. | `pz state` |
 | `PZ0518` | StateStoreUnavailable | The configured state backend could not be reached at all, or authentication failed — never got a response. Distinct from `PZ0529`, where the store responded but the operation itself failed. | Reading or writing state |
 | `PZ0519` | StateSchemaVersionMismatch | The state store's schema version is newer than this build understands, or a forward migration failed partway. | Reading or writing state |
