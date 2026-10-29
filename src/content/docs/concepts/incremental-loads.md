@@ -47,8 +47,9 @@ re-reads rather than skipping data.
 
 :::note
 Only a connector with predicate pushdown (postgres, sqlserver) narrows the extraction itself. A
-file connector such as `localfiles` lands every row and leaves the cut to your pipeline, so pair
-a `sync:` block on such an entity with a `watermark()` comparison in the SQL, as shown next.
+file connector such as `localfiles` still reads every row, and `pz` then drops the rows at or
+before the watermark before anything downstream sees them. The file is scanned in full each run,
+but only new rows reach your pipelines and outputs.
 :::
 
 ### `{{ watermark() }}` in SQL
