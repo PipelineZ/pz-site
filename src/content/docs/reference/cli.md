@@ -416,7 +416,7 @@ $ pz state set crm.orders --value 2026-09-01T00:00:00Z --cursor updated_at --typ
 | `<key>` | The `<connection>.<entity>` whose watermark to set. | required |
 | `--project <project>` | Project directory. | current directory |
 | `--cursor <column>` | The cursor column. Required to create a missing entry; must match an existing one. | none |
-| `--type <type>` | The cursor type: `int`, `bigint`, `decimal`, `date` or `timestamp`. Required to create a missing entry; must match an existing one. | none |
+| `--type <type>` | The cursor type: `int`, `bigint`, `decimal`, `date` or `timestamp`. Required to create a missing entry; must match an existing one. pz cannot see the column here; if the type does not fit, the next run fails with an error that names the watermark and the fix. | none |
 | `--value <value>` | The new cursor value, canonicalized against the stored cursor type. | required |
 | `--reason <reason>` | Free text recorded in `.pz/state/audit.jsonl`. | none |
 | `--dry-run` | Print what would change, and change nothing. | off |

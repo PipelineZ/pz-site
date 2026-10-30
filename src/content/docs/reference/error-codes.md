@@ -180,7 +180,7 @@ Raised while a run executes, outside the checks family.
 | `PZ0502` | NoPriorRun | `pz retry` found no readable prior run to resume from. | `pz retry` |
 | `PZ0503` | PriorRunIncomplete | `pz retry`'s prior run snapshot is still marked "running": the process crashed mid-run. | `pz retry` |
 | `PZ0504` | PriorRunFatal | `pz retry`'s prior run ended in an orchestrator-level fatal state. | `pz retry` |
-| `PZ0505` | UnsupportedCursorType | A source's incremental cursor column landed with a DuckDB type outside int/bigint/decimal/date/timestamp. | Running a node (extraction) |
+| `PZ0505` | UnsupportedCursorType | A source's incremental cursor column landed with a DuckDB type outside int/bigint/decimal/date/timestamp, or the stored watermark's cursor type does not fit the column's declared or landed type (`int` and `bigint` fit each other). The message names the `pz state clear` and `pz state set` commands that fix it. | Running a node (extraction) |
 | `PZ0506` | BreakerOpen | A node's connection circuit breaker is open, so the connector was never invoked for this attempt. | Running a node |
 | `PZ0507` | CdcTargetInvalid | `pz cdc drop` was not given exactly one `<connection>.<entity>` target argument. | `pz cdc drop` |
 | `PZ0508` | CdcTargetNotFound | `pz cdc drop`'s target does not resolve to a declared `sync: {mode: cdc}` dataset. | `pz cdc drop` |
