@@ -139,6 +139,7 @@ export default defineConfig({
 								'how-to/run-scheduled-on-windows',
 								'how-to/observe-runs-with-azure-monitor',
 								'how-to/inspect-and-validate',
+								'how-to/preview-data',
 							],
 						},
 						{ label: 'AI agents', items: ['how-to/use-with-an-ai-agent'] },

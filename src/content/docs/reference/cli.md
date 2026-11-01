@@ -22,6 +22,7 @@ you need an exact flag or default. For the narrative version of how a run procee
 | `pz retry` | Re-run the last run's failed and skipped nodes. |
 | `pz ls` | List every node in the compiled DAG, in topological order. |
 | `pz runs` | List prior runs, newest first, with their status, timing, and provenance. |
+| `pz preview` | Show a sample of a source or pipeline, from a run or computed fresh. |
 | `pz connectors` | List every registered connector and its capabilities. |
 | `pz restore` | Resolve and download declared non-builtin connector packages. |
 | `pz connector test` | Run protocol conformance checks against an out-of-process connector. |
@@ -247,6 +248,94 @@ $ pz runs --limit 5
 | `--limit <limit>` | Show only the N most recent runs. Must be 1 or greater (`PZ0534`). | all |
 
 See also: [How a run works](/concepts/how-a-run-works/).
+
+## pz preview
+
+Show a small sample of one source or pipeline node: from a finished run's staging, or computed
+fresh from the current project. Columns marked `redact: true` show `•••` in every row.
+
+```console
+$ pz preview stg_customers --run 20260902T094011003Z-7c2a
+$ pz preview stg_customers --run-dir /backups/runs/20260902T094011003Z-7c2a --json
+$ pz preview stg_customers --fresh --slice 500
+```
+
+Give exactly one of three modes:
+
+- `--run <id>` reads `.pz/runs/<id>/staging.duckdb` under the project directory, read-only.
+- `--run-dir <path>` reads a run directory directly. It needs no project files: `pz run` and
+  `pz retry` record in the run's `staging.duckdb` which relation holds each node and which
+  columns are marked, so a copied run directory is enough.
+- `--fresh` compiles the current project and runs the node and its ancestors in a throwaway
+  in-memory DuckDB, reading at most `--slice` rows from each source.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `<node>` | A source or pipeline node name, as `pz ls` prints it. | required |
+| `--run <id>` | Read a finished run's staging: `.pz/runs/<id>`. The id must be a plain directory name. | none |
+| `--run-dir <path>` | Read a run directory directly; needs no project files. | none |
+| `--fresh` | Compute the node now from a slice of each source. | off |
+| `--limit <n>` | Rows to show, `1` to `500`. | `50` |
+| `--slice <n>` | With `--fresh` only: rows read per source, `1` to `100000`. | `1000` |
+| `--json` | Print one JSON object on stdout instead of a table. | off |
+| `--project <project>` | Project directory. | current directory |
+| `--vars <vars>` | With `--fresh` only: JSON object of var overrides. A run's values are already in its staging. | none |
+
+The sample has no `order by`: it is a sample, not the first rows by any key.
+
+**From a run.** Source nodes and `table` and `view` pipelines are previewable from a run. An
+ephemeral pipeline is inlined into its readers and never stored, so it can be previewed only with
+`--fresh` (`PZ0538`). A run written by a pz older than 0.17.0 has no preview index and reports
+`PZ0537`, as does a run directory whose `staging.duckdb` was cleaned, a run still in progress,
+and a node that did not run or failed in that run.
+
+**Fresh.** `--fresh` never runs a sink or a check, and never reads or writes state: no
+watermark, sync token or cdc slot is touched, sources are read from the start, `--state-url` and
+`PZ_STATE_URL` play no part, and no `.pz/runs` directory is written. A `cdc` dataset is read as a
+plain snapshot. Because each source stops after `--slice` rows, joins can match fewer rows than a
+real run would and totals can look thin. Marks come from the current project files.
+
+A sink or a check is never previewable, in either mode (`PZ0538`).
+
+**Output.** Without `--json`, a plain text table: a marked column's header reads
+`<name> (redacted)`, a null shows as `NULL`, control characters in values are escaped, and the
+last line gives `<shown> of <total> rows` (from a run) or notes that the rows were computed from
+a slice (fresh). With `--json`, stdout is exactly one object, with its fields in this order:
+
+```json
+{"node":"stg_customers","mode":"run","runId":"20260902T094011003Z-7c2a",
+ "columns":[{"name":"id","type":"INTEGER","redacted":false},{"name":"email","type":"VARCHAR","redacted":true}],
+ "rows":[[101,"•••"],[102,"•••"]],
+ "totalRows":12408,"limit":50,"sliced":false}
+```
+
+| Field | Meaning |
+|---|---|
+| `node` | The node name asked for. |
+| `mode` | `run` or `fresh`. |
+| `runId` | The `--run` id; `null` with `--run-dir` or `--fresh`. |
+| `columns` | One `{ name, type, redacted }` per column, in order. `type` is the DuckDB type. |
+| `rows` | One array of cells per row, in column order. |
+| `totalRows` | The relation's row count in `run` mode; `null` in `fresh` mode. |
+| `limit` | The `--limit` in effect. |
+| `sliced` | `true` in `fresh` mode, `false` from a run. |
+
+Cells: JSON numbers, booleans and `null` appear as themselves; every other value is a string. A
+number JSON cannot spell (`NaN`, infinity) is a string. A string longer than 200 characters keeps
+its first 200 characters followed by `…`. Every cell of a redacted column is the string `"•••"`,
+nulls included.
+
+On failure with `--json`, stdout is `{"error":{"code":"PZ####","message":"..."}}`; the error also
+prints on stderr.
+
+| Exit | When |
+|---|---|
+| `0` | The sample printed. |
+| `1` | With `--fresh`, a node failed; the error carries that node's own code. |
+| `2` | `PZ0537`, `PZ0538`, `PZ0539`, an unknown node (`PZ0210`), or a project configuration error. |
+| `3` | An unexpected failure. |
+
+See also: [Preview data](/how-to/preview-data/), [Pipeline config](/reference/pipeline-config/#columns).
 
 ## pz connectors
 

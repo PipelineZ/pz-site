@@ -117,7 +117,7 @@ through as a connector-specific read option (see [Connector-specific keys](#conn
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `columns` | map of column name to DuckDB type | none (contract-less) | Typed read contract, e.g. `id: bigint`, `email: varchar`. Required by some connectors on the universal execution tier; optional elsewhere. |
+| `columns` | map of column name to DuckDB type, or to `{ type, redact }` | none (contract-less) | Typed read contract, e.g. `id: bigint`, `email: varchar`. Required by some connectors on the universal execution tier; optional elsewhere. The long form marks a column for redaction; see [Redacting columns](#redacting-columns). |
 | `sync` | map: `mode`, plus mode-specific keys | mode `auto` | Resume behavior for this entity. See below. |
 | `retry` | map | inherits the connection's `retry:` | Overrides retry for this entity's reads only. Same keys as connection-level `retry:`. |
 | `partition_column`, `partitions` | string, integer (1–16) | none | On connectors that support parallel reads (`postgres`, `sqlserver`): the column to split on and how many partitions to read concurrently. Connector-specific; see that connector's page. |
@@ -125,6 +125,32 @@ through as a connector-specific read option (see [Connector-specific keys](#conn
 `rate_limit:` is refused under `read:` (`PZ0318`): it is connection-level only. The retired
 `incremental:` block, and `schema:`/`table:` qualifiers, are described under
 [Retired forms](#retired-forms).
+
+### Redacting columns
+
+A `columns:` entry is either a type name or the long form `{ type, redact }`. `redact: true`
+marks a sensitive column: [`pz preview`](/reference/cli/#pz-preview) shows every value in it,
+nulls included, as `•••`. The mark changes nothing else: the contract's types, the read, and
+every node id stay as they were.
+
+```yaml
+entities:
+  public.customers:
+    read:
+      columns:
+        id: bigint
+        email: { type: varchar, redact: true }
+```
+
+The long form needs a `type`, and accepts only `type` and `redact`; `redact` must be `true` or
+`false`. Anything else is `PZ0101`. The same long form works in the `columns:` kwarg of a
+`source()` call (see [Template functions](/reference/template-functions/)).
+
+A mark needs a `columns:` contract to live in. A source with no contract cannot carry marks: mark
+the column in the sidecar of the pipeline that reads it instead (see
+[Pipeline config](/reference/pipeline-config/#columns)). Marks do not follow a column through a
+pipeline: a column marked here shows `•••` when you preview the source, not when you preview a
+pipeline that selects it.
 
 ### `sync:`
 
@@ -239,7 +265,7 @@ than connecting with a blank credential. Values are redacted from logs and run a
 
 | Code | Meaning |
 |---|---|
-| [`PZ0101`](/reference/error-codes/) | Missing `connector:`, a connection or entity block that is not a mapping, an entity with neither `read:` nor `write:`, or an unrecognized key. |
+| [`PZ0101`](/reference/error-codes/) | Missing `connector:`, a connection or entity block that is not a mapping, an entity with neither `read:` nor `write:`, or an unrecognized key. Also a `columns:` long form with no `type`, an option other than `type`/`redact`, or a `redact` that is not `true`/`false`. |
 | [`PZ0103`](/reference/error-codes/) | A `${VAR}` reference names a variable that is not set in the environment. |
 | [`PZ0121`](/reference/error-codes/) | A `retry:` block is malformed, out of bounds, or has an unparseable duration. |
 | [`PZ0122`](/reference/error-codes/) | `max_concurrency:` is not an integer, or is less than 1. |

@@ -29,6 +29,7 @@ Each guide solves one task and shows how to verify the result. If you are new to
 - [Run on a schedule on Windows](/how-to/run-scheduled-on-windows/): Task Scheduler and the wrapper script.
 - [Observe runs with Azure Monitor](/how-to/observe-runs-with-azure-monitor/): OpenTelemetry metrics and traces.
 - [Inspect and validate](/how-to/inspect-and-validate/): `pz ls`, `pz plan`, and `pz validate --connect`.
+- [Preview data](/how-to/preview-data/): a redacted sample of a source or pipeline, from a run or fresh.
 
 ## AI agents
 

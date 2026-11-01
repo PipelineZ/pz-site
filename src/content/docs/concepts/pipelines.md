@@ -104,6 +104,12 @@ checks:
 you can select on with `pz run --select`. See [Checks](/concepts/checks/) for the six check
 types, and [Pipeline config reference](/reference/pipeline-config/) for every sidecar key.
 
+The sidecar can also mark output columns `redact: true` in a `columns:` list, so
+[`pz preview`](/how-to/preview-data/) shows their values as `•••`. Marks do not follow a column
+through a pipeline: a column marked on a source, or on an upstream pipeline, is not marked in
+this pipeline's output. Mark it again in the sidecar of each pipeline that outputs it. See
+[`columns:`](/reference/pipeline-config/#columns).
+
 ### DuckDB runs the SQL
 
 Every pipeline's `SELECT` executes against the run's staging database, an embedded DuckDB file

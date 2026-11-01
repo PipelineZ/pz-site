@@ -6,7 +6,7 @@ sidebar:
 ---
 
 This page lists every key a pipeline's sidecar config file accepts: `materialization`,
-`tags`, and `checks`, plus the options each of the six check types takes. For what a
+`tags`, `checks`, and `columns`, plus the options each of the six check types takes. For what a
 [check](/concepts/checks/) is and where it runs in a flow, see that page instead.
 
 ## File shape
@@ -35,6 +35,7 @@ not valid YAML, or whose top level is not a mapping, is `PZ0101`.
 | `materialization` | `table`\|`ephemeral` | `table` | `table` runs the pipeline as its own node and stages its result. `ephemeral` inlines the pipeline's SQL as a CTE into every pipeline that `ref()`s it, producing no node of its own. |
 | `tags` | list of strings | empty | Labels for `--select tag:<name>` node selection. See [Selecting nodes](/concepts/selecting-nodes/). |
 | `checks` | list of check mappings | empty | Data-quality checks to run against this pipeline's result. See below. |
+| `columns` | list of `{ name, redact }` mappings | empty | Redaction marks on this pipeline's output columns, read only by `pz preview`. See [`columns:`](#columns). |
 
 :::caution
 `materialization` only recognizes the literal value `ephemeral`. Any other value, including a
@@ -118,6 +119,37 @@ No other option is accepted.
     sql: SELECT * FROM staging.orders_current WHERE amount < 0
 ```
 
+## `columns:`
+
+Marks output columns of this pipeline as sensitive. [`pz preview`](/reference/cli/#pz-preview)
+shows every value in a marked column, nulls included, as `•••`. Nothing else reads the list: it
+declares no types and enforces nothing, and adding or removing a mark changes no node id.
+
+```yaml title="pipelines/configs/stg_customers.yml"
+pipeline: stg_customers
+columns:
+  - name: email
+    redact: true
+  - name: phone
+    redact: true
+```
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `name` | column name | required | An output column of this pipeline. Matched ignoring case. |
+| `redact` | bool | `false` | `true` marks the column. |
+
+No other key is accepted: a `type:` is refused (`PZ0101`), because types belong in a source's
+`columns:` contract, not here. Two entries whose names differ only in case are refused
+(`PZ0101`). `pz validate` warns with `PZ0403` when a marked name is not a column the pipeline
+outputs, usually a typo or a column renamed in the SQL; the check runs only for a pipeline whose
+SQL dry-compiles.
+
+Marks do not follow a column through a pipeline. A column marked on a source, or on an upstream
+pipeline, is not marked in this pipeline's output: mark it again here if this pipeline outputs it.
+This list is also where to mark a column read from a source that has no `columns:` contract (see
+[Redacting columns](/reference/connections-yml/#redacting-columns)).
+
 ## Sample sidecar
 
 Adapted from the `sqlserver` template, using all six check types on one pipeline:
@@ -139,10 +171,11 @@ checks:
 
 | Code | Meaning |
 |---|---|
-| [`PZ0101`](/reference/error-codes/) | The sidecar file is not valid YAML, or its top level is not a mapping. |
+| [`PZ0101`](/reference/error-codes/) | The sidecar file is not valid YAML, or its top level is not a mapping. Also a `columns:` that is not a list, an entry with no `name`, a key other than `name`/`redact`, a `redact` that is not `true`/`false`, or a name repeated ignoring case. |
 | [`PZ0111`](/reference/error-codes/) | `pipeline:` names a pipeline no `.sql` file defines. |
 | [`PZ0113`](/reference/error-codes/) | A check entry is malformed: not a single-key mapping, an unknown type, a missing or malformed per-type option, or an unrecognized option key. |
 | [`PZ0205`](/reference/error-codes/) | An ephemeral pipeline declares checks. |
+| [`PZ0403`](/reference/error-codes/) | A warning: `columns:` marks a column the pipeline does not output. |
 
 ## Related
 

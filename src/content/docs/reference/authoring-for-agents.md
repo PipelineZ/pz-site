@@ -98,6 +98,10 @@ my-project/
   `columns:` contract must use those names. xlsx write is localfiles-only (an s3/gcs/azureblob xlsx
   sink is PZ0361); xlsx read works on all four.
 
+  A `columns:` entry may use the long form `email: { type: varchar, redact: true }` (in YAML or in
+  the `source()` kwarg) to mark a sensitive column: `pz preview` shows its values as `•••`. Marks
+  do not follow a column into a pipeline's output; mark it again in that pipeline's sidecar.
+
   An entity does not have to be declared in YAML at all — see [Two surfaces, one
   declaration](#two-surfaces-one-declaration-pz0341) below. `sources:`/`sinks:` directories and a
   top-level `outputs:` block are retired (`PZ0346`/`PZ0347`); everything is one `connections.yml`.
@@ -108,7 +112,8 @@ my-project/
   intermediate — it stays valid as long as another pipeline `ref()`s it.
 
 - **`pipelines/configs/<name>.yml`** — optional sidecar matched by pipeline name, for
-  `materialization` (`table`/`view`/`ephemeral`), `tags`, and data-quality `checks`:
+  `materialization` (`table`/`view`/`ephemeral`), `tags`, data-quality `checks`, and `columns`
+  (redaction marks for `pz preview`):
 
   ```yaml
   # pipelines/configs/orders_enriched.yml
@@ -118,7 +123,13 @@ my-project/
   checks:
     - not_null: [id, email]
     - unique: [id]
+  columns:
+    - name: email
+      redact: true
   ```
+
+  The sidecar `columns:` list only marks output columns `redact: true`; it declares no types and
+  enforces nothing.
 
   Other check types: `row_count: { min, max }`, `freshness: { column, max_age }`,
   `accepted_values: { column, values }`, `custom_sql: { name, sql }`. Checks are observational —
@@ -303,6 +314,29 @@ off), then `dotnet pack -p:PzNativeStaging=<dir>` collects every RID under `runt
 with the generated manifest at the nupkg root — the layout `pz restore` already installs. Set
 `<PzProjectDirectoryAnchor>true</PzProjectDirectoryAnchor>` when the connector resolves relative paths
 in its own config; `pz` then passes the project directory as the `base_dir` connection option.
+
+**Ambient cloud identity.** `pz` starts every connector process with a cleared environment: only
+`PATH`, `HOME`, `TMPDIR`, `LANG`, `LC_ALL` and the proxy variables reach it (plus a few Windows
+essentials). A connector that authenticates through a cloud SDK's ambient identity (managed identity,
+workload identity, IRSA, ECS task roles, GCP federation) declares the clouds it needs with
+`<PzAmbientIdentity>azure;aws</PzAmbientIdentity>` (groups: `aws`, `azure`, `gcp`; an unknown name
+fails the pack with `PZSDK006`). The manifest then carries `"ambientIdentity": ["aws", "azure"]`, and
+`pz` forwards each listed group's identity variables that are set on the host, for example
+`IDENTITY_ENDPOINT`/`IDENTITY_HEADER` (Container Apps, App Service), `AZURE_FEDERATED_TOKEN_FILE`/
+`AZURE_CLIENT_ID`/`AZURE_TENANT_ID` (AKS workload identity), `AWS_WEB_IDENTITY_TOKEN_FILE`/
+`AWS_ROLE_ARN` (IRSA), `AWS_CONTAINER_CREDENTIALS_*` (ECS, EKS Pod Identity) and
+`GOOGLE_APPLICATION_CREDENTIALS`, plus the region and project settings (`AWS_REGION`,
+`GOOGLE_CLOUD_PROJECT`). `azure` also carries a service principal configured through the environment
+(`AZURE_CLIENT_ID`, `AZURE_TENANT_ID` with `AZURE_CLIENT_SECRET` or `AZURE_CLIENT_CERTIFICATE_PATH`),
+so a host that authenticates that way works for the connector too, and the connector receives that
+secret. Other variables holding a static secret (`AWS_SECRET_ACCESS_KEY`, `AZURE_STORAGE_KEY`, ...)
+are never forwarded: put them in `connections.yml` as `${VAR}`. Likewise, if the host points
+`GOOGLE_APPLICATION_CREDENTIALS` at a service-account key file, a package declaring `gcp` can use
+that key. `pz restore` prints `receives host identity:
+<groups>` under every package that declares any. `pz connector test <package-dir>` spawns with the
+same environment a run does; a bare entrypoint has no manifest, so it gets no identity variables. A
+group this `pz` does not know is ignored with one warning at load. A Rust connector's `--pz-manifest`
+does not write the field yet: add `"ambientIdentity"` to its `pz.connector.json` by hand.
 
 **PCP error codes:**
 
