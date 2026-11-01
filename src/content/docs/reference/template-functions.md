@@ -23,13 +23,24 @@ SELECT * FROM {{ source('raw', 'customers') }}
 
 | Keyword option | Type | Meaning |
 |---|---|---|
-| `columns` | mapping of column to type | Typed read contract, same shape as `read: columns:` in connections.yml. |
+| `columns` | mapping of column to type, or to `{ type, redact }` | Typed read contract, same shape as `read: columns:` in connections.yml, including the long form that marks a column for redaction. |
 | `sync` | mapping | Resume behavior: `{ mode: 'incremental', cursor: '<column>' }` and friends. Same shape as `read: sync:` in connections.yml. |
 | `retry` | mapping | `{ max_attempts, base_delay, max_delay }`. Same shape as connections.yml's `retry:`. |
 | `partition_column`, `partitions` | string, integer | On connectors that support parallel reads: the column to split on and how many partitions to read concurrently. |
 
 Anything else is passed straight through as a connector-specific read option, exactly as an
 unrecognized key under connections.yml's `read:` is.
+
+A column in the `columns` contract can carry a redaction mark, which `pz preview` reads when you
+preview this source:
+
+```sql
+SELECT * FROM {{ source('raw', 'customers', columns: { id: 'bigint', email: { type: 'varchar', redact: true } }) }}
+```
+
+The mark applies to the source, not to this pipeline's output. To redact `email` when previewing
+the pipeline, mark it in the pipeline's sidecar too. See
+[Redacting columns](/reference/connections-yml/#redacting-columns).
 
 `rate_limit` and `max_concurrency` are refused here (`PZ0318`): both are connection-level only,
 declared in connections.yml. `table`/`schema` are refused (`PZ0348`): the entity name carries
@@ -144,7 +155,7 @@ instead of silently producing empty output.
 
 | Code | Meaning |
 |---|---|
-| [`PZ0101`](/reference/error-codes/) | `columns`/`keys` at a call site is the wrong shape. |
+| [`PZ0101`](/reference/error-codes/) | `columns`/`keys` at a call site is the wrong shape, including a `columns` long form with no `type`, an option other than `type`/`redact`, or a `redact` that is not `true`/`false`. |
 | [`PZ0103`](/reference/error-codes/) | `env()` names a variable that is not set. |
 | [`PZ0104`](/reference/error-codes/) | The template failed to parse or render for another reason, including an unknown `var()` name. |
 | [`PZ0112`](/reference/error-codes/) | `sink()` was passed the removed `input` keyword. |

@@ -168,6 +168,7 @@ codes from the YAML author's side.
 |---|---|---|---|
 | `PZ0401` | SqlDryCompile | A pipeline's rendered SQL fails a dry compile against DuckDB before any run starts. An unknown function gets a hint to list its DuckDB extension under `extensions:`. | `pz run`/`pz validate` pre-flight |
 | `PZ0402` | ExtensionLoadFailed | An extension listed under project.yml's `extensions:` could not be installed or loaded: a wrong name, no network, or a file DuckDB refuses. Reported for every listed extension, naming the folder to copy the file into on a machine without internet access. | `pz run`/`pz validate` pre-flight |
+| `PZ0403` | RedactedColumnNotInOutput | A pipeline sidecar's `columns:` list marks `redact: true` a column the pipeline's dry-compiled output does not have, so the mark protects nothing in `pz preview`: usually a typo or a column renamed in the SQL. Checked only for pipelines whose SQL dry-compiles. Fix the name in the sidecar's `columns:` list, or remove the entry. A warning, not an error. | `pz validate` |
 
 ## 05xx: Runtime
 
@@ -219,6 +220,9 @@ maintenance.
 | `PZ0534` | RunsLimitInvalid | `pz runs --limit` was not a positive integer. | `pz runs` |
 | `PZ0535` | CompletionShellInvalid | `pz completion` was given a shell name none of the generators recognize. | `pz completion` |
 | `PZ0536` | SqlStateValueTooLong | A value bound for the SQL Server state backend exceeds the length its parameter is declared with — a state key past 512 characters, or a watermark cursor/value past 256. Checked client-side and refused before the value ever reaches a command, never silently truncated. | Writing state |
+| `PZ0537` | PreviewUnavailable | `pz preview --run`/`--run-dir` found nothing to read: the run directory, its `staging.duckdb`, the preview index (a run written by an older pz) or the node's relation (the node did not run, failed, or was outside the run's selection) is missing, the run is still in progress, or the kept relation no longer evaluates. Preview it with `--fresh`, or pick a run that produced it. | `pz preview` |
+| `PZ0538` | PreviewNodeNotPreviewable | `pz preview` was asked for a node with no rows of its own: a sink or a check, or, from a run, an ephemeral pipeline, which is inlined into its readers and never stored. Preview the pipeline that feeds the sink or check, or preview an ephemeral pipeline with `--fresh`. | `pz preview` |
+| `PZ0539` | PreviewOptionsInvalid | `pz preview`'s options break a rule: not exactly one of `--run`, `--run-dir`, `--fresh`; `--limit` outside 1-500; `--slice` outside 1-100000 or without `--fresh`; `--vars` without `--fresh`; or a `--run` id that is not a plain run directory name. Fix the option the message names. | `pz preview` |
 
 ## 06xx: MCP
 

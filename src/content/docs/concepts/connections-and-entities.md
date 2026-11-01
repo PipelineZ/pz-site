@@ -100,6 +100,12 @@ An entity that needs no options at all can be a bare key: `dbo.orders:` with not
 An entity doesn't have to appear in `connections.yml` at all. A `source()` or `sink()` call that
 names an entity `connections.yml` never mentions is not an error: the call declares it.
 
+A `columns:` entry can also mark a sensitive column with the long form
+`email: { type: varchar, redact: true }`, so [`pz preview`](/how-to/preview-data/) shows its
+values as `•••` when you preview the source. Marks do not follow a column through a pipeline: a
+pipeline that selects `email` outputs it unmarked. Mark it again in the sidecar of the pipeline
+that outputs it. See [Redacting columns](/reference/connections-yml/#redacting-columns).
+
 ### DuckDB extensions
 
 `xlsx` (read and write) and `avro` (read only) run through DuckDB's `excel` and `avro`
