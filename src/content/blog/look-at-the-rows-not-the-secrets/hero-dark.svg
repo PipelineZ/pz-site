@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<!-- Background gradient base -->
+		<radialGradient id="bg-glow-preview" cx="80%" cy="75%" r="70%">
+			<stop offset="0%" stop-color="#1A1A1A"/>
+			<stop offset="100%" stop-color="#0D0D0D"/>
+		</radialGradient>
+
+		<!-- Subtle Accent Glow, centred on the redacted column -->
+		<radialGradient id="accent-glow-preview" cx="78%" cy="68%" r="32%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.08"/>
+			<stop offset="100%" stop-color="#FAC409" stop-opacity="0"/>
+		</radialGradient>
+
+		<!-- Faint Warm Sweep -->
+		<linearGradient id="sweep-preview" x1="91%" y1="79%" x2="9%" y2="21%">
+			<stop offset="0%" stop-color="#FAC409" stop-opacity="0.035"/>
+			<stop offset="60%" stop-color="#FAC409" stop-opacity="0"/>
+		</linearGradient>
+
+		<!-- Accent Glow Filter -->
+		<filter id="yellow-glow-preview" x="-20%" y="-20%" width="140%" height="140%">
+			<feGaussianBlur stdDeviation="8" result="blur"/>
+			<feComposite in="SourceGraphic" in2="blur" operator="over"/>
+		</filter>
+
+		<!-- Background Grid Pattern -->
+		<pattern id="grid-preview" width="60" height="60" patternUnits="userSpaceOnUse">
+			<path d="M 60 0 L 0 0 0 60" fill="none" stroke="#262626" stroke-width="1" stroke-opacity="0.4"/>
+			<circle cx="60" cy="60" r="1.5" fill="#4C4C4C" opacity="0.3"/>
+		</pattern>
+	</defs>
+
+	<!-- Background artwork, drawn at 1920x1080 and center-cropped to the 1200x630 hero frame. -->
+	<svg x="0" y="-22.5" width="1200" height="675" viewBox="0 0 1920 1080">
+		<rect width="1920" height="1080" fill="url(#bg-glow-preview)"/>
+		<rect width="1920" height="1080" fill="url(#grid-preview)"/>
+		<rect width="1920" height="1080" fill="url(#accent-glow-preview)"/>
+		<rect width="1920" height="1080" fill="url(#sweep-preview)"/>
+
+		<!-- Background Pipeline Tracks -->
+		<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M 800 0 L 1150 350 L 1920 350" stroke="#262626" stroke-width="6"/>
+			<path d="M 1700 1080 L 1700 900 L 1920 680" stroke="#1A1A1A" stroke-width="8"/>
+			<path d="M -100 1010 L 2020 1010" stroke="#262626" stroke-width="8"/>
+		</g>
+		<circle cx="1150" cy="350" r="8" fill="#4C4C4C"/>
+
+		<!-- Watermark Z Silhouette -->
+		<path d="M 1750 140 L 1830 140 L 1770 200 L 1830 200" fill="none" stroke="#262626" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+
+		<!-- The pipeline feeding the preview -->
+		<path d="M -100 760 L 760 760 L 840 680 L 980 680" fill="none" stroke="#333333" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+		<circle cx="840" cy="680" r="12" fill="#4C4C4C"/>
+
+		<!-- The preview table -->
+		<rect x="980" y="480" width="760" height="440" rx="14" fill="#0D0D0D" stroke="#4C4C4C" stroke-width="5"/>
+		<!-- Header row -->
+		<path d="M 980 560 L 1740 560" stroke="#4C4C4C" stroke-width="4"/>
+		<g fill="#4C4C4C">
+			<rect x="1020" y="508" width="90" height="24" rx="6"/>
+			<rect x="1220" y="508" width="160" height="24" rx="6"/>
+		</g>
+		<rect x="1480" y="508" width="200" height="24" rx="6" fill="hsl(46, 96%, 50%)" opacity="0.55"/>
+		<!-- Column dividers -->
+		<g stroke="#262626" stroke-width="3">
+			<path d="M 1180 560 L 1180 920"/>
+			<path d="M 1440 560 L 1440 920"/>
+		</g>
+		<!-- Row dividers -->
+		<g stroke="#1F1F1F" stroke-width="3">
+			<path d="M 980 650 L 1740 650"/>
+			<path d="M 980 740 L 1740 740"/>
+			<path d="M 980 830 L 1740 830"/>
+		</g>
+		<!-- Visible values: ids and names -->
+		<g fill="#333333">
+			<rect x="1020" y="593" width="70" height="24" rx="6"/>
+			<rect x="1020" y="683" width="70" height="24" rx="6"/>
+			<rect x="1020" y="773" width="70" height="24" rx="6"/>
+			<rect x="1020" y="863" width="70" height="24" rx="6"/>
+			<rect x="1220" y="593" width="180" height="24" rx="6"/>
+			<rect x="1220" y="683" width="150" height="24" rx="6"/>
+			<rect x="1220" y="773" width="170" height="24" rx="6"/>
+			<rect x="1220" y="863" width="130" height="24" rx="6"/>
+		</g>
+		<!-- The redacted column: every cell is ••• -->
+		<g fill="hsl(46, 96%, 50%)" filter="url(#yellow-glow-preview)">
+			<circle cx="1530" cy="605" r="11"/><circle cx="1570" cy="605" r="11"/><circle cx="1610" cy="605" r="11"/>
+			<circle cx="1530" cy="695" r="11"/><circle cx="1570" cy="695" r="11"/><circle cx="1610" cy="695" r="11"/>
+			<circle cx="1530" cy="785" r="11"/><circle cx="1570" cy="785" r="11"/><circle cx="1610" cy="785" r="11"/>
+			<circle cx="1530" cy="875" r="11"/><circle cx="1570" cy="875" r="11"/><circle cx="1610" cy="875" r="11"/>
+		</g>
+	</svg>
+
+	<!-- Post heading, overlaid on the plainer upper-left of the cropped background -->
+	<text x="70" y="250" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#F2F2F2">Preview the rows,</text>
+	<text x="70" y="330" font-family="Arial, sans-serif" font-size="60" font-weight="800" fill="#FAC409">not the secrets</text>
+</svg>
