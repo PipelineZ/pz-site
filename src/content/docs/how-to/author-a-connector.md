@@ -519,6 +519,41 @@ then carries `projectDirectoryAnchor`, and `pz` passes the project directory to 
 the `base_dir` connection option so those paths resolve against the project rather than the
 process working directory.
 
+### Ambient cloud identity
+
+pz starts your connector with a cleared environment, so a cloud SDK inside it cannot see the
+variables a platform uses to announce an identity: `IDENTITY_ENDPOINT` on Azure Container Apps and
+App Service, `AZURE_FEDERATED_TOKEN_FILE` under AKS workload identity, `AWS_WEB_IDENTITY_TOKEN_FILE`
+under IRSA, `AWS_CONTAINER_CREDENTIALS_*` on ECS, `GOOGLE_APPLICATION_CREDENTIALS` for GCP
+federation. If your connector offers a mode that relies on them (`credential_chain`,
+`managed_identity`, ADC, an S3 root with no keys), declare the clouds it uses:
+
+```xml title="MyConnector.csproj"
+<PropertyGroup>
+  <PzAmbientIdentity>azure;aws</PzAmbientIdentity>
+</PropertyGroup>
+```
+
+The groups are `aws`, `azure` and `gcp`; any other name fails the pack with `PZSDK006`. The manifest
+then carries `"ambientIdentity": ["aws", "azure"]` (omitted when you declare nothing, so existing
+manifests are unchanged), and pz 0.14.0 or newer copies each group's variables into your process
+when the host has them set. The full lists are in
+[the environment variables reference](/reference/environment-variables/#ambient-identity-groups).
+The `azure` group includes a service principal configured through `AZURE_CLIENT_SECRET` or a
+certificate; static AWS keys and `AWS_PROFILE` are never forwarded, so take keys as connection
+options (`${AWS_ACCESS_KEY_ID}` in `connections.yml`).
+
+- Declare only the clouds you use: a package that declares `gcp` never sees Azure's
+  `IDENTITY_HEADER`.
+- Whoever installs the package sees the grant: `pz restore` prints
+  `receives host identity: aws, azure` under it.
+- An older pz ignores the field, and a VM's metadata endpoint or a login file under `HOME` works
+  without it, so document that the variable-based modes need pz 0.14.0 or newer.
+- `pz connector test <package-dir>` spawns with the same environment a run does; a bare entrypoint
+  has no manifest and gets none.
+- The Rust SDK's `--pz-manifest` does not write the field yet: add `"ambientIdentity"` to its
+  `pz.connector.json` by hand.
+
 A complete GitHub Actions release workflow:
 
 ```yaml title=".github/workflows/release.yml"
@@ -655,6 +690,7 @@ exits `0` against your real binary.
 | `PZ0304` | `project.yml` declares the package under `connectors:`, but it isn't in `.pz/packages`. Run `pz restore`. |
 | `PZ0307` | pz loaded your assembly but found no `[assembly: PzConnector(...)]` attribute. Check it's present and names the right implementing type. |
 | `PZSDK001`/`PZSDK003` at pack time | No staged binary (or none for the packing machine's RID). Run `dotnet publish -r <rid>` before `dotnet pack`. |
+| `PZSDK006` at pack time | `PzAmbientIdentity` names a group pz does not know. Use a `;`-list of `aws`, `azure`, `gcp`, or remove the property. |
 | `PZSDK005` at publish time | `PzPackaging` is `aot` but the Native AOT compiler pack was never restored, so the publish would have staged a CoreCLR layout under a native binary's name. Add `<PublishAot>true</PublishAot>` to the project file and restore again, or opt out with `<PzPackaging>self-contained</PzPackaging>`. |
 | A `PzConnectorException.Message` leaks a credential | Messages are published verbatim to `run_results.json` and the event stream. Redact anything sensitive before throwing; see [Connector architecture](/internals/connector-architecture/) for the full redaction contract. |
 | A capability you declared isn't honored | The conformance suite's mode-honesty facts exist to catch exactly this. Re-run `dotnet test` and check which fact failed. |

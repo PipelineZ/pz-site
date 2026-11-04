@@ -35,7 +35,9 @@ for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**.
 deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
 or later.
 
-The versions pinned below are built on `Pz.Connectors.Sdk` 0.11.0. Earlier releases of the
+The versions pinned below are built on `Pz.Connectors.Sdk` 0.11.0, or 0.14.0 for bigquery,
+cosmosdb and eventhubs 0.3.0, which declare their [ambient cloud identity](#ambient-cloud-identity).
+Earlier releases of the
 bigquery, cosmosdb, databricks, deltalake, elasticsearch, mongodb and snowflake connectors fail
 every column-pruned read on pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is
 not a leading prefix of the source's columns; pin these or later.
@@ -81,7 +83,7 @@ last-write-wins on the session's own sequence and null-safe keys). Auth is a ser
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.BigQuery
-    version: 0.2.0
+    version: 0.3.0
 ```
 
 **Before you install it:** views are refused on read — point `query:` at them instead. a `BIGNUMERIC`
@@ -147,7 +149,7 @@ truncate.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.CosmosDb
-    version: 0.2.0
+    version: 0.3.0
 ```
 
 **Before you install it:** the container must already exist — partition key and throughput are
@@ -210,7 +212,11 @@ delta-rs's two Rust libraries for each of four platforms, and `pz restore` fetch
 (printing nothing while it does) before materializing only your platform's 150 MB, 138 MB of which
 is the Rust pair. And only
 `linux-x64` has actually been run against; `linux-arm64`, `osx-arm64`, and `win-x64` are shipped
-but never exercised by this connector's own suite, and `osx-x64` is not shipped. See its
+but never exercised by this connector's own suite, and `osx-x64` is not shipped. 0.3.0 does not
+declare an [ambient cloud identity](#ambient-cloud-identity), so its writes (delta-rs runs in the
+connector process) cannot use an `account_name`-only Azure root or a keyless S3 root where the
+identity lives in environment variables (Container Apps, App Service, AKS workload identity, IRSA,
+ECS); give keys in the connection, or run where a VM metadata endpoint provides the identity. See its
 [README](https://github.com/PipelineZ/pz-connector-deltalake#readme) for the full platform table,
 merge-cost numbers on a partitioned table, and what's proven per backend.
 
@@ -258,7 +264,7 @@ Entra credential chain, a service principal, or managed identity.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.EventHubs
-    version: 0.2.0
+    version: 0.3.0
 ```
 
 **Before you install it:** there's no checkpoint store / Event Processor and no Schema Registry —
@@ -377,6 +383,26 @@ option for GCP-hosted accounts, either. The package is self-contained rather tha
 against the project directory (the manifest declares a project-directory anchor). See its
 [README](https://github.com/PipelineZ/pz-connector-snowflake#readme) for connection keys, schema
 policy, and type mapping.
+
+## Ambient cloud identity
+
+pz starts a packaged connector with a cleared environment, so a cloud SDK inside it only finds an
+ambient identity that needs no variable: a VM's metadata endpoint or a login file under `HOME`. From
+pz 0.14.0, a connector that declares a cloud group also receives that cloud's identity variables,
+which is what managed identity on Container Apps and App Service, AKS workload identity, IRSA, ECS
+task roles and GCP federation need. The full variable lists, and what they include, are in
+[the environment variables reference](/reference/environment-variables/#ambient-identity-groups).
+
+| Connector | Declares | From | Modes it unlocks |
+|---|---|---|---|
+| bigquery | `gcp` | 0.3.0 | `auth: adc` through `GOOGLE_APPLICATION_CREDENTIALS` (workload identity federation) |
+| cosmosdb | `azure` | 0.3.0 | `auth: credential_chain` and `managed_identity` off a VM, and a service principal set through `AZURE_CLIENT_SECRET` |
+| eventhubs | `azure` | 0.3.0 | `auth: credential_chain` and `managed_identity` off a VM, and a service principal set through `AZURE_CLIENT_SECRET` |
+
+Both sides need the new version: a declaring connector on an older pz, or an older connector on pz
+0.14.0, gets the cleared environment as before. `pz restore` shows the grant as
+`receives host identity: <groups>` under the package. The other connectors here take their
+credentials as connection options and declare nothing.
 
 ## Telemetry
 
