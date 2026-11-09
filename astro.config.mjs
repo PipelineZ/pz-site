@@ -115,6 +115,8 @@ export default defineConfig({
 							label: 'Ingest',
 							items: [
 								'how-to/extract-from-http-api',
+								'how-to/download-files-from-an-api',
+								'how-to/call-an-api-per-record',
 								'how-to/capture-changes-with-cdc',
 								'how-to/backfill-in-slices',
 							],

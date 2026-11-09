@@ -52,6 +52,13 @@ run. Every operation, one HTTP page fetch or one blob copy, draws one token.
 connector that doesn't declare it, `pz plan`/`pz run` refuse the config outright with `PZ0317`.
 A malformed block, or one declared under `read:`/`write:` instead of the connection, is `PZ0318`.
 
+An `http` read can also fetch several pages or items at once, with `pagination.concurrency` or
+`for_each.concurrency`. Every one of those requests draws from the same bucket, so set
+`rate_limit:` whenever you raise concurrency. When the API does answer `429` or `503` with
+`Retry-After`, a concurrent read pauses all its requests until that time (up to 600 seconds), but
+that only happens after the API has started refusing. See
+[Parallel fetching](/connectors/http/#parallel-fetching).
+
 ### 2. Bound each burst with max_window
 
 For connectors without `GatedOperations`, or as a complement to `rate_limit:`, throttle by duty

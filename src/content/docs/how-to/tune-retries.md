@@ -28,7 +28,45 @@ Every connection starts with the same built-in policy:
 Delay between attempts is `base_delay × 2^(attempt-1)`, capped at `max_delay`, then jittered by
 about ±25% so many nodes retrying the same struggling instance don't all retry in lockstep.
 
-### 2. Override the policy for one connection
+When a connector reports how long to wait, such as an HTTP `429` or `503` with a `Retry-After`
+header, that wait replaces the exponential delay for that retry, still capped at `max_delay` and
+jittered. An `http` read with `pagination.concurrency` or `for_each.concurrency` above 1 also
+pauses all its other requests until the `Retry-After` time, up to 600 seconds; see
+[Parallel fetching](/connectors/http/#parallel-fetching).
+
+Some APIs state the wait in another header, such as `x-ms-retry-after-ms` or
+`X-RateLimit-Reset`. Name it on the `http` connection so a `429` or `503` without `Retry-After`
+still waits the stated time:
+
+```yaml title="connections.yml"
+graph:
+  connector: http
+  base_url: https://graph.microsoft.com/v1.0
+  retry_after: { header: x-ms-retry-after-ms, kind: ms }
+```
+
+`kind` is `seconds`, `ms`, or `epoch` (a Unix time in seconds). The wait is capped at 600 seconds,
+and a zero or past value is ignored. See
+[Wait times from another header](/connectors/http/#wait-times-from-another-header).
+
+### 2. Make an API's own error statuses retryable
+
+The engine retries only failures the connector reports as transient. For `http`, that is `408`,
+`429` and `5xx` by default. When an API signals a temporary condition some other way, such as
+GitHub's `403` secondary rate limit, add an `on_status` rule to the entity:
+
+```yaml title="connections.yml"
+        on_status:
+          - { status: 403, body_contains: "secondary rate limit", action: transient, retry_after: 60s }
+```
+
+A matching response is retried under the policy below. Its wait is the response's `Retry-After`,
+else the connection's `retry_after` header, else the rule's `retry_after` (up to `600s`), else the
+normal backoff. Like any stated wait, it is capped at `max_delay`, so raise `max_delay` when the
+API asks for a minute or more. The rule only classifies the response; the number of attempts is
+still `max_attempts`. See [Status rules](/connectors/http/#status-rules-on_status).
+
+### 3. Override the policy for one connection
 
 Declare a `retry:` block at the top level of the connection:
 
@@ -48,7 +86,7 @@ pg_prod:
 All three keys are optional. An absent key keeps its default. Durations accept `ms`, `s`, `m`,
 `h`, and `d`.
 
-### 3. Override the policy for one entity
+### 4. Override the policy for one entity
 
 When entities sharing a connection differ in scale, such as a millions-of-rows backfill next to a
 small lookup table, declare `retry:` under that entity's own `read:` or `write:` block instead.

@@ -52,6 +52,15 @@ before the watermark before anything downstream sees them. The file is scanned i
 but only new rows reach your pipelines and outputs.
 :::
 
+An `http` entity has no predicate to push down: it sends the watermark to the API in a request, as
+`{{ watermark }}` in its `query`, `path` or `body`. The value goes out as ISO 8601 in UTC unless
+the entity sets `watermark_format` (Unix seconds or milliseconds, a date, or a custom layout such
+as `yyyy-MM-dd HH:mm`) and, for dates and custom layouts, `watermark_time_zone`. A format coarser
+than the cursor rounds the lower bound down and the upper bound up, so the request covers at least
+the window; the overlap is re-read, and a day-or-coarser format into an `append` sink draws a
+[`PZ0364`](/reference/error-codes/) warning. See
+[Watermark formats](/connectors/http/#watermark-formats).
+
 ### `{{ watermark() }}` in SQL
 
 The same comparison can live directly in a pipeline's `WHERE` clause instead of in YAML, using
@@ -79,6 +88,29 @@ the cursor. `updated_at > {{ watermark(s, e) }} and created_at < {{ watermark(s,
 single column to store as the dataset's cursor, and is refused at compile time (`PZ0231`). Two
 comparisons that agree on the same column, such as a lower bound paired with a recognized ceiling,
 are unaffected.
+
+#### Re-read a margin (lookback)
+
+Some sources commit rows late: an API that indexes eventually, or a database whose `updated_at` is
+set when the transaction starts rather than when it commits. A plain `> watermark` read skips rows
+that arrive after their timestamp has already been passed. To re-read a margin on every run, subtract
+it inside the comparison:
+
+```sql title="pipelines/orders.sql"
+WHERE updated_at > {{ watermark('raw', 'orders') }} - interval 2 hour
+```
+
+The expression is evaluated before the read starts, with the stored watermark substituted in, and the
+result is the bound the connector receives. An `http` read's `{{ watermark }}` therefore sends the
+stored value minus two hours, and a database read filters on it. On the first run the watermark is
+`NULL` and there is no bound. A numeric cursor takes a number: `id > {{ watermark('raw', 'events') }} - 1000`.
+
+The margin is read again on every run, so the same rows land more than once. Write to a `merge` sink
+keyed on the row's identity, which replaces them. An `append` sink already has to declare
+`duplicates: 'accept'` for any incremental read. The watermark still advances to the highest cursor
+value that landed, so the margin moves forward with it.
+
+There is no YAML spelling for this. Declare the incremental in SQL when you need a lookback.
 
 ### Bounded windows: `max_window`, `initial`, `until`
 

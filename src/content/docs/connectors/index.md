@@ -31,7 +31,7 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 | [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
 | [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
 | [sftp](/connectors/sftp/) | ✓ | ✓ | – | ✓ | – | – | csv, tsv, parquet, json |
-| [http](/connectors/http/) | ✓ | ✓ | – | ✓ | – | ✓ | json |
+| [http](/connectors/http/) | ✓ | ✓ | – | ✓ | – | ✓ | json, csv (read), tsv (read), xml (read) |
 
 :::note
 `gcs` reads natively only under `hmac` credentials. `service_account` and `adc` auth write but do
