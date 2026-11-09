@@ -617,6 +617,14 @@ run, or under `--full-refresh`, a query parameter is omitted entirely rather tha
 windows one run at a time instead of one open-ended pull. See
 [Incremental loads](/concepts/incremental-loads/) for the full watermark and window model.
 
+To re-read a margin for late-arriving records, declare the incremental in the pipeline's SQL with
+the margin subtracted: `WHERE updated_at > {{ watermark('api', 'orders') }} - interval 2 hour`. The
+engine evaluates that expression before the read, so `{{ watermark }}` in the request carries the
+lowered value. See [Re-read a margin (lookback)](/concepts/incremental-loads/#re-read-a-margin-lookback).
+
+To catch up a long backlog with `max_window` and `until:`, repeat `pz run` until the node reports
+`caughtUp: true`. Each run commits its own window. See [Backfill in slices](/how-to/backfill-in-slices/).
+
 A daily file with a date column can catch up one missed day per run with a window:
 
 ```yaml title="connections.yml"
