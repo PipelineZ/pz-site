@@ -8,7 +8,9 @@ Each guide solves one task and shows how to verify the result. If you are new to
 
 ## Ingest
 
-- [Extract from an HTTP API](/how-to/extract-from-http-api/): paginated reads, cursors, and writing back to an endpoint.
+- [Extract from an HTTP API](/how-to/extract-from-http-api/): paginated reads, OAuth2 sign-in, POST queries, proxies, and writing back to an endpoint.
+- [Download files and exports from an API](/how-to/download-files-from-an-api/): zip archives, dated URLs, and asynchronous export jobs.
+- [Call an API once per record](/how-to/call-an-api-per-record/): `for_each` reads for per-parent endpoints, in parallel and safe to resume.
 - [Capture changes with CDC](/how-to/capture-changes-with-cdc/): read change feeds from SQL Server and PostgreSQL.
 - [Backfill in slices](/how-to/backfill-in-slices/): load history in bounded windows without losing your place.
 
