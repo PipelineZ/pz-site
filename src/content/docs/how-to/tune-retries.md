@@ -28,6 +28,12 @@ Every connection starts with the same built-in policy:
 Delay between attempts is `base_delay × 2^(attempt-1)`, capped at `max_delay`, then jittered by
 about ±25% so many nodes retrying the same struggling instance don't all retry in lockstep.
 
+When a connector reports how long to wait, such as an HTTP `429` or `503` with a `Retry-After`
+header, that wait replaces the exponential delay for that retry, still capped at `max_delay` and
+jittered. An `http` read with `pagination.concurrency` or `for_each.concurrency` above 1 also
+pauses all its other requests until the `Retry-After` time, up to 600 seconds; see
+[Parallel fetching](/connectors/http/#parallel-fetching).
+
 ### 2. Override the policy for one connection
 
 Declare a `retry:` block at the top level of the connection:

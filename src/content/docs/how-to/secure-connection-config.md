@@ -24,7 +24,9 @@ warehouse:
 
 See the [sqlserver connector reference](/connectors/sqlserver/) for the user-assigned
 variant, and the [azureblob connector reference](/connectors/azureblob/) for its
-`auth: managed_identity` / `auth: credential_chain` modes for object storage.
+`auth: managed_identity` / `auth: credential_chain` modes for object storage. For an HTTP API
+behind Microsoft Entra ID, the [http connector](/connectors/http/#azure_ad) signs in with
+`auth: { type: azure_ad, method: managed_identity, ... }`.
 
 ## `${VAR}` environment interpolation
 
