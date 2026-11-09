@@ -1,6 +1,6 @@
 ---
 title: "HTTP API"
-description: "Reference for the http connector: connection, auth (including OAuth2 and Azure AD), proxy and TLS keys, GET and POST reads, the five pagination strategies, file downloads and export jobs, per-record for_each reads, parallel fetching, incremental extraction, and the write-side sink options."
+description: "Reference for the http connector: connection, auth (OAuth2, Azure AD, refresh tokens and login sessions), proxy and TLS keys, GET and POST reads, status rules, the five pagination strategies, file downloads and export jobs, per-record for_each reads, parallel fetching, incremental extraction with watermark formats, and the write-side sink options."
 sidebar:
   order: 16
 ---
@@ -24,13 +24,14 @@ github:
 | Key | Required | Default | Meaning |
 |---|---|---|---|
 | `base_url` | Yes | — | Absolute `http(s)` URL every entity's `path` resolves against. |
-| `auth` | No | — | `{ type: api_key \| bearer \| basic \| azure_ad \| oauth2_client_credentials, ... }`. Shared by every entity on this connection. See [Auth](#auth). |
+| `auth` | No | — | `{ type: api_key \| bearer \| basic \| azure_ad \| oauth2_client_credentials \| oauth2_refresh_token \| session, ... }`. Shared by every entity on this connection. See [Auth](#auth). |
 | `headers` | No | `{}` | Static extra headers sent on every request. |
 | `check_path` | No | — | Request-relative path `pz validate --connect` probes to confirm connectivity. |
 | `timeout_seconds` | No | `30` | Per-request timeout, up to 3600 seconds. Also bounds each OAuth2 sign-in request. |
 | `max_response_mb` | No | `256` | Maximum size of one JSON response after decompression, 1–2047 MiB. A page is buffered whole then parsed. |
 | `max_download_mb` | No | `4096` | Maximum size of one downloaded file (datasets with `file:`), 1–1048576 MiB. Decompressed archive content is capped at 20 times this value. |
 | `allow_hosts` | No | `[]` | Extra bare hostnames this connection may follow, beyond `base_url`'s own origin. |
+| `retry_after` | No | — | `{ header, kind }`: a header that states how long to wait when a throttled response has no usable `Retry-After`. See [Wait times from another header](#wait-times-from-another-header). |
 | `proxy` | No | system default | `none`, or `{ url, user, password, bypass }`. See [Proxy](#proxy). |
 | `tls` | No | — | `{ ca_file, client_certificate }`. See [TLS](#tls-private-ca-and-client-certificates). |
 
@@ -61,13 +62,15 @@ redirect to `http://<allowed host>` is refused, since it would send the token un
 | Basic | `auth: { type: basic, user: ${USER}, password: ${PASSWORD} }` | `Authorization: Basic <base64(user:password)>` header. |
 | Azure AD | `auth: { type: azure_ad, method: service_principal, ... }` | Signs in to Microsoft Entra ID and sends `Authorization: Bearer <access token>`. See below. |
 | OAuth2 client credentials | `auth: { type: oauth2_client_credentials, token_url: ..., ... }` | Fetches a token from any OAuth2 token endpoint and sends `Authorization: Bearer <access token>`. See below. |
+| OAuth2 refresh token | `auth: { type: oauth2_refresh_token, token_url: ..., refresh_token: ..., ... }` | Exchanges a refresh token for access tokens and sends `Authorization: Bearer <access token>`. See below. |
+| Login session | `auth: { type: session, login: { ... }, token_pointer: ..., ... }` | Sends a login request, reads a token from its response, and sends that token on every request. See below. |
 
 Credentials belong in environment variables, never literal in YAML. See
 [Secure connection config](/how-to/secure-connection-config/).
 
-Both OAuth2 types cache the access token and refresh it up to five minutes before it expires
-(half its lifetime for short-lived tokens). A sign-in failure is reported without the secret or
-the token. Retries are left to the engine's `retry:` policy. When the API answers `401`:
+The three OAuth2 types cache the access token and refresh it up to five minutes before it
+expires (half its lifetime for short-lived tokens). A sign-in failure is reported without the
+secret or the token. Retries are left to the engine's `retry:` policy. When the API answers `401`:
 
 - to a token it never accepted, the read fails permanently, with a hint to check `scope` and the
   app's access grant;
@@ -128,6 +131,124 @@ vendor:
 | `scope` | No | — | Sent as the `scope` form field when set. |
 | `client_auth` | No | `body` | `body` sends the client id and secret as form fields; `basic` sends them as an `Authorization: Basic` header. |
 | `params` | No | `{}` | Extra form fields for the token request, such as `audience`. `grant_type`, `client_id`, `client_secret` and `scope` cannot be set here. |
+
+#### `oauth2_refresh_token`
+
+For APIs where a person signs in once and grants access, such as Google's APIs. A person obtains
+the refresh token once, through the provider's consent flow, and you pass it to pz as an
+environment variable. pz exchanges it for access tokens with `grant_type=refresh_token`.
+
+```yaml title="connections.yml"
+google_ads:
+  connector: http
+  base_url: https://googleads.googleapis.com/v17
+  auth:
+    type: oauth2_refresh_token
+    token_url: https://oauth2.googleapis.com/token
+    client_id: ${GOOGLE_CLIENT_ID}
+    client_secret: ${GOOGLE_CLIENT_SECRET}
+    refresh_token: ${GOOGLE_REFRESH_TOKEN}
+```
+
+| Key | Required | Default | Meaning |
+|---|---|---|---|
+| `token_url` | Yes | — | The token endpoint, with the same rules as for `oauth2_client_credentials`. |
+| `client_id` | Yes | — | The client id. |
+| `refresh_token` | Yes | — | The refresh token. |
+| `client_secret` | No | — | The client secret. Omit it for a public client. |
+| `client_auth` | No | `body` | `body` or `basic`, as for `oauth2_client_credentials`. `basic` needs `client_secret`. |
+| `scope` | No | — | Sent as the `scope` form field when set. |
+| `params` | No | `{}` | Extra form fields for the token request. |
+| `rotation` | No | `refuse` | What to do when the token response carries a different `refresh_token`. See below. |
+
+Token caching, `401` handling, `token_url` rules and `proxy`/`tls` work as for
+`oauth2_client_credentials`.
+
+pz has nowhere to store a new refresh token, so it works only with refresh tokens that stay
+valid. Some providers rotate them: the token response carries a new `refresh_token`, and the old
+one may already be revoked. Microsoft Entra rotates on every refresh, and so do Xero, QuickBooks
+and some Zoho setups. A response with no `refresh_token`, or with the same one, is fine. When the
+value differs, `rotation` decides:
+
+- `refuse` (the default): the read fails with the permanent error
+  [`PZ0366`](/reference/error-codes/), and the new access token is not used. Configure the
+  provider for non-rotating refresh tokens, authorize again, and update `auth.refresh_token`.
+- `ignore`: the new access token is used, the configured `refresh_token` stays in use for later
+  refreshes, and a notice says the provider rotated it. Use it only for providers that keep old
+  refresh tokens valid, such as Microsoft Entra and Google. If the provider does revoke the old
+  token, the next refresh fails with `invalid_grant`.
+
+An `invalid_grant` answer means the refresh token is no longer valid: authorize again and update
+`auth.refresh_token`. Any refresh token or client secret the provider echoes in its error text is
+replaced with `***`.
+
+#### `session`
+
+For APIs that issue a token from a login request rather than from an OAuth2 token endpoint.
+
+```yaml title="connections.yml"
+erp:
+  connector: http
+  base_url: https://erp.example.com/api
+  auth:
+    type: session
+    login:
+      path: /auth/login
+      body: { username: "${ERP_USER}", password: "${ERP_PASSWORD}" }
+    token_pointer: /data/token
+    inject: { header: X-Session-Token }
+    ttl: 30m
+```
+
+| Key | Required | Default | Meaning |
+|---|---|---|---|
+| `login.path` | One of these two | — | The login path, relative to `base_url`. |
+| `login.url` | One of these two | — | An absolute `http(s)` login URL. It must not embed credentials. |
+| `login.method` | No | `post` | `post` or `get`, in any case. A `get` cannot have a body. |
+| `login.body` | No | — | A map, sent as JSON or as a form with `body_format: form`, or a string sent as is. |
+| `login.body_format` | No | `json` | `json` or `form`. A form body is a flat map of values; a field left empty (null, for example an unset variable) is a validation error. |
+| `login.content_type` | No | `application/json` | The media type of a string `body`. |
+| `login.headers` | No | `{}` | Headers sent on the login request only. |
+| `token_pointer` | Yes | — | JSON pointer to the token in the login response, for example `/token`. A number is sent as its JSON text. |
+| `inject` | No | `bearer` | Where the token goes on API requests: `bearer` (`Authorization: Bearer <token>`), `{ header: <name>, prefix: <text> }` (the header value is the prefix followed by the token), or `{ query: <name> }`. |
+| `ttl` | One of these two | — | How long a session lasts, from `1s` to `30d`, for example `30m`. |
+| `expires_in_pointer` | One of these two | — | JSON pointer to the session's lifetime in seconds in the login response, as a number or a string. |
+| `reauth_status` | No | `[401]` | Statuses from the API that mean the session expired, for example `[419, 440]`. Any 4xx except `407` and `429`. `401` always counts: a list adds to it. |
+
+How the login behaves:
+
+- The body is sent literally. `{{ }}` bindings are not expanded in it, so a password containing
+  `{{` goes on the wire unchanged. `${VAR}` references are substituted when `connections.yml`
+  loads, as everywhere else.
+- Connection `headers:` are not sent on the login, only `login.headers`.
+- The login must go to `base_url`'s origin or an `allow_hosts` host, and it uses the
+  connection's `proxy` and `tls`. A redirect is not followed.
+- A login answered `401` or `403` fails permanently and is never retried (see
+  [Refused sign-ins](#refused-sign-ins)). `408`, `429` and `5xx` are transient, waiting for the login's
+  `Retry-After` or, on a `429` or `503` without one, the connection's
+  [`retry_after`](#wait-times-from-another-header) header.
+- A login response over 1 MiB, a missing, empty or object token, or a token with control
+  characters fails permanently. A header or bearer token must be printable ASCII.
+- Each node that reads or writes through the connection logs in once.
+- A `401` (or a `reauth_status` code) from the API on a session that worked before drops the
+  session, and the engine's retry logs in again. The same status on a fresh session fails
+  permanently, with a hint to check `inject`.
+- A query token (`inject: { query: ... }`) is redacted from messages and is never stored in a
+  checkpoint; a resumed read adds the current one. Its name cannot be a query parameter that
+  pagination sets, such as `page` or `offset`.
+
+Cookie-based sessions, and tokens returned in a response header, are not supported.
+
+#### Refused sign-ins
+
+pz makes one refused sign-in per connection per run. A session login answered `401` or `403`, a
+refresh token refused with `PZ0366`, `invalid_grant`, `invalid_client` or `unauthorized_client`:
+later reads, writes and nodes of the same run that use the same credentials fail at once with the
+same message, without sending anything. A provider that locks accounts after repeated failures
+therefore sees one attempt per run. Scheduled runs each try again, once.
+
+The rule holds for the life of the pz process. Under `pz mcp`, which stays running, restart the
+server after an account is unlocked without a change to its configuration.
 
 ### Proxy
 
@@ -203,6 +324,31 @@ Failures name the setting to fix:
 | The proxy answers `407` | Permanent | `proxy.user`/`proxy.password` |
 | The connection drops while a client certificate is configured | Transient | `tls.client_certificate` (a server refusing a certificate can look like a reset) |
 
+### Wait times from another header
+
+Some APIs state how long to wait in a header other than `Retry-After`. Name it with `retry_after`:
+
+```yaml title="connections.yml"
+graph:
+  connector: http
+  base_url: https://graph.microsoft.com/v1.0
+  retry_after: { header: x-ms-retry-after-ms, kind: ms }
+```
+
+| `kind` | The header holds |
+|---|---|
+| `seconds` | A delay in seconds. Decimals are accepted. |
+| `ms` | A delay in milliseconds. |
+| `epoch` | A Unix time in seconds, such as `X-RateLimit-Reset`. |
+
+The header is used when a `429` or `503`, or a response an [`on_status`](#status-rules-on_status)
+rule makes transient, carries no usable `Retry-After`. It applies to reads, to sink requests and to
+a `session` login. The wait is capped at 600 seconds; a stated wait above a day also adds a note to
+check `kind`. A value that is not a number, or a wait that is already over (zero, or an epoch in
+the past), is ignored with a note, and the next source of a wait applies. The wait moves the shared
+pause of a [parallel read](#parallel-fetching) as a `Retry-After` does. pz still never retries a
+request itself: the wait goes to the engine's [retry policy](/how-to/tune-retries/).
+
 ## Read options
 
 Shared keys (`columns`, `sync`, `retry` under `read:`, and `rate_limit` on the connection) are
@@ -217,13 +363,18 @@ documented in [connections.yml reference](/reference/connections-yml/).
 | `body_format` | No | `json` | `post` with a map `body` only. `json` or `form`. |
 | `content_type` | No | `application/json` | `post` with a string `body` only. The request's media type, for example `application/graphql`. |
 | `error_pointer` | No | — | JSON pointer to an error field in the response, for APIs that report errors with HTTP 200. |
+| `on_status` | No | — | Rules that classify error responses as transient, permanent or skipped. See [Status rules](#status-rules-on_status). |
 | `pagination` | No | none | One pagination block: `page`, `offset`, `link_header`, `cursor`, or `next_url`. See below. |
 | `items` | No | body root | JSON pointer to the array of records, when the response body wraps it in an envelope. |
 | `columns` | No | — | Column-to-type contract. With no contract, the entity lands the raw envelope shape below. |
-| `cursor` | Raw mode only | — | Column name driving incremental extraction. In contract mode, the cursor is just a declared `columns` entry instead. |
+| `cursor` | Raw mode, or with `stop_at_watermark` | — | Column name driving incremental extraction. In contract mode, the cursor is just a declared `columns` entry; set `cursor` to that name only for `stop_at_watermark`. |
 | `cursor_type` | Raw mode only, required with `cursor` | — | One of the contract types: `int`, `bigint`, `double`, `decimal`, `varchar`, `boolean`, `date`, `timestamp`. |
 | `cursor_pointer` | No | `/<cursor>` | JSON pointer to the cursor's value in one record, when it differs from a same-named field. |
 | `cursor_order` | No | inferred at run time | `asc` or `desc`: how the API serves records relative to the cursor. Makes a truncated crawl's safety checkable at compile time. |
+| `stop_at_watermark` | No | `false` | With `cursor_order: desc`, stop the crawl at the first page the watermark already covers. See [Newest-first feeds](#newest-first-feeds). |
+| `watermark_format` | No | `iso8601` | How `{{ watermark }}` and `{{ window_upper }}` render. See [Watermark formats](#watermark-formats). |
+| `watermark_time_zone` | No | `UTC` | An IANA zone id in which `date` and custom watermark formats render. See [Time zones](#time-zones). |
+| `epoch_unit` | No | — | `s` or `ms`: read JSON numbers in timestamp columns as Unix time. See [Epoch timestamps](#epoch-timestamps). |
 | `delta_pointer` | No | — | JSON pointer to a delta link on the last page, for change-feed APIs. Not allowed with `method: post`, `file:`, `for_each:` or `pagination.concurrency`. |
 | `max_pages` | No | `50000` ceiling | Caps a single run's crawl. |
 | `run_date` | No | `{ offset_days: 0, timezone: UTC, format: yyyy-MM-dd }` | Configures the `{{ run_date }}` binding. See [Bindings](#bindings). |
@@ -246,6 +397,40 @@ With no `columns:`, every record under `items` lands as one row of a fixed raw e
 Declaring `columns:` instead types the fields you want at extraction time. Extra JSON keys are
 ignored; a declared key absent from a record lands as null. File datasets have their own raw
 envelope; see [Files](#files).
+
+#### Nested fields
+
+A contract column reads the record's top-level key of the same name. To read a nested value, use
+the column's long form with `pointer`, a JSON pointer into the record:
+
+```yaml title="connections.yml"
+jira:
+  connector: http
+  base_url: https://jira.example.com/rest/api/3
+  auth: { type: basic, user: ${JIRA_USER}, password: ${JIRA_TOKEN} }
+  entities:
+    issues:
+      read:
+        path: /search
+        items: /issues
+        pagination: { strategy: offset, param: startAt, size_param: maxResults, size: 100 }
+        columns:
+          key: varchar
+          status: { type: varchar, pointer: /fields/status/name }
+          assignee_email: { type: varchar, pointer: /fields/assignee/emailAddress, redact: true }
+          updated: { type: timestamp, pointer: /fields/updated }
+```
+
+- A pointer starts with `/`, and escapes `~` and `/` in a key as `~0` and `~1`. An array index is
+  a plain number (`/tags/0`); `01`, `+1` or an index with blanks selects nothing.
+- A step that is missing lands null. An object or array at the pointer lands in a `varchar`
+  column as JSON text.
+- It works for JSON pages and JSON files, with `redact`, and on the incremental cursor column.
+- It is refused on a column filled from a `for_each` field, and with `csv`, `tsv` and `xml` files.
+- Changing a pointer changes the source's node id, as changing any read option does.
+
+`pointer` is http-only: on any other connector it is
+[`PZ0301`](/reference/error-codes/), both in `pz validate` and when `pz run` opens the source.
 
 ```yaml title="connections.yml"
 github:
@@ -305,7 +490,7 @@ Declare exactly one `pagination:` block.
 | Next URL | `pagination: { strategy: next_url, pointer: /@odata.nextLink }` | The response body carries the next page's URL: `/@odata.nextLink` (Microsoft Graph, OData), `/links/next`, `/next`. A relative link resolves against the current request. |
 | Page number | `pagination: { strategy: page, param: page, start: 1, size_param: per_page, size: 100 }` | Numbered pages. `param`/`start` default to `page`/`1`; `size_param`/`size` are optional and added together. |
 | Offset | `pagination: { strategy: offset, param: offset, start: 0, size_param: limit, size: 100 }` | Offset/limit APIs. `param`/`start`/`size_param` default to `offset`/`0`/`limit`; `size` is optional. |
-| Cursor token | `pagination: { strategy: cursor, pointer: /meta/next_cursor, param: cursor }` | Token-style APIs. `pointer` is a JSON pointer to the next page's token in the body; it is copied to `param` on the next request. |
+| Cursor token | `pagination: { strategy: cursor, pointer: /meta/next_cursor, param: cursor }` | Token-style APIs. `pointer` is a JSON pointer to the next page's token in the body, or `header` names a response header that carries it (exactly one of the two). The token is copied to `param` on the next request. See [Page tokens in headers](#page-tokens-in-headers). |
 
 Link-header, next-URL and cursor-token crawls end when their own signal is absent (no next link,
 or a missing/null/empty link or token); an empty page alone does not end them. Page-number and
@@ -328,8 +513,43 @@ reached.
 
 | Pagination key | Default | Meaning |
 |---|---|---|
-| `location` | `query` | `body` writes the page number, offset or cursor into a `post` read's JSON body instead of the URL. See [POST reads](#post-reads). |
+| `location` | `query` | `body` writes the page number, offset or cursor into a `post` read's JSON body instead of the URL. See [POST reads](#post-reads). `header` sends a cursor token in a request header; see [Page tokens in headers](#page-tokens-in-headers). |
+| `header` | — | `cursor` only: the response header holding the next page's token, instead of `pointer`. |
 | `concurrency` | `1` | 1–16. Fetch up to this many pages at once. See [Parallel fetching](#parallel-fetching). |
+
+`pz validate` reports an unknown `location`. At run time, a GET read ignores it with a notice; a
+POST read fails.
+
+#### Page tokens in headers
+
+Some APIs hand out the next page's token in a response header, or expect it back in a request
+header. Azure Cosmos DB does both with `x-ms-continuation`:
+
+```yaml title="connections.yml"
+        pagination:
+          strategy: cursor
+          header: x-ms-continuation
+          location: header
+          param: x-ms-continuation
+```
+
+`header:` reads the token from a response header; `location: header` sends it in the request
+header named by `param`. Each works without the other: a header token can go into the query
+(`location: query`) or a POST body (`location: body`), and a body token can go into a header. Both
+work on the `for_each` list request too.
+
+- A missing or empty header ends the crawl. A header that appears twice in one response fails the
+  read.
+- A token sent in a header must be visible ASCII, with no whitespace at either end. Otherwise the
+  read fails, without showing the token.
+- The request header cannot be one pz or the HTTP stack sets: `Authorization`,
+  `Proxy-Authorization`, `Cookie`, `Host`, `Connection`, `Transfer-Encoding`, `Expect`, `TE`,
+  `Upgrade`, a content header (`Content-*`, `Expires`, `Last-Modified`, `Allow`), or a header the
+  connection's `headers:`, `api_key` auth or session `inject.header` already sets. `pz validate`
+  reports a clash, and the read is refused before any request.
+- The page header is kept across redirects, and counts when checking for a repeated request.
+- A checkpoint stores the URL, the body and the page header only, never connection headers or
+  credentials.
 
 ### POST reads
 
@@ -388,6 +608,87 @@ Limits:
 - Point a read only at an endpoint with no side effects: a retry or a resume sends the request
   again.
 
+### Status rules (`on_status`)
+
+By default a `408`, `429` or `5xx` response is transient (the engine's retry tries again) and
+every other error status is permanent. `on_status` changes that for the responses you name, with
+rules tried in order:
+
+```yaml title="connections.yml"
+github:
+  connector: http
+  base_url: https://api.github.com
+  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  entities:
+    issues:
+      read:
+        path: /repos/duckdb/duckdb/issues
+        pagination: { strategy: link_header }
+        on_status:
+          - { status: 403, body_contains: "secondary rate limit", action: transient, retry_after: 60s }
+          - { status: 503, body_contains: "maintenance", action: permanent }
+```
+
+| Rule key | Required | Meaning |
+|---|---|---|
+| `status` | Yes | A code from 400 to 599 other than `407`, a class `4xx` or `5xx`, or a list of those. |
+| `body_contains` | No | Text the response body must contain, matched without regard to case. A file download matches the first 64 KiB of the error body. |
+| `action` | Yes | `transient`, `permanent` or `skip`. |
+| `retry_after` | No | `transient` only: a wait such as `30s` or `2m`, above zero and up to `600s`. |
+
+The first matching rule wins; a response no rule matches gets the built-in classification.
+
+- **`transient`** makes the response retryable, such as GitHub's `403` secondary rate limit. Its
+  wait is the response's `Retry-After`, else the connection's
+  [`retry_after`](#wait-times-from-another-header) header, else the rule's `retry_after`, else
+  the engine's backoff. In a parallel read, the wait pauses every request of the read.
+- **`permanent`** fails the read, naming the rule and quoting the start of the body.
+- **`skip`** ends the read with a notice saying 0 rows landed. See below.
+
+A rule only classifies the response; the engine's [retry policy](/how-to/tune-retries/) does any
+retrying.
+
+Some cases are handled before the rules: a proxy `407`, a `401` (or a session `reauth_status`
+code) handled by a token sign-in (`azure_ad`, the OAuth2 types, `session`), and a `410` on a
+replayed delta link. Rules then come before `for_each.on_missing`.
+
+A dataset's rules cover its own requests, which in a `for_each` dataset are the item requests.
+`for_each.on_status` covers the list request. Neither inherits from the other.
+
+**`skip`.** A skip rule applies only to a read's first request: the first page, a `for_each`
+item's first page, or a direct file download. A skip rule that matches a later page, or the first
+request of a resumed attempt, fails the read. Skipped `for_each` items are counted in the read's
+end notice together with `on_missing` skips. Restrictions:
+
+- A skip rule without `body_contains` must name exact codes, and none of `401`, `403`, `408` or
+  `429`.
+- `skip` is refused with `export`, and on a dataset that is or could be incremental: one with a
+  raw `cursor`, a `{{ watermark }}` or `{{ window_upper }}` reference, an `incremental:` block,
+  or a `columns:` contract (a contract column can be the cursor of a SQL-declared incremental).
+  A skipped window would land nothing while the watermark moved past it. At run time, a skip
+  rule that matches a read carrying a watermark fails the read instead.
+- One case slips through: the first run, or a `--full-refresh`, of a raw-mode dataset made
+  incremental in SQL with an upper bound, where no watermark is sent yet.
+
+A skipped read lands an empty table. An output in `replace` mode fed only by it is emptied for
+that run.
+
+A skip suits a non-incremental report that answers "no data" with an error on some days:
+
+```yaml title="connections.yml"
+    daily_report:
+      read:
+        path: /reports/daily
+        query: { day: "{{ run_date }}" }
+        run_date: { offset_days: -1 }
+        on_status:
+          - { status: 400, body_contains: "no data for period", action: skip }
+```
+
+**Export jobs.** Rules apply to the start, poll and download requests of an
+[export job](#export-jobs). A transient rule that matches the start request fails the read
+instead, since a retry would send the start again and could create a second job.
+
 ### Files
 
 A dataset with a `file:` block reads the response body as a file instead of a JSON page:
@@ -411,7 +712,7 @@ vendor:
 | `format` | required | `csv`, `tsv`, `json`, or `xml`. |
 | `archive` | `auto` | `auto` detects a zip or gzip from the first bytes. `zip`, `gzip` or `none` force it. |
 | `members` | — | A glob such as `sessions_*.csv` matched against each zip entry's full path: `*` and `?` match within one `/`-separated segment, `**` matches any number of segments, and matching is case-sensitive. Required for a zip. Needs `archive: zip` or `auto`. |
-| `if_missing` | `error` | `error` fails when no member matches and lists the entries. `empty` reads zero rows and emits a notice naming the dataset and glob. |
+| `if_missing` | `error` | `error` fails when no member matches and lists the entries. `empty` reads zero rows and emits a notice naming the dataset and glob (for an export with several files, one notice counting the files with no match). |
 | `file_column` | — | Contract mode only: adds a `varchar` column with the member path (or the file name). |
 | `encoding` | `utf-8` | `utf-8`, `utf-16`, or `iso-8859-1`. A byte-order mark wins over it. |
 | `delimiter` | `,` | `csv` only: one character. `tsv` always uses a tab. |
@@ -493,14 +794,77 @@ analytics:
 | `ready` | Yes | — | Non-empty list of state values meaning the file is ready. |
 | `failed` | No | `[]` | State values meaning the job failed. The read fails, quoting `message_pointer`. |
 | `message_pointer` | No | — | JSON pointer to the failure message in the status response. |
-| `download_pointer` | One of these two | — | JSON pointer to the download URL in the ready status response. A relative URL resolves against `base_url`. |
+| `download_pointer` | One of these two | — | JSON pointer to the download URL, or a list of URLs, in the ready status response. A relative URL resolves against `base_url`. See [Several result files](#several-result-files). |
 | `download_path` | One of these two | — | Download path, starting with `/`. `{job_id}` and the bindings expand in it. |
 | `poll_interval_seconds` | No | `10` | 1–3600. A `Retry-After` on a status response replaces it, up to 10 minutes. |
 | `timeout_minutes` | No | `30` | 1–1440. A job not ready by then fails with a transient error, so the engine's retry starts a new job. |
+| `cancel_path` | No | — | Path that cancels an unfinished job, starting with `/`, with `{job_id}` exactly once. The [bindings](#bindings) expand in it. See [Cancelling a job](#cancelling-a-job). |
+| `cancel_method` | No | `delete` | `delete`, `post`, `put` or `patch`, in any case. Requires `cancel_path`. No body is sent. |
 
-The start request is never retried by the request gate, so a `503` on it cannot create a
-duplicate job. A pre-signed download URL on another host must be in `allow_hosts`, and is fetched
-without credentials. `export:` cannot be combined with `for_each:`.
+A pre-signed download URL on another host must be in `allow_hosts`, and is fetched without
+credentials. `export:` cannot be combined with `for_each:`.
+
+The start request is not retried on its own. A `5xx`, a dropped connection or a timeout on it is
+still transient, so the engine's node retry sends a new start and begins a new job. Only a job
+whose id pz knew can be [cancelled](#cancelling-a-job).
+
+The job id is inserted into `status_path`, `download_path` and `cancel_path` escaped as one path
+segment, so `projects/1/jobs/2` is sent as `projects%2F1%2Fjobs%2F2`. An id that is empty, has a
+`/`-separated segment that is exactly `.` or `..`, or contains `\` or a control character, fails
+the read before any poll.
+
+#### Cancelling a job
+
+With `cancel_path`, pz cancels a job that never became ready: one that ran past
+`timeout_minutes`, reported a `failed` state, failed a poll, or was still running when the run was
+cancelled. This keeps abandoned jobs from piling up on the vendor's side.
+
+```yaml title="connections.yml"
+        export:
+          job_id: /id
+          status_path: /reports/{job_id}
+          status_pointer: /state
+          ready: [done]
+          failed: [failed]
+          download_pointer: /result/url
+          cancel_path: /reports/{job_id}
+          cancel_method: delete
+```
+
+- A job that reached a `ready` state is never cancelled, even when its download or file read
+  fails later.
+- The cancel is sent at most once per job and never retried. It waits at most 10 seconds (5 once
+  the run is cancelled, by a node timeout or Ctrl-C), and never longer than `timeout_seconds`.
+- Only its status is read. Its outcome, success included, is a notice; the read fails with its own
+  error.
+- A job whose start request failed has no id, so it cannot be cancelled.
+
+#### Several result files
+
+When the API splits a result into several files, point `download_pointer` at the list of URLs:
+
+```yaml title="connections.yml"
+        export:
+          job_id: /id
+          status_path: /reports/{job_id}
+          status_pointer: /state
+          ready: [done]
+          download_pointer: /result/files
+        file: { format: csv }
+        columns: { day: date, visits: bigint, bounces: bigint }
+```
+
+- Files are downloaded and read in list order, one at a time. Each gets the full single-file
+  limits (`max_download_mb`, the decompression cap, the idle timeout), and only one is on disk at
+  a time.
+- Every URL is checked (a string, a valid URL, `allow_hosts`) before the first download.
+- A URL listed twice is read once, with a notice that counts the duplicates. More than 1000
+  entries fails the read.
+- An empty list reads as no rows, with a notice.
+- A `404` on any file of several fails the read.
+- `file_column` names each row's own file. Under `if_missing: empty`, one notice counts the files
+  with no matching member.
+- There is no checkpoint: a retry starts a new job.
 
 ### One request per record (`for_each`)
 
@@ -529,14 +893,17 @@ shop:
 ```
 
 The list request takes the usual request keys: `path`, `query`, `method`, `body`, `body_format`,
-`content_type`, `items`, `pagination`, `error_pointer` and `max_pages`. It can use
+`content_type`, `items`, `pagination`, `error_pointer`, `on_status` and `max_pages`. It can use
 `{{ watermark }}`, `{{ window_upper }}` and `{{ run_date }}`; `run_date:` stays at dataset level and
 is shared by both requests.
 
 | `for_each` key | Required | Default | Meaning |
 |---|---|---|---|
-| `path` | Yes | — | The list request's path. |
-| `fields` | Yes | — | Map of name to JSON pointer into each list record. Names use lowercase letters, digits and `_`, and do not start with a digit or `pz_`. |
+| `path` | Yes, unless `values` | — | The list request's path. |
+| `fields` | Yes, unless `values` | — | Map of name to JSON pointer into each list record. Names use lowercase letters, digits and `_`, and do not start with a digit or `pz_`. |
+| `values` | No | — | A literal list of item maps, used instead of a list request. See [Fixed item lists](#fixed-item-lists-values). |
+| `dedupe` | No | `false` | Skip a record whose fields match an earlier record of the same read. See [Duplicate list records](#duplicate-list-records-dedupe). |
+| `on_status` | No | — | [Status rules](#status-rules-on_status) for the list request. The dataset's own rules cover the item requests. |
 | `on_missing` | No | `error` | `skip` moves on when an item's first request returns `404` or `410`, and reports the count in a notice at the end of the read. A `404` on a later page of an item still fails. |
 | `max_items` | No | — | Stop after this many list records, with a notice. No further list page is fetched once it is reached. |
 | `concurrency` | No | `1` | 1–16. Run up to this many items of one list page at once. See [Parallel fetching](#parallel-fetching). |
@@ -570,6 +937,51 @@ mislabelling items or skipping records. Duplicates are therefore possible: land 
 dataset into a `strategy: merge` sink keyed on the item and record ids. Skipped-item counts are
 carried in the checkpoint, so they are reported across retries. A file-mode item checkpoints only
 between items.
+
+#### Fixed item lists (`values`)
+
+For "the same endpoint per region, account or metric", list the items in the YAML instead of
+fetching them:
+
+```yaml title="connections.yml"
+    regional_sales:
+      read:
+        for_each:
+          values:
+            - { region: eu, currency: EUR }
+            - { region: us, currency: USD }
+            - { region: apac, currency: USD }
+        path: /sales/{{ item.region }}
+        query: { currency: "{{ item.currency }}", day: "{{ run_date }}" }
+        items: /rows
+        columns: { region: varchar, currency: varchar, sku: varchar, amount: decimal }
+```
+
+- Each map's keys are the item fields, named like `fields` names. Every entry must have the same
+  keys. Values are strings, numbers, booleans or null.
+- The item request, escaping, `pz_item`, `on_missing`, `dedupe` and `concurrency` work as with a
+  list request.
+- The list-request keys (`path`, `query`, `method`, `body`, `body_format`, `content_type`,
+  `items`, `pagination`, `error_pointer`, `max_pages`, `fields`, `max_items`, `on_status`) are
+  refused next to `values`.
+- At `concurrency: 1` a checkpoint falls after every item. With `concurrency` N above 1, the
+  values are read in groups of 4×N with a checkpoint after each group, so a retry re-reads at
+  most one group. If the `values` list was edited before a retry, the read starts again from the
+  first value, with a notice.
+
+#### Duplicate list records (`dedupe`)
+
+Some list endpoints return the same record more than once, for example when records move between
+pages during the crawl. `dedupe: true` skips a list record whose declared fields all equal those of
+an earlier record of the same read:
+
+- The first occurrence wins. Fields compare as JSON values, so `"1"` and `1` differ, and a
+  missing field equals a null one.
+- One notice at the end of the read gives the count and the first duplicate.
+- Skipped duplicates do not count toward `max_items`.
+- It is per attempt: a retry that resumes mid-list remembers only the records before its position
+  on the resumed list page, so it may read an item first seen on an earlier page again.
+- The set of seen items costs roughly 30–60 bytes per distinct item, with no cap.
 
 **Refusals.**
 
@@ -639,6 +1051,130 @@ A daily file with a date column can catch up one missed day per run with a windo
 The window's upper bound can reach today, whose file may not be published yet. That download
 fails (`404`) and nothing is lost: the watermark stays, and a later run fetches the day. Use
 `until:` or schedule the run after the vendor publishes.
+
+#### Watermark formats
+
+By default a timestamp watermark is sent as ISO 8601 in UTC, to whole seconds
+(`2026-11-09T08:00:00Z`). `watermark_format` sends it in the form the API expects:
+
+| Value | Sends |
+|---|---|
+| `iso8601` | The default, `2026-11-09T08:00:00Z`. |
+| `epoch_s` | Unix time in seconds, `1794211200`. |
+| `epoch_ms` | Unix time in milliseconds, `1794211200000`. |
+| `date` | The date only, `2026-11-09`. |
+| A custom format | Built from the letters `y M d H m s f`, for example `yyyy-MM-dd HH:mm:ss`. |
+
+A custom format may use:
+
+- `yy` or `yyyy`, `M` or `MM`, `d` or `dd`, `H` or `HH` (24-hour), `m` or `mm`, `s` or `ss`, and
+  one to seven `f` for fractions of a second;
+- the separators `-`, `_`, `/`, `.`, `:`, `,` and space, the literal letters `T` and `Z`, and
+  `'quoted text'` (without `\` or `"`).
+
+Each letter appears once, and the letters must run from the year down without a gap: `yyyy-MM` and
+`yyyyMMddHH` are accepted, `MM-dd` and `yyyy-MM-dd mm` are not. Month and day names, 12-hour
+clocks and UTC offsets are not supported.
+
+Every format has a unit, its finest letter. The lower bound (`{{ watermark }}`) is rounded down
+to that unit, and the upper bound (`{{ window_upper }}`) is rounded up to the next one, so a window
+is never narrower than asked: with `date`, a window ending at 08:00 on 9 November sends
+`2026-11-10` as its upper bound. Rounding past the year 9999 fails the read.
+
+Where the binding is a whole value in a JSON body, an epoch format is sent as a JSON number
+rather than a string.
+
+- A `date` cursor takes only `date` or a custom format with no time of day.
+- A numeric or `varchar` cursor refuses the option.
+- The option is refused when no request references `{{ watermark }}` or `{{ window_upper }}`.
+
+A unit of a day or longer (`date`, `yyyy-MM`, `yyyyMMdd`) re-reads up to a whole day, month or year
+on every run or window. Into an `append` sink those rows land again, so `pz validate` reports a
+[`PZ0364`](/reference/error-codes/) warning for an incremental dataset whose cursor is not a date.
+Use a finer format if the API takes one, or write with `strategy: merge`.
+
+`date` assumes the API reads a date as the start of that day. An API that reads
+`since=2026-11-09` as "after that whole day" would skip rows.
+
+#### Time zones
+
+`date` and custom formats render in UTC. For an API that reads its dates in local time, set
+`watermark_time_zone` to an IANA zone id:
+
+```yaml title="connections.yml"
+        query: { modified_since: "{{ watermark }}" }
+        watermark_format: yyyy-MM-dd HH:mm
+        watermark_time_zone: Europe/Bucharest
+```
+
+The bounds are rounded in that zone's wall time. When a bound falls in an hour that a daylight
+saving change skips or repeats, it moves to the safe side in 3-hour steps (earlier for the lower
+bound, later for the upper), so the window only grows. A change that no step within 48 hours clears
+fails the read rather than narrowing the window.
+
+`watermark_time_zone` needs a `date` or custom `watermark_format`. It is refused with `iso8601` and
+the epoch formats, with a format that writes `Z` or `UTC`, and on `date` cursors.
+
+#### Epoch timestamps
+
+An API that returns times as Unix numbers (`"updated": 1794211200`) needs `epoch_unit` to land them
+in a `timestamp` column:
+
+```yaml title="connections.yml"
+    events:
+      read:
+        path: /events
+        query: { since: "{{ watermark }}" }
+        items: /data
+        columns: { id: bigint, updated: timestamp }
+        epoch_unit: s
+        watermark_format: epoch_s
+        sync: { mode: incremental, cursor: updated }
+```
+
+With `epoch_unit` set to `s` or `ms`, JSON numbers in `timestamp` contract columns, in a raw
+`cursor_type: timestamp` cursor and in `for_each` item fields are read as Unix time. Strings are
+still parsed as text. Pair it with the matching `watermark_format` so the watermark goes back in
+the same unit.
+
+- Values that look like the other unit are refused: under `ms`, anything below 1e11 (before
+  1973-03-03) except exactly `0`; under `s`, anything after the year 3000.
+- Microsecond and nanosecond epochs are not supported.
+- Without `epoch_unit`, a JSON number in a `timestamp` column fails with a message naming
+  `epoch_unit`.
+- The option is refused with no timestamp column, and with `csv`, `tsv` and `xml` files.
+
+#### Newest-first feeds
+
+Some feeds serve the newest records first and have no "since" filter. `stop_at_watermark` reads
+such a feed only down to what the last run already landed:
+
+```yaml title="connections.yml"
+    activity:
+      read:
+        path: /activity
+        items: /items
+        pagination: { strategy: cursor, pointer: /next, param: cursor }
+        columns: { id: bigint, created_at: timestamp, kind: varchar }
+        cursor: created_at
+        cursor_order: desc
+        stop_at_watermark: true
+        sync: { mode: incremental, cursor: created_at }
+```
+
+- The crawl stops at the first page that holds a record at or below the stored watermark. Those
+  records are dropped, the newer ones on that page land, and a notice gives the page and the
+  dropped count.
+- Without a watermark (the first run, or `--full-refresh`) the whole feed is read.
+- The feed must really be newest-first: within one attempt, a cursor value greater than the one
+  before it fails the read. A retry that resumes mid-crawl checks from its resume page on.
+- Records with a null cursor land on the pages read. Null-cursor records past the stop page are
+  not read; the notice says so.
+- It requires `cursor_order: desc` and `cursor` (with `cursor_type` in raw mode, or naming a
+  `columns` entry in contract mode). `cursor` must be the incremental cursor.
+- It is refused with `for_each`, `file`, `delta_pointer`, `max_pages` and `pagination.concurrency`
+  above 1, so the crawl always ends at the watermark or at the end of the feed.
+  [`PZ0229`](/reference/error-codes/) already refuses `max_pages` with `cursor_order: desc`.
 
 ## Write options
 

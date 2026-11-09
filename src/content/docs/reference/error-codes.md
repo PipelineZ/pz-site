@@ -81,7 +81,7 @@ Raised resolving, installing, and running connector packages, including process-
 
 | Code | Name | Meaning | Where it surfaces |
 |---|---|---|---|
-| `PZ0301` | ConnectorConfigInvalid | A connection or entity config value fails the connector's own published schema: a missing required key, or an unrecognized option. | Loading connections.yml, validating connector config |
+| `PZ0301` | ConnectorConfigInvalid | A connection or entity config value fails the connector's own published schema: a missing required key, or an unrecognized option. Also a contract column's `pointer` on a connector that does not read nested fields, raised again when `pz run` opens the source. | Loading connections.yml, validating connector config, running a node |
 | `PZ0304` | ConnectorPackageMissing | A project declares a non-builtin connector package not present in the resolved package set. | Resolving connectors |
 | `PZ0305` | ConnectorNotInstalled | A declared connector's package is not installed under `.pz/packages`. | Building the connector registry, running a node |
 | `PZ0306` | ProtocolMismatch | A process-hosted connector's manifest declares a `runtime` the host does not recognize. | Loading a connector manifest |
@@ -93,7 +93,7 @@ Raised resolving, installing, and running connector packages, including process-
 | `PZ0357` | ProtocolViolation | A process-hosted connector violated the wire protocol while still running: a bad or reused data-plane ticket, or a malformed Arrow IPC reply. | Reading or writing through a process-hosted connector |
 | `PZ0358` | ConnectorDiedMidOperation | A process-hosted connector's executable exited unexpectedly during an in-flight operation. The message names its exit code (and POSIX signal, when the exit code encodes one). | Reading or writing through a process-hosted connector |
 | `PZ0360` | ExternalConnectorNotOutOfProcess | A non-builtin connector package declares runtime `"dotnet"`, or ships no manifest; external connectors must run out of process. | Building the connector registry |
-| `PZ0364` | ConnectorConfigWarning | A connector's own `ValidateAsync` reported a non-blocking cross-field warning, such as sftp's unpinned `host_key_fingerprint`. Never fails `pz validate`. | Validating connector config |
+| `PZ0364` | ConnectorConfigWarning | A non-blocking connector config warning: a connector's own `ValidateAsync` reported one, such as sftp's unpinned `host_key_fingerprint` or http credentials sent to an `http://` `base_url`; or an incremental http dataset whose `watermark_format` has a unit of a day or longer (and whose cursor is not a date) feeds an `append` sink, which lands re-read rows again. Never fails `pz validate`. | Validating connector config, compiling the DAG |
 
 ## 031x: Native path
 
@@ -161,6 +161,7 @@ codes from the YAML author's side.
 | `PZ0351` | WatermarkCeilingWithoutFloor | A `watermark()` comparison declares an upper bound on the cursor with no lower bound anywhere for that dataset. | Compiling the DAG |
 | `PZ0352` | FeedsRemoved | project.yml declares the removed `feeds:` block. | Loading project.yml |
 | `PZ0365` | RootEscape | A relative `path:`, once resolved against a localfiles/s3/gcs connection's `root:`, lands outside it (a `..` segment escapes). An absolute `path:` is unaffected — it ignores `root:` entirely, by design. | Planning execution, running a node |
+| `PZ0366` | OAuth2RefreshTokenRotated | An http connection with `auth.type: oauth2_refresh_token` got a token response carrying a `refresh_token` different from the configured one: the provider rotates refresh tokens. pz has no secret store to keep the new one, and the configured token may now be revoked, so the read fails permanently and the new access token is never used. Configure the provider for non-rotating refresh tokens, authorize again and update `auth.refresh_token`, or set `auth.rotation: ignore` for a provider that keeps old refresh tokens valid. | Running a node |
 
 ## 04xx: SQL
 
