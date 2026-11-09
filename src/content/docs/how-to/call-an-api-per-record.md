@@ -28,7 +28,7 @@ by the entity's own `path`, `query`, `body`, `pagination` and `items`.
 shop:
   connector: http
   base_url: https://api.shop.example
-  auth: { type: bearer, token: ${SHOP_TOKEN} }
+  auth: { type: bearer, token: "${SHOP_TOKEN}" }
   entities:
     order_lines:
       read:
@@ -151,7 +151,7 @@ pace the connection:
 shop:
   connector: http
   base_url: https://api.shop.example
-  auth: { type: bearer, token: ${SHOP_TOKEN} }
+  auth: { type: bearer, token: "${SHOP_TOKEN}" }
   rate_limit:
     requests_per_minute: 600
     burst: 20

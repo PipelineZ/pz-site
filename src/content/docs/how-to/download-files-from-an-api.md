@@ -28,7 +28,7 @@ Add a `file:` block to the entity's `read:`. `format` is `csv`, `tsv`, `json` or
 vendor:
   connector: http
   base_url: https://api.vendor.example
-  auth: { type: bearer, token: ${VENDOR_TOKEN} }
+  auth: { type: bearer, token: "${VENDOR_TOKEN}" }
   entities:
     products:
       read:

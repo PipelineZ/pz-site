@@ -17,7 +17,7 @@ HTTP-JSON data plane of its own.
 github:
   connector: http
   base_url: https://api.github.com
-  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  auth: { type: bearer, token: "${GITHUB_TOKEN}" }
   headers: { X-GitHub-Api-Version: "2022-11-28" }
 ```
 
@@ -57,9 +57,9 @@ redirect to `http://<allowed host>` is refused, since it would send the token un
 
 | Type | YAML | Where the credential goes |
 |---|---|---|
-| API key | `auth: { type: api_key, key: ${API_KEY}, header: X-Api-Key }` or `..., param: api_key` | A request header or a query parameter, exactly one of `header`/`param`. Query-parameter keys are redacted in error messages and logs. |
-| Bearer token | `auth: { type: bearer, token: ${TOKEN} }` | `Authorization: Bearer <token>` header. |
-| Basic | `auth: { type: basic, user: ${USER}, password: ${PASSWORD} }` | `Authorization: Basic <base64(user:password)>` header. |
+| API key | `auth: { type: api_key, key: "${API_KEY}", header: X-Api-Key }` or `..., param: api_key` | A request header or a query parameter, exactly one of `header`/`param`. Query-parameter keys are redacted in error messages and logs. |
+| Bearer token | `auth: { type: bearer, token: "${TOKEN}" }` | `Authorization: Bearer <token>` header. |
+| Basic | `auth: { type: basic, user: "${USER}", password: "${PASSWORD}" }` | `Authorization: Basic <base64(user:password)>` header. |
 | Azure AD | `auth: { type: azure_ad, method: service_principal, ... }` | Signs in to Microsoft Entra ID and sends `Authorization: Bearer <access token>`. See below. |
 | OAuth2 client credentials | `auth: { type: oauth2_client_credentials, token_url: ..., ... }` | Fetches a token from any OAuth2 token endpoint and sends `Authorization: Bearer <access token>`. See below. |
 | OAuth2 refresh token | `auth: { type: oauth2_refresh_token, token_url: ..., refresh_token: ..., ... }` | Exchanges a refresh token for access tokens and sends `Authorization: Bearer <access token>`. See below. |
@@ -439,7 +439,7 @@ jira:
 github:
   connector: http
   base_url: https://api.github.com
-  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  auth: { type: bearer, token: "${GITHUB_TOKEN}" }
   entities:
     issues:
       read:
@@ -567,7 +567,7 @@ OpenSearch `_search`, GraphQL, and report endpoints.
 search:
   connector: http
   base_url: https://search.example.com
-  auth: { type: api_key, key: ${SEARCH_KEY}, header: Authorization }
+  auth: { type: api_key, key: "${SEARCH_KEY}", header: Authorization }
   entities:
     orders:
       read:
@@ -702,7 +702,7 @@ A dataset with a `file:` block reads the response body as a file instead of a JS
 vendor:
   connector: http
   base_url: https://api.vendor.example
-  auth: { type: bearer, token: ${VENDOR_TOKEN} }
+  auth: { type: bearer, token: "${VENDOR_TOKEN}" }
   entities:
     daily_sessions:
       read:
@@ -881,7 +881,7 @@ describe the item request sent once per list record.
 shop:
   connector: http
   base_url: https://api.shop.example
-  auth: { type: bearer, token: ${SHOP_TOKEN} }
+  auth: { type: bearer, token: "${SHOP_TOKEN}" }
   entities:
     order_lines:
       read:

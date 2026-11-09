@@ -150,7 +150,7 @@ export a token and reference it with `${VAR}` interpolation, never a literal in 
 github:
   connector: http
   base_url: https://api.github.com
-  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  auth: { type: bearer, token: "${GITHUB_TOKEN}" }
   headers: { X-GitHub-Api-Version: "2022-11-28" }
 ```
 
@@ -365,7 +365,7 @@ the body as a map. This reads GitHub's GraphQL API, paging with the cursor writt
 github_graphql:
   connector: http
   base_url: https://api.github.com
-  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  auth: { type: bearer, token: "${GITHUB_TOKEN}" }
   entities:
     issues:
       read:
