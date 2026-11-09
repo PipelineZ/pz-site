@@ -407,7 +407,10 @@ the column's long form with `pointer`, a JSON pointer into the record:
 jira:
   connector: http
   base_url: https://jira.example.com/rest/api/3
-  auth: { type: basic, user: ${JIRA_USER}, password: ${JIRA_TOKEN} }
+  auth:
+    type: basic
+    user: ${JIRA_USER}
+    password: ${JIRA_TOKEN}
   entities:
     issues:
       read:
@@ -618,7 +621,9 @@ rules tried in order:
 github:
   connector: http
   base_url: https://api.github.com
-  auth: { type: bearer, token: ${GITHUB_TOKEN} }
+  auth:
+    type: bearer
+    token: ${GITHUB_TOKEN}
   entities:
     issues:
       read:
