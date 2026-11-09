@@ -172,9 +172,67 @@ The download URL here is a pre-signed link on another host, so that host is list
 own. If the API serves the file from a fixed path instead, use `download_path:
 /reports/{job_id}/file` in place of `download_pointer`.
 
-The start request is never retried on its own, so a `503` cannot create a second job. A job that
-is not ready within `timeout_minutes` fails with a transient error, and the engine's retry starts
-a new job.
+A job that is not ready within `timeout_minutes` fails with a transient error, and the engine's
+retry starts a new job. The start request is not retried on its own, but a `5xx` or a timeout on
+it is transient too, so the node's retry sends a new start.
+
+#### Cancel jobs that do not finish
+
+Each abandoned job keeps running on the vendor's side, and some APIs limit how many can run at
+once. If the API has a cancel endpoint, add it:
+
+```yaml title="connections.yml"
+        export:
+          job_id: /id
+          status_path: /reports/{job_id}
+          status_pointer: /state
+          ready: [done]
+          failed: [failed, cancelled]
+          download_pointer: /result/url
+          cancel_path: /reports/{job_id}
+          cancel_method: delete
+```
+
+pz now sends `DELETE /reports/<id>` when a job times out, reports `failed`, fails a poll, or is
+still running when the run is cancelled. For an API that cancels with
+`POST /reports/{job_id}/cancel`, set `cancel_path: /reports/{job_id}/cancel` and
+`cancel_method: post`. A job that became ready is never cancelled, even if its
+download fails. The cancel is sent once and waits at most 10 seconds; its outcome is printed as a
+notice, and the read still fails with its own error.
+
+#### Read a result split into several files
+
+Large exports often come back as a list of files. Point `download_pointer` at the list:
+
+```yaml title="connections.yml"
+        export:
+          job_id: /id
+          status_path: /reports/{job_id}
+          status_pointer: /state
+          ready: [done]
+          download_pointer: /result/files
+        file: { format: csv, file_column: source_file }
+        columns: { day: date, visits: bigint, bounces: bigint }
+```
+
+With a ready status response such as this one:
+
+```json
+{
+  "state": "done",
+  "result": {
+    "files": [
+      "https://exports.s3.amazonaws.com/traffic/part-0.csv",
+      "https://exports.s3.amazonaws.com/traffic/part-1.csv"
+    ]
+  }
+}
+```
+
+pz checks every URL against `allow_hosts` first, then downloads and reads the files in order, one
+at a time, each within the full `max_download_mb`. `file_column` records which file each row came
+from. A URL listed twice is read once; an empty list lands no rows, with a notice. There is no
+checkpoint between files: a failed read starts a new job on retry.
 
 ### 6. Land it
 
@@ -216,6 +274,9 @@ connection name. For an incremental entity,
 | A `404` on today's date | The vendor has not published the file yet. Nothing is lost; schedule later or set `until:`. |
 | `export job ... not ready after N minutes` | Raise `export.timeout_minutes`. The error is transient, so the engine retries with a new job. |
 | An error naming the download URL's host and `allow_hosts` | The export's download link points at another host. Add it to `allow_hosts`. |
+| A notice `could not cancel export job ...` | The cancel endpoint refused. Check `cancel_path` and `cancel_method` against the API's docs; the read's own error is reported separately. |
+| `does not resolve to a URL or a list of URLs` | `download_pointer` points at an object or a number. Point it at the URL string or the array of URLs. |
+| `export job id '...' cannot be used in a URL path` | The job id is empty, has a `.` or `..` segment, or contains `\` or a control character. pz refuses it rather than build a path from it. |
 | `'pagination' cannot be combined with 'file'` | A file is read in one request. Remove `pagination`, `max_pages` or `delta_pointer`. To download many files, list them with [`for_each`](/how-to/call-an-api-per-record/). |
 
 ## Related

@@ -1,6 +1,6 @@
 ---
 title: "Call an API once per record"
-description: "How to read child data that an API exposes only per parent, such as /orders/{id}/lines, with the http connector's for_each: a list request, one item request per record, parallel items, and safe resume."
+description: "How to read child data that an API exposes only per parent, such as /orders/{id}/lines, with the http connector's for_each: a list request or a fixed list of values, one item request per record, status rules, deduplication, parallel items, and safe resume."
 sidebar:
   order: 22
 ---
@@ -98,6 +98,31 @@ A record can be deleted between the list request and its item request. By defaul
 one notice at the end with the count and the first skipped item. A `404` on a later page of an
 item still fails.
 
+Some APIs answer a missing or inaccessible record with another status. Add a rule to the entity's
+`on_status`, which covers the item requests:
+
+```yaml title="connections.yml"
+    order_lines:
+      read:
+        for_each:
+          path: /orders
+          items: /data
+          fields: { order_id: /id }
+          on_missing: skip
+          on_status:
+            - { status: 5xx, body_contains: "maintenance", action: transient, retry_after: 2m }
+        path: /orders/{{ item.order_id }}/lines
+        items: /lines
+        on_status:
+          - { status: 403, body_contains: "order archived", action: skip }
+```
+
+An item whose first request matches the `skip` rule is skipped and counted in the same end notice
+as `on_missing` skips. `for_each.on_status` covers the list request only, so the list keeps its own
+rules; the two never inherit from each other. A `skip` rule is refused on an incremental entity
+and with `columns:`, so this entity lands raw rows with a `pz_item` column. See
+[Status rules](/connectors/http/#status-rules-on_status).
+
 ### 4. Land it into a merge sink
 
 A retried read resumes at the item and page it reached. The list page is fetched again, and if
@@ -158,7 +183,53 @@ page is fetched once all of them have finished. What changes:
 `rate_limit:` keeps the read under the API's limit in the first place; the `Retry-After` pause
 only reacts once the API has started refusing. See [Throttle a source](/how-to/throttle-a-source/).
 
-### 6. Download a file per record
+### 6. Call the same endpoint for a fixed list
+
+When the "list" is a handful of regions, accounts or metrics you already know, write it into the
+YAML with `values` instead of a list request:
+
+```yaml title="connections.yml"
+    regional_sales:
+      read:
+        for_each:
+          values:
+            - { region: eu, currency: EUR }
+            - { region: us, currency: USD }
+            - { region: apac, currency: USD }
+        path: /sales/{{ item.region }}
+        query: { currency: "{{ item.currency }}", day: "{{ run_date }}" }
+        run_date: { offset_days: -1 }
+        items: /rows
+        columns: { region: varchar, currency: varchar, sku: varchar, amount: decimal }
+```
+
+Each map is one item, and its keys are the item fields: every entry needs the same keys, and the
+values are strings, numbers, booleans or null. `values` replaces the list request, so `path`,
+`query`, `fields`, `pagination`, `max_items` and the other list keys are refused next to it.
+`concurrency` and `on_missing` work as before. If you edit the list between a failure and its
+retry, the retry starts again from the first value.
+
+### 7. Skip duplicate list records
+
+Some list endpoints repeat a record, for example when records shift between pages while you page
+through them. `dedupe: true` reads each distinct item once:
+
+```yaml title="connections.yml"
+        for_each:
+          path: /orders
+          items: /data
+          pagination: { strategy: page, size_param: per_page, size: 100 }
+          fields: { order_id: /id }
+          dedupe: true
+```
+
+A list record whose declared fields all equal an earlier record's is skipped, and one notice at the
+end gives the count and the first duplicate. Fields compare as JSON values, so `"1"` and `1` are
+different items. Duplicates do not count toward `max_items`. A retry that resumes mid-list may read
+an item again that it saw on an earlier list page, so keep the merge sink from step 4. Memory grows
+by roughly 30–60 bytes per distinct item.
+
+### 8. Download a file per record
 
 When the item request returns a file, add `file:` to the entity. This lists yesterday's exports
 and downloads each one:
@@ -207,6 +278,8 @@ $ duckdb warehouse.duckdb -c "select order_id, count(*) from order_lines group b
 | `path cannot contain '?' or '#' in a for_each dataset` | Move query parameters from `path` into `query:`. |
 | `pagination.concurrency is not supported with for_each` | Use `for_each.concurrency` instead. |
 | A `404` failing the read on one item | The record was deleted after the list was read. Set `on_missing: skip`. |
+| `for_each.<key> cannot be combined with for_each.values` | Remove the list-request keys; `values` is the list. |
+| `action 'skip' is not allowed on a dataset that is or could be incremental` | A `skip` rule needs a non-incremental entity without `columns:`. Use `action: permanent` or `transient`, or `on_missing: skip` for `404`/`410`. |
 | Duplicate rows after a retried run | Expected after a resume when the list shifted. Land into a `strategy: merge` sink keyed on the ids. |
 
 ## Related

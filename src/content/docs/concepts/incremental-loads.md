@@ -52,6 +52,15 @@ before the watermark before anything downstream sees them. The file is scanned i
 but only new rows reach your pipelines and outputs.
 :::
 
+An `http` entity has no predicate to push down: it sends the watermark to the API in a request, as
+`{{ watermark }}` in its `query`, `path` or `body`. The value goes out as ISO 8601 in UTC unless
+the entity sets `watermark_format` (Unix seconds or milliseconds, a date, or a custom layout such
+as `yyyy-MM-dd HH:mm`) and, for dates and custom layouts, `watermark_time_zone`. A format coarser
+than the cursor rounds the lower bound down and the upper bound up, so the request covers at least
+the window; the overlap is re-read, and a day-or-coarser format into an `append` sink draws a
+[`PZ0364`](/reference/error-codes/) warning. See
+[Watermark formats](/connectors/http/#watermark-formats).
+
 ### `{{ watermark() }}` in SQL
 
 The same comparison can live directly in a pipeline's `WHERE` clause instead of in YAML, using
