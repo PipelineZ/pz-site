@@ -48,7 +48,7 @@ The combination rules, such as `events` requiring `artifacts`, are in the
 
 ## Variables passed to out-of-process connectors
 
-A third-party connector runs in its own process. pz starts that process with an **empty**
+A packaged connector runs in its own process. pz starts that process with an **empty**
 environment and copies only these variables from its own:
 
 ```text
@@ -56,8 +56,44 @@ PATH HOME TMPDIR LANG LC_ALL
 http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
 ```
 
-Nothing else crosses, including every `PZ_*` variable and any secret. A connector receives its
-configuration through the protocol, never through the environment.
+On Windows it also copies `SystemRoot`, `windir`, `SystemDrive`, `TEMP`, `TMP`, `USERPROFILE`,
+`APPDATA`, `LOCALAPPDATA`, `PATHEXT` and `ComSpec`. None of these is meant to carry a secret, though
+a proxy URL can embed credentials. No `PZ_*` variable crosses, and a connector receives its
+connection configuration, including every `${VAR}` secret from `connections.yml`, through the
+protocol, never through the environment.
+
+### Ambient identity groups
+
+From pz 0.14.0, a connector package can declare that it uses a cloud SDK's ambient identity
+(managed identity, workload identity, IRSA, an ECS task role, GCP federation). For each group its
+manifest lists under `ambientIdentity`, pz also copies that group's variables, when they are set on
+the host. A package that declares nothing gets only the list above, and a package never receives
+another group's variables. `pz restore` prints `receives host identity: <groups>` under every
+package that declares any.
+
+| Group | Variables |
+|---|---|
+| `azure` | `IDENTITY_ENDPOINT`, `IDENTITY_HEADER`, `IMDS_ENDPOINT`, `MSI_ENDPOINT`, `MSI_SECRET`, `IDENTITY_SERVER_THUMBPRINT`, `AZURE_FEDERATED_TOKEN_FILE`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_AUTHORITY_HOST`, `AZURE_POD_IDENTITY_AUTHORITY_HOST`, `DEFAULT_IDENTITY_CLIENT_ID`, `ProgramData`, `AZURE_CLIENT_SECRET`, `AZURE_CLIENT_CERTIFICATE_PATH`, `AZURE_CLIENT_CERTIFICATE_PASSWORD`, `AZURE_CLIENT_SEND_CERTIFICATE_CHAIN`, `AZURE_ADDITIONALLY_ALLOWED_TENANTS`, `AZURE_TOKEN_CREDENTIALS` |
+| `aws` | `AWS_WEB_IDENTITY_TOKEN_FILE`, `AWS_ROLE_ARN`, `AWS_ROLE_SESSION_NAME`, `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`, `AWS_CONTAINER_CREDENTIALS_FULL_URI`, `AWS_CONTAINER_AUTHORIZATION_TOKEN`, `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_EC2_METADATA_DISABLED`, `AWS_EC2_METADATA_SERVICE_ENDPOINT` |
+| `gcp` | `GOOGLE_APPLICATION_CREDENTIALS`, `GCE_METADATA_HOST`, `GCE_METADATA_IP`, `GOOGLE_CLOUD_PROJECT` |
+
+Some of these are secrets, and a declaring package receives them:
+
+- `IDENTITY_HEADER`, `MSI_SECRET` and `AWS_CONTAINER_AUTHORIZATION_TOKEN` unlock a token endpoint
+  that only answers on the host itself.
+- `AZURE_CLIENT_SECRET` (or the certificate) is a service principal configured through the
+  environment, so that setup works for the connector as it does for builtin connectors. It is a
+  credential that works from anywhere.
+- `GOOGLE_APPLICATION_CREDENTIALS` may name a service-account key file rather than a federation
+  config.
+
+Other static credentials in the environment (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+`AWS_SESSION_TOKEN`, `AZURE_STORAGE_KEY`, `AZURE_USERNAME`/`AZURE_PASSWORD`) and profile selectors
+such as `AWS_PROFILE` are never forwarded: pass them in `connections.yml` as `${VAR}`. A credential
+that needs no variable at all, a VM's metadata endpoint or a login file under `HOME` (`az login`,
+`~/.aws`, gcloud ADC), works with any pz version. Installing a package is the trust decision: only
+install connectors you trust with the identities on the host. The groups each published connector
+declares are listed under [External connectors](/connectors/external/#ambient-cloud-identity).
 
 ## Secrets in connections.yml
 
