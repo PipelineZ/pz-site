@@ -1,0 +1,105 @@
+title: text "Zoom 1: pz compile, YAML + SQL become a DAG" at 40,52 style=h1
+text "Sample project: samples/hello-pz. Every snippet below is its real content." at 40,80 style=dek
+
+// ---- 1. the project on disk ----
+disk: zone "1. The project on disk" at 40,104 1312x312 title.align=left
+text "hello-pz/" at 64,152 style=small
+text "project.yml" at 75,168 style=small
+text "(vars, engine cfg)" at 177,168 style=small
+text "sources/crm.yml" at 75,184 style=small
+text "pipelines/stg_orders.sql" at 75,200 style=small
+text "pipelines/orders_enriched.sql" at 75,216 style=small
+text "pipelines/order_totals.sql" at 75,232 style=small
+text "pipelines/configs/orders_enriched.yml" at 75,248 style=small
+text "sinks/lake.yml" at 75,264 style=small
+text "data/*.csv" at 75,280 style=small
+text "sources/crm.yml" at 384,152 style=caption weight=600
+rect at 384,160 304x96 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "source: crm" at 396,180 style=small
+text "connector: localfiles" at 396,196 style=small
+text "datasets:" at 396,212 style=small
+text "customers: { path: data/customers.csv }" at 407,228 style=small
+text "orders:" at 407,244 style=small
+text "{ path: data/orders.csv }" at 466,244 style=small
+text "sinks/lake.yml" at 384,284 style=caption weight=600
+rect at 384,292 304x96 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "sink: lake" at 396,312 style=small
+text "outputs:" at 396,328 style=small
+text "orders_curated:" at 407,344 style=small
+text "format: parquet" at 418,360 style=small
+text "write: { strategy: replace }" at 418,376 style=small
+text "pipelines/stg_orders.sql" at 704,152 style=caption weight=600
+rect at 704,160 304x64 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "select id, customer_id, amount, status" at 716,180 style=small
+text "from {{ source('crm', 'orders') }}" at 716,196 style=small
+text "where amount >= {{ var('min_amount') }}" at 716,212 style=small
+text "pipelines/orders_enriched.sql" at 704,252 style=caption weight=600
+rect at 704,260 304x96 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "INSERT INTO {{ sink('lake', 'orders_curated') }}" at 716,280 style=small
+text "select o.id, o.amount, c.email" at 716,296 style=small
+text "from {{ ref('stg_orders') }} as o" at 716,312 style=small
+text "join {{ source('crm', 'customers') }} as c" at 716,328 style=small
+text "on c.id = o.customer_id" at 727,344 style=small
+text "pipelines/order_totals.sql" at 1024,152 style=caption weight=600
+rect at 1024,160 304x64 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "INSERT INTO {{ sink('lake', 'order_totals') }}" at 1036,180 style=small
+text "select customer_id, sum(amount) as total" at 1036,196 style=small
+text "from {{ ref('stg_orders') }} group by customer_id" at 1036,212 style=small
+text "pipelines/configs/orders_enriched.yml adds:" at 1024,252 style=caption weight=600
+rect at 1024,260 304x32 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "checks: [ not_null: [id, email], unique: [id] ]" at 1036,280 style=small
+
+// ---- 2. render ----
+render_zone: zone "2. Render" at 40,456 472x536 title.align=left
+scriban: focal "Scriban render" sub="sandboxed, whitelisted functions only" at 64,496 424x64
+rect at 64,600 424x128 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "{{ source('crm','orders') }}" at 76,620 style=small
+text "-> staging.src_crm__orders + edge" at 87,636 style=small
+text "{{ ref('stg_orders') }}" at 76,652 style=small
+text "-> staging.stg_orders + edge" at 87,668 style=small
+text "{{ var('min_amount') }} -> 10" at 76,684 style=small
+text "{{ sink('lake','order_totals') }}" at 76,700 style=small
+text "-> output binding, prefix stripped" at 87,716 style=small
+text "Edges are DECLARED by ref() / source() calls seen during render:" at 64,768 style=caption
+text "no SQL parsing. DuckDB still EXPLAINs every rendered query" at 64,784 style=caption
+text "before data moves." at 64,800 style=caption
+text "fan-out: one SELECT drains to N sinks" at 64,848 style=caption weight=600
+rect at 64,856 424x48 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "INSERT INTO [ {{ sink('ok','ok') }}," at 76,876 style=small
+text "{{ sink('flaky','flaky') }} ]" at 152,892 style=small
+
+// ---- 3. the compiled DAG ----
+dag_zone: zone "3. The compiled DAG" at 552,456 800x536 title.align=left
+crm_orders:    external "crm.orders" at 576,652 144x48
+crm_customers: external "crm.customers" at 576,560 144x48
+stg:           node "stg_orders" at 768,652 152x48
+enriched:      node "orders_enriched" at 968,568 168x48
+totals:        node "order_totals" at 968,736 168x48
+nn:            decision "not_null\n(id, email)" at 1176,488 152x64
+uq:            decision "unique(id)" at 1176,560 152x64
+curated:       store "lake.orders_curated" at 1176,644 152x48
+lake_totals:   store "lake.order_totals" at 1176,736 152x48
+
+crm_orders -> stg
+crm_customers -> enriched.left@584
+stg.right -> enriched.left@604
+stg.right -> totals.left
+enriched.right -> nn.left
+enriched -> uq
+enriched.right -> curated.left
+totals -> lake_totals
+text "every node id = hash(rendered SQL / canonical config): stable ids are" at 576,824 style=caption
+text "what let pz retry skip nodes that already succeeded" at 576,840 style=caption
+text ".pz/target/: what compile writes" at 576,872 style=caption weight=600
+rect at 576,880 752x96 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "compiled/order_totals.sql:" at 588,900 style=small
+text "-- output: lake.order_totals (csv, replace)" at 599,916 style=small
+text "select customer_id, sum(amount) as total" at 599,932 style=small
+text "from staging.stg_orders group by customer_id" at 599,948 style=small
+text "manifest.json: nodes, edges, content hashes" at 588,964 style=small
+text "plan.json: per-edge strategy" at 853,964 style=small
+
+disk.bottom@276 -> render_zone.top "rendered"
+render_zone.right@528 -> dag_zone.left style=primary
+
+legend at 40,1016 focal="The render step" external="SourceLoad" node="Pipeline" decision="Check" store="SinkWrite" swatch.ink/0.06="File content or compiled output"

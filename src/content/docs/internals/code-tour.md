@@ -31,11 +31,13 @@ That's the whole machine. Everything else in the codebase is making those three 
 fast, observable, and resumable.
 
 <figure class="dgm">
-  <a href="/diagrams/concepts/01-project-to-run.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run.png" alt="The three phases of a pz run: a project of connections.yml and pipeline SQL, then pz compile rendering templates and recording DAG edges from source, ref and sink calls, then pz run executing through a DuckDB staging file." />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/concepts/01-project-to-run.fdraw">
+    <a href="/diagrams/concepts/01-project-to-run.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run.png" alt="The three phases of a pz run: a project of connections.yml and pipeline SQL, then pz compile rendering templates and recording DAG edges from source, ref and sink calls, then pz run executing through a DuckDB staging file." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/01-project-to-run-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## 2. The example project
@@ -143,11 +145,13 @@ The solution is layered, and the layering is strict: each project may only refer
 below it. If you remember one rule about where code lives, remember this diagram:
 
 <figure class="dgm">
-  <a href="/diagrams/concepts/02-layering.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the fifteen in-repo connectors compile against." />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/concepts/02-layering.fdraw">
+    <a href="/diagrams/concepts/02-layering.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering.png" alt="The pz projects arranged as a strictly downward dependency stack, from Pz.Cli through Pz.Engine, Pz.Core, Pz.DuckDb and Pz.Diagnostics down to the Pz.Connectors.Abstractions ABI that the fifteen in-repo connectors compile against." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/02-layering-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 In plain terms:
@@ -241,11 +245,13 @@ The compiled DAG for the example project looks like this (this is what `pz compi
 `.pz/target/manifest.json` describe):
 
 <figure class="dgm">
-  <a href="/diagrams/concepts/03-sample-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag.png" alt="The dependency graph the sample template compiles to, coloured by node kind, with a table showing which SQL file declared each node." />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/concepts/03-sample-dag.fdraw">
+    <a href="/diagrams/concepts/03-sample-dag.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag.png" alt="The dependency graph the sample template compiles to, coloured by node kind, with a table showing which SQL file declared each node." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/03-sample-dag-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 Note what created every arrow: a `source()`, `ref()`, or `sink()` call in a `.sql` file, or a
@@ -376,11 +382,13 @@ every node gets: engine-level **retries** for transient connector errors, and er
 wrapping so an executor exception becomes a `Failed` result instead of killing the run.
 
 <figure class="dgm">
-  <a href="/diagrams/concepts/04-execution-sequence.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence.png" alt="A sequence diagram of one run: the orchestrator hands each ready node to the kind-dispatching executor, which routes it to the SourceLoad, Pipeline or SinkWrite executor, all of which talk to the same DuckDB staging database." />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/concepts/04-execution-sequence.fdraw">
+    <a href="/diagrams/concepts/04-execution-sequence.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence.png" alt="A sequence diagram of one run: the orchestrator hands each ready node to the kind-dispatching executor, which routes it to the SourceLoad, Pipeline or SinkWrite executor, all of which talk to the same DuckDB staging database." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/04-execution-sequence-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ### What each executor actually does

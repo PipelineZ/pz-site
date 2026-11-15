@@ -1,0 +1,63 @@
+title: text "The DAG: what has to wait for what" at 40,52 style=h1
+text "You never write down when things run. You write down what depends on what, and the order falls out of that." at 40,80 style=dek
+
+// ---- waves --------------------------------------------------------------------
+text "Wave 1" at 40,136 style=eyebrow
+text "3 at once" at 40,152 style=caption
+text "Wave 2" at 272,136 style=eyebrow
+text "3 at once" at 272,152 style=caption
+text "Wave 3" at 504,136 style=eyebrow
+text "everything waits here" at 504,152 style=caption
+text "Wave 4" at 736,136 style=eyebrow
+text "2 at once" at 736,152 style=caption
+text "Wave 5" at 968,136 style=eyebrow
+text "2 at once" at 968,152 style=caption
+
+248,128 -- 248,416 style=rule dash=4,4 layer=back
+480,128 -- 480,416 style=rule dash=4,4 layer=back
+712,128 -- 712,416 style=rule dash=4,4 layer=back
+944,128 -- 944,416 style=rule dash=4,4 layer=back
+
+// ---- the graph ----------------------------------------------------------------
+ex_orders: node "extract orders" at 40,184 176x56
+ex_stores: node "extract stores" at 40,264 176x56
+ex_crm:    node "extract CRM" at 40,344 176x56
+
+stg_orders:    store "stg_orders" at 272,184 176x56
+stg_stores:    store "stg_stores" at 272,264 176x56
+stg_customers: store "stg_customers" at 272,344 176x56
+
+enriched: focal "orders_enriched" at 504,264 176x56
+
+rev_store:  store "revenue_by_store" at 736,224 176x56
+rev_region: store "revenue_by_region" at 736,304 176x56
+
+dash:   node "write dashboard" at 968,224 176x56
+report: node "write region report" at 968,304 176x56
+
+ex_orders -> stg_orders
+ex_stores -> stg_stores
+ex_crm -> stg_customers
+
+stg_orders -> enriched.left@0.5 route=curve
+stg_stores -> enriched.left@0.5
+stg_customers -> enriched.left@0.5 route=curve
+
+enriched.right@0.5 -> rev_store.left route=curve
+enriched.right@0.5 -> rev_region.left route=curve
+
+rev_store -> dash
+rev_region -> report
+
+// ---- what it means ------------------------------------------------------------
+text "Eleven steps, but only five waves. The longest chain through the graph is what a run actually costs:" at 40,448 style=note
+text "everything off that chain is free, because it was already running alongside something slower." at 40,472 style=note
+
+text "What the graph gives you that a list of times never could" at 40,520 style=eyebrow
+text "The parallelism is free: nobody had to work out that three extracts can overlap." at 40,544 style=note
+text "When one node fails, you know exactly which nodes are now unsafe to run." at 40,568 style=note
+text "Adding a fourth source changes no existing step's timing, because none was ever written down." at 40,592 style=note
+
+text "Nothing here says when. It says what needs what, and that turns out to be the only thing worth writing down." at 40,640 style=dek
+
+legend at 40,672 node="A step that reads or writes outside" store="A table the pipeline builds" focal="The step everything waits for" rule="A wave boundary"

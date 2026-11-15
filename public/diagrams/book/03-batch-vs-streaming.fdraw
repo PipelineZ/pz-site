@@ -1,0 +1,98 @@
+title: text "Batch and streaming" at 40,52 style=h1
+text "Not two technologies - two answers to one question: how often?" at 40,80 style=dek
+
+// time scale: x = 100 + hours since Mon 00:00 * 16.67 (06:00 Mon = 200, one day = 400px)
+
+// ---- batch ------------------------------------------------------------------------
+text "Batch - runs on a clock" at 40,128 style=eyebrow
+text "each run swallows a whole day of orders in one gulp, then the machine goes quiet" at 40,144 style=caption
+80,248 -- 1120,248 stroke=muted/0.45 sw=1
+run1: node "one run" at 200,184 96x56
+ellipse at 196,244 8x8 fill=ink stroke=none
+text "06:00 Mon" at 200,272 style=small anchor=middle
+run2: node "one run" at 600,184 96x56
+ellipse at 596,244 8x8 fill=ink stroke=none
+text "06:00 Tue" at 600,272 style=small anchor=middle
+run3: node "one run" at 1000,184 96x56
+ellipse at 996,244 8x8 fill=ink stroke=none
+text "06:00 Wed" at 1000,272 style=small anchor=middle
+text "nothing" at 448,216 style=caption anchor=middle color=muted
+text "nothing" at 848,216 style=caption anchor=middle color=muted
+
+// ---- streaming ----------------------------------------------------------------------
+text "Streaming - runs always" at 40,328 style=eyebrow
+text "each order is handled on its own, seconds after it is placed - and the traffic is never even" at 40,344 style=caption
+80,428 -- 1120,428 stroke=muted/0.45 sw=1
+ellipse at 87,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 139,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 189,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 230,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 252,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 270,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 287,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 292,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 297,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 302,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 307,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 312,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 317,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 322,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 327,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 332,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 347,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 367,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 387,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 407,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 427,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 447,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 470,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 539,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 589,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 630,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 652,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 670,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 687,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 692,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 697,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 702,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 707,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 712,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 717,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 722,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 727,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 732,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 747,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 767,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 787,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 807,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 827,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 847,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 870,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 939,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 989,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 1030,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 1052,409 6x6 fill=link stroke=none overlap=ok
+ellipse at 1070,409 6x6 fill=link stroke=none overlap=ok
+200,422 -- 200,434 stroke=ink/0.3 sw=1
+text "06:00 Mon" at 200,452 style=small anchor=middle
+600,422 -- 600,434 stroke=ink/0.3 sw=1
+text "06:00 Tue" at 600,452 style=small anchor=middle
+1000,422 -- 1000,434 stroke=ink/0.3 sw=1
+text "06:00 Wed" at 1000,452 style=small anchor=middle
+text "lunchtime rush" at 312,392 style=caption anchor=middle color=link
+text "lunchtime rush" at 712,392 style=caption anchor=middle color=link
+text "quiet overnight - and the pipeline still has to be up" at 892,392 style=caption anchor=middle color=muted
+
+// ---- why ---------------------------------------------------------------------------
+text "Why batch is the default" at 40,520 style=eyebrow
+text "a run either worked or it didn't - one thing to check" at 40,544 style=note
+text "cheap: the machine is idle the other 23 hours" at 40,568 style=note
+text "the answer can be up to a day old" at 40,592 style=note
+text "Why streaming costs more than it looks" at 600,520 style=eyebrow
+text "the answer is always current" at 600,544 style=note
+text "far harder to build, test and reason about" at 600,568 style=note
+text "\"what did it do at 3am?\" stops being answerable" at 600,592 style=note
+
+text "Most \"we need streaming\" turns out to mean \"we need it more often than once a day.\"" at 40,640 style=dek
+
+legend at 40,672 node="One batch run" dot.ink="The 06:00 trigger" dot.link="One order, handled as it arrives"

@@ -1,0 +1,51 @@
+title: text "The graph the sample project adds up to" at 40,52 style=h1
+text "Four SQL files and one connections.yml. Nobody wrote this graph down: pz derived every edge from the calls inside them." at 40,80 style=dek
+
+// ---- node kinds, one column each ----------------------------------------------
+text "SourceLoad" at 40,136 style=eyebrow
+text "Pipeline" at 272,136 style=eyebrow
+text "Check" at 736,136 style=eyebrow
+text "SinkWrite" at 968,136 style=eyebrow
+
+customers: external "raw.customers" at 40,176 176x64
+orders:    external "raw.orders" at 40,272 176x64
+products:  external "raw.products" at 40,368 176x64
+
+stg:      node "stg_orders" at 272,272 176x64
+catalog:  node "product_catalog" at 272,368 176x64
+enriched: focal "orders_enriched" at 504,176 176x64
+totals:   node "order_totals" at 504,272 176x64
+
+checks: decision "checks" at 748,168 152x80
+
+curated:      store "lake.orders_curated" at 968,176 176x64
+lake_totals:  store "lake.order_totals" at 968,272 176x64
+lake_catalog: store "lake.product_catalog" at 968,368 176x64
+
+// ---- edges ---------------------------------------------------------------------
+customers -> enriched.left@0.3
+orders -> stg
+products -> catalog
+
+stg.right@0.3 -> enriched.left@0.7
+stg -> totals
+enriched -> checks
+enriched.top@592 -> curated.top@1056 via=592,152;1056,152
+
+totals -> lake_totals
+catalog -> lake_catalog
+
+// ---- which file declared which nodes ------------------------------------------
+files: table "Where each node came from" at 40,480 title.align=left
+  |= "file" "nodes it declares"
+  | "pipelines/stg_orders.sql" "stg_orders  +  raw.orders, from its source() call"
+  | "pipelines/orders_enriched.sql" "orders_enriched  +  raw.customers  +  lake.orders_curated"
+  | "pipelines/order_totals.sql" "order_totals  +  lake.order_totals"
+  | "pipelines/product_catalog.sql" "product_catalog  +  raw.products  +  lake.product_catalog"
+
+text "One .sql file can declare several nodes:" at 640,528 style=note
+text "its own table, the sources it reads," at 640,552 style=note
+text "and the sink it writes. That is why" at 640,576 style=note
+text "the graph is bigger than the folder." at 640,600 style=note
+
+legend at 40,656 external="SourceLoad: a source entity" node="Pipeline: one SQL file's table" focal="The table most of the graph runs through" decision="Check" store="SinkWrite: a sink entity"

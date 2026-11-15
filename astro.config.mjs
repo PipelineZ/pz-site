@@ -59,6 +59,15 @@ export default defineConfig({
 			// Code blocks read better dark — keep them that way on both themes
 			// rather than following the site's own light/dark toggle.
 			expressiveCode: { themes: ['github-dark'] },
+			// <fastdraw-diagram> draws the diagrams under /diagrams live (zoom, pan, page theme,
+			// "Open in FastDraw"). Until it loads, or without JavaScript, the PNGs inside it show.
+			// FASTDRAW_EMBED points it at another build, e.g. a local FastDraw checkout's dist-editor.
+			head: [
+				{
+					tag: 'script',
+					attrs: { type: 'module', src: process.env.FASTDRAW_EMBED ?? 'https://fastdraw.dev/embed.js' },
+				},
+			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/PipelineZ/pz' },
 			],

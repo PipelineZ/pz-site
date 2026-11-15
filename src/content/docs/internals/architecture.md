@@ -11,11 +11,13 @@ follows. If you're looking for how `pz` behaves as a user, start at
 [Key concepts](/concepts/key-concepts/) instead.
 
 <figure class="dgm">
-  <a href="/diagrams/01-overview.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/01-overview.png" alt="Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt" />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/01-overview-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/01-overview.fdraw">
+    <a href="/diagrams/01-overview.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/01-overview.png" alt="Overview: a pz project of YAML and SQL compiles to a DAG that DuckDB executes, producing data and a run receipt" />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/01-overview-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## Design principles

@@ -1,0 +1,67 @@
+title: text "Checks are gates, not a report" at 40,52 style=h1
+text "A check that runs after the data is published is an obituary. A check on the edge is a seatbelt." at 40,80 style=dek
+
+// ---- the happy path ---------------------------------------------------------------
+text "The happy path: every edge has a gate on it" at 40,136 style=eyebrow
+
+raw:      store "raw_orders" at 40,160 144x64
+gate1:    decision "gate" at 224,160 88x64
+stg:      store "stg_orders" at 352,160 144x64
+gate2:    decision "gate" at 536,160 88x64
+enriched: store "orders_enriched" at 664,160 144x64
+gate3:    decision "gate" at 848,160 88x64
+marts:    store "revenue marts" at 976,160 144x64
+dash:     focal "Dashboard" at 976,288 144x56
+
+raw -> gate1
+gate1 -> stg
+stg -> gate2
+gate2 -> enriched
+enriched -> gate3
+gate3 -> marts
+marts -> dash
+
+text "not_null(id)" at 268,252 style=small anchor=middle
+text "freshness < 24h" at 268,268 style=small anchor=middle
+text "rows > 0" at 268,284 style=small anchor=middle
+text "unique(order_id)" at 580,252 style=small anchor=middle
+text "status in the" at 580,268 style=small anchor=middle
+text "accepted set" at 580,284 style=small anchor=middle
+text "totals ≥ 0" at 892,252 style=small anchor=middle
+text "row count within" at 892,268 style=small anchor=middle
+text "20% of yesterday" at 892,284 style=small anchor=middle
+
+text "only data that got past every" at 952,312 style=caption anchor=end
+text "gate ever reaches here" at 952,328 style=caption anchor=end
+
+// ---- when a gate fails --------------------------------------------------------------
+text "When a gate fails: the run stops and the old number survives" at 40,400 style=eyebrow
+
+stg_f:   store "stg_orders" at 40,424 144x64
+fail:    decision "fails" at 224,424 88x64 fill=rose/0.12 stroke=rose title.color=rose
+enr_f:   optional "orders_enriched" sub="never ran" at 352,424 144x64
+marts_f: optional "revenue marts" sub="never ran" at 536,424 144x64
+dash_f:  focal "Dashboard" at 720,428 144x56
+
+stg_f -> fail
+fail -> enr_f style=return stroke=rose
+enr_f -> marts_f style=return stroke=soft
+marts_f -> dash_f style=return stroke=soft
+
+text "still showing yesterday's number," at 896,452 style=note
+text "and yesterday's number is correct" at 896,476 style=note
+
+// ---- what to check -----------------------------------------------------------------
+text "Four things worth checking" at 40,544 style=eyebrow
+text "not null / unique" at 40,568 style=note weight=600
+text "id is present, and appears exactly once" at 40,588 style=caption
+text "accepted values" at 320,568 style=note weight=600
+text "status is one of paid, pending, refunded" at 320,588 style=caption
+text "freshness" at 600,568 style=note weight=600
+text "the newest row is from today" at 600,588 style=caption
+text "volume" at 880,568 style=note weight=600
+text "row count within 20% of yesterday" at 880,588 style=caption
+
+text "The gate's job is not to tell you the data was bad. It is to stop the bad data before anyone builds a decision on it." at 40,636 style=dek
+
+legend at 40,668 store="A table" decision="A gate: checks on the edge" focal="What the gates protect" optional="A step that never ran" return="Nothing flows"

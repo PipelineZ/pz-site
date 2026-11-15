@@ -1,0 +1,44 @@
+title: text "Incremental loads: the watermark" at 40,52 style=h1
+text "A pipeline that remembers where it stopped only has to ask for what is new. That memory is one value." at 40,80 style=dek
+
+// ---- the loop ---------------------------------------------------------------
+text "The loop, once per run" at 40,136 style=eyebrow
+
+s1: node "Read the stored watermark" sub="2026-07-30 06:00" tag="1" at 40,160 240x72
+s2: node "Ask the source" sub="only for rows changed after it" tag="2" at 360,160 240x72
+s3: node "Fold them into the table" sub="the one you already have" tag="3" at 360,392 240x72
+s4: focal "Store the newest timestamp" sub="the one you actually saw" tag="4" at 40,392 240x72
+
+s1 -> s2
+s2 -> s3
+s3 -> s4 style=primary
+s4 -> s1
+
+text "never the whole" at 496,308 style=caption
+text "table again" at 496,324 style=caption
+text "next run starts" at 176,308 style=caption
+text "from the new value" at 176,324 style=caption
+
+// ---- what it looks like -------------------------------------------------------
+text "What it looks like on disk" at 656,136 style=eyebrow
+disk: table "watermarks.json" at 656,152 480x0 title.align=left
+  | "{ \"orders\": { \"cursor\": \"updated_at\","
+  | "               \"value\": \"2026-07-30T06:00:00Z\" } }"
+
+text "What the query becomes" at 656,264 style=eyebrow
+query: table "sql" at 656,280 480x0 title.align=left
+  | "select * from orders"
+  | "where updated_at > '2026-07-30 06:00:00'"
+
+text "After, and only after, the data is safely written" at 656,392 style=eyebrow
+after: table "watermarks.json" at 656,408 480x0 title.align=left
+  | "\"value\": \"2026-07-31T06:00:00Z\""
+
+// ---- the warning ------------------------------------------------------------
+warn: rect at 40,504 1096x72 radius=8 fill=rose/0.08 stroke=rose/0.5
+text "The order of 3 and 4 is the whole game." at 64,532 style=note weight=600 color=rose
+text "Advance the watermark before the write commits and the rows in between are gone for good: the next run will never ask for them again." at 64,556 style=note
+
+text "Full reload asks \"give me everything\" every night. Incremental asks \"what changed since 06:00?\", and that is the whole difference." at 40,616 style=dek
+
+legend at 40,648 node="A step in the run" focal="Writing the watermark: last, never first" primary="Must finish before the next step" table="The watermark on disk, and the query it makes"

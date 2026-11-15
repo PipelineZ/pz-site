@@ -10,11 +10,13 @@ is the hub, the two tiers a connector's data can travel on, why Arrow `RecordBat
 canonical in-memory format, and the ownership rules that keep the zero-copy path safe.
 
 <figure class="dgm">
-  <a href="/diagrams/03-data-plane.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/03-data-plane.png" alt="The data plane: native scan versus streamed Arrow batches, chosen per edge" />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/03-data-plane-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/03-data-plane.fdraw">
+    <a href="/diagrams/03-data-plane.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/03-data-plane.png" alt="The data plane: native scan versus streamed Arrow batches, chosen per edge" />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/03-data-plane-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## DuckDB is the hub

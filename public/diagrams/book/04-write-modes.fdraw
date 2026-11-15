@@ -1,0 +1,66 @@
+title: text "Three ways to write into a table that already has rows" at 40,52 style=h1
+text "Extract and transform are the interesting part. This is the part that loses data." at 40,80 style=dek
+
+// ---- the starting point -------------------------------------------------------
+text "The table you already have" at 40,136 style=eyebrow
+have: table "orders" at 40,152 208x0 title.align=left
+  |= "id" "status" "total"
+  | "1" "settled" "10.00"
+  | "2" "pending" "25.00"
+
+text "What arrives tonight" at 392,136 style=eyebrow
+batch: table "tonight's batch" at 392,152 208x0 title.align=left
+  |= "id" "status" "total"
+  | "2" "settled" "25.00" fill=amber/0.15
+  | "3" "pending" "40.00" fill=link/0.12
+
+text "now what?" at 744,180 style=h1 size=20
+sw_changed: rect at 744,204 12x12 radius=2 fill=amber/0.15 stroke=amber/0.5
+text "a row that changed" at 764,214 style=note
+sw_new: rect at 744,228 12x12 radius=2 fill=link/0.12 stroke=link/0.5
+text "a row that is new" at 764,238 style=note
+
+// ---- the three modes ------------------------------------------------------------
+text "replace" at 40,320 style=h1 size=20
+text "drop the table, rebuild it from what arrived" at 40,340 style=caption
+replace: table "orders after replace" at 40,360 208x0 title.align=left
+  |= "id" "status" "total"
+  | "2" "settled" "25.00" fill=amber/0.15
+  | "3" "pending" "40.00" fill=link/0.12
+
+text "append" at 392,320 style=h1 size=20
+text "add what arrived, touch nothing already there" at 392,340 style=caption
+append: table "orders after append" at 392,360 208x0 title.align=left
+  |= "id" "status" "total"
+  | "1" "settled" "10.00"
+  | "2" "pending" "25.00"
+  | "2" "settled" "25.00" fill=amber/0.15
+  | "3" "pending" "40.00" fill=link/0.12
+
+text "merge on id" at 744,320 style=h1 size=20 color=accent
+text "match on a key: update if present, insert if not" at 744,340 style=caption
+merge: table "orders after merge" at 744,360 256x0 title.align=left stroke=accent sw=2
+  |= "id" "status" "total" ""
+  | "1" "settled" "10.00" "kept"
+  | "2" "settled" "25.00" "updated" fill=amber/0.15
+  | "3" "pending" "40.00" "inserted" fill=link/0.12
+
+text "row 1 is gone: it simply" at 40,544 style=note color=rose
+text "wasn't in tonight's batch" at 40,568 style=note color=rose
+text "id 2 is in there twice," at 392,544 style=note color=amber
+text "and three times tomorrow" at 392,568 style=note color=amber
+text "run it ten times and" at 744,544 style=note color=accent
+text "the table is identical" at 744,568 style=note color=accent
+
+// ---- the deciding question ---------------------------------------------------------
+text "The question that decides it: what if tonight's job runs twice by accident?" at 40,624 style=eyebrow
+text "replace" at 40,652 style=note weight=600 color=rose
+text "you get the same table, but yesterday's rows stay gone" at 160,652 style=note
+text "append" at 40,676 style=note weight=600 color=amber
+text "every row is in there twice and every total is wrong" at 160,676 style=note
+text "merge" at 40,700 style=note weight=600 color=accent
+text "nothing happens, which is exactly what you want" at 160,700 style=note
+
+text "Pick merge unless you have a reason not to. \"It ran twice\" is not a rare accident: it is a Tuesday." at 40,748 style=dek
+
+legend at 40,780 table="A table and its rows" line.accent="The mode to pick"

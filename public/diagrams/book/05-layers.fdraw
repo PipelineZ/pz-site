@@ -1,0 +1,48 @@
+title: text "Why transformations come in layers" at 40,52 style=h1
+text "Each layer has exactly one job, and the name of a table tells you which layer it belongs to." at 40,80 style=dek
+
+// ---- the three layers -------------------------------------------------------
+raw:     zone "RAW" at 40,112 240x288
+staging: zone "STAGING" at 328,112 272x288
+marts:   zone "MARTS" at 648,112 480x288
+
+raw_orders:   store "raw_orders" at 64,152 192x64
+raw_stores:   store "raw_stores" at 64,232 192x64
+raw_contacts: store "raw_crm_contacts" at 64,312 192x64
+
+stg_orders:    node "stg_orders" sub="dedup, real types, status fixed" at 352,152 224x64
+stg_stores:    node "stg_stores" sub="one row per store, region filled in" at 352,232 224x64
+stg_customers: node "stg_customers" sub="renamed from the CRM's words" at 352,312 224x64
+
+enriched:   focal "orders_enriched" sub="orders joined to stores and customers" at 672,152 432x64
+rev_store:  node "revenue_by_store_by_day" at 672,312 204x64
+rev_region: node "revenue_by_region_by_day" at 900,312 204x64
+
+raw_orders -> stg_orders
+raw_stores -> stg_stores
+raw_contacts -> stg_customers
+
+stg_orders -> enriched.left@0.5
+stg_stores -> enriched.left@0.5
+stg_customers -> enriched.left@0.5
+
+enriched.bottom@774 -> rev_store.top
+enriched.bottom@1002 -> rev_region.top
+
+// ---- what each layer may do --------------------------------------------------
+text "An exact copy of what the source said." at 40,428 style=caption
+text "No cleaning, no renaming, no opinions." at 40,444 style=caption
+text "Exactly one staging table per raw table." at 328,428 style=caption
+text "Fix types, rename, deduplicate, then stop." at 328,444 style=caption
+text "No joins, no business logic, no totals." at 328,460 style=caption
+text "Business answers. Joins and aggregates live here and only here." at 648,428 style=caption
+text "Two marts that disagree are now structurally impossible." at 648,444 style=caption
+
+// ---- what the layers buy you ------------------------------------------------
+text "What the layers actually buy you" at 40,508 style=eyebrow
+text "When a number looks wrong, the layer names tell you which file to open first." at 40,532 style=note
+text "Two reports can no longer disagree about \"revenue\": they read the same stg_ table." at 40,556 style=note
+text "Fixing a mart never means re-extracting anything from the source." at 40,580 style=note
+text "A layer is not a folder convention. It is a promise about what a table is allowed to do." at 40,620 style=dek
+
+legend at 40,652 store="Raw table, landed as is" node="Staging or mart table" focal="The mart most reports read"

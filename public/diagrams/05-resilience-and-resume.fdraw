@@ -1,0 +1,79 @@
+title: text "When things fail: containment tiers and what survives" at 40,52 style=h1
+text "A failure is contained at the narrowest tier that can absorb it → progress already proven durable survives in a record → the next attempt resumes from it → the guarantees hold." at 40,80 style=dek
+
+// ==== CONTAINMENT: four tiers, ordered by blast radius ===========================
+text "Containment: four tiers, ordered by blast radius" at 40,136 style=eyebrow
+text "✗ a request fails somewhere" at 256,164 style=small color=rose
+
+t1: node  "1 · operation gate" at 40,184 184x56 title.align=left
+t2: node  "2 · node retry" at 40,312 184x56 title.align=left
+t3: node  "3 · circuit breaker" at 40,440 184x56 title.align=left
+t4: focal "4 · pz retry" at 40,568 184x56 title.align=left
+
+t1 -> t2 "escalates if not absorbed"
+t2 -> t3
+t3 -> t4
+
+text "engine retries & paces one idempotent request, honoring the server's" at 256,200 style=caption
+text "Retry-After: a flaky call costs one request, never the whole node" at 256,216 style=caption
+bar1: rect at 256,236 120x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
+text "one request" at 388,244 style=small color=rose
+
+text "connector diagnoses (IsTransient, RetryAfter); engine owns backoff + jitter;" at 256,328 style=caption
+text "connectors never retry internally (no double-retry)" at 256,344 style=caption
+bar2: rect at 256,364 220x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
+text "one node attempt" at 488,372 style=small color=rose
+
+text "repeated failures pause that instance's queue; probe after cool-down," at 256,456 style=caption
+text "then resume; other instances keep running" at 256,472 style=caption
+bar3: rect at 256,492 360x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
+text "one instance" at 628,500 style=small color=rose
+
+text "re-runs failed + skipped nodes only; reuses the failed run's staged tables;" at 256,584 style=caption
+text "carries committed sinks forward (provenance-gated)" at 256,600 style=caption
+bar4: rect at 256,620 520x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
+text "one run: worst case" at 788,628 style=small color=rose
+
+// ==== WHAT SURVIVES: the progress records ========================================
+text "What survives: the progress records" at 952,136 style=eyebrow
+
+z_state: zone ".pz/state/ · outlives runs" at 952,152 344x248
+wm: table "watermarks.json" at 976,184 296x0
+  | "\"pg.orders\": { cursor: updated_at,"
+  | "  value: 2026-07-21T18:00:00Z }"
+ss: table "sync-state.json" at 976,280 296x0
+  | "\"api.tickets\": { token: \"delta=9814…\" }"
+text "ordered cursor: engine-verified" at 976,364 style=caption
+text "opaque token: connector-issued, replayed verbatim" at 976,380 style=caption
+
+z_meta: zone "staging.duckdb · pz_meta · travels with the run" at 1328,152 344x248
+pl: table "partition ledger (reads)" at 1352,184 296x0
+  | "('p7', checkpoint='page=311', rows=310000)"
+sd: table "sink_deliveries (writes)" at 1352,256 296x0
+  | "('api.out', acknowledged_rows=45,"
+  | "  count=200, hash='8f3e…')"
+text "written at attempt teardown, transactionally with the data;" at 1352,364 style=caption
+text "cleared once the sink commits; pz retry ATTACHes & resumes" at 1352,380 style=caption
+
+gate: decision "commit gate: advance only after\nevery downstream sink commits" at 964,488 300x104
+gate.top -> z_state.bottom "all committed → files advance" style=primary label.caps=0
+text "this run's candidates (new cursor, new token)" at 1114,672 anchor=middle style=caption
+1114,656 -> gate.bottom
+
+rr: table "run_results.json" at 1352,512 296x0
+  | "provenance: reused | carried_forward"
+text "what pz retry reads to decide" at 1352,588 style=caption
+text "reuse & carry-forward" at 1352,604 style=caption
+
+// ==== THE PROMISE: what the destination sees =====================================
+text "The promise: what the destination sees" at 40,736 style=eyebrow
+
+p1: node "merge / replace → effectively-once" sub="retries converge on the same final state" at 40,760 392x104 fill=teal/0.1 stroke=teal
+p2: node "append → at-least-once" sub="incremental → append needs\nwrite.duplicates: accept (PZ0214)" at 456,760 392x104 fill=amber/0.1 stroke=amber
+p3: node "unknown / unsupported mode → refused" sub="before data moves (PZ0228 / PZ0324)" at 872,760 392x104 fill=amber/0.1 stroke=amber
+truth: table "when a sink still fails, pz tells the truth:" at 1288,760 384x0
+  | "delivery stopped: up to 45 row(s) already"
+  | "visible at the destination (abort: none)"
+  | "resumed past 45 delivered row(s)  ← next attempt" color.1=teal
+
+legend at 40,904 node="Containment tier" focal="Widest tier: the whole run" swatch.rose/0.3="Blast radius" table="Progress record" zone="Where a record lives" decision="Commit gate" primary="Records advance" swatch.teal/0.2="Safe to retry" swatch.amber/0.2="Needs care or refused"

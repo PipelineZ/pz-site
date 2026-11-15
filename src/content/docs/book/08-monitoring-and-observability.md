@@ -98,11 +98,13 @@ Because the DAG was derived from the code (article 6), lineage is free and alway
 one more payoff of that decision.
 
 <figure class="dgm">
-  <a href="/diagrams/book/08-observability.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/08-observability.png" alt="One run emitting a stream of NDJSON events that feeds run history, metrics and logs, with lineage coming from the DAG instead - and the distinction between a pipeline that broke loudly and one that silently lied.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/08-observability-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/08-observability.fdraw">
+    <a href="/diagrams/book/08-observability.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/08-observability.png" alt="One run emitting a stream of NDJSON events that feeds run history, metrics and logs, with lineage coming from the DAG instead - and the distinction between a pipeline that broke loudly and one that silently lied.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/08-observability-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## The 3 a.m. test

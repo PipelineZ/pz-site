@@ -1,0 +1,55 @@
+title: text "Meet pz: one process, DuckDB in the middle" at 40,52 style=h1
+text "Sources land into a staging DuckDB file, SQL transforms run inside it, sinks drain the results out." at 40,80 style=dek
+
+// ---- the hub: one DuckDB file per run ----------------------------------------
+hub: zone at 312,112 632x264 fill=accent/0.05 stroke=accent
+text "DuckDB staging database · one file per run, on disk" at 336,140 style=note weight=600 color=accent
+text ".pz/runs/2026-07-31T060000Z-a91f/staging.duckdb" at 336,160 style=small
+
+stg:      node "stg_orders" at 336,184 160x56
+enriched: node "orders_enriched" at 552,184 160x56
+checks:   decision "checks" at 768,172 152x80
+revenue:  node "revenue_by_store" at 552,280 160x56
+
+stg -> enriched
+enriched -> checks
+stg.bottom -> revenue.left
+
+text "every arrow inside the hub is one SQL file; nothing leaves DuckDB to get from one table to the next" at 336,360 style=caption
+
+// ---- sources and sinks -------------------------------------------------------
+text "Sources" at 40,168 style=eyebrow
+shop: external "shop Postgres" at 40,184 160x56
+crm:  external "crm CSVs" at 40,280 160x56
+
+text "Sinks" at 1048,168 style=eyebrow
+parquet: store "lake: parquet" at 1048,184 160x56
+csv:     store "lake: csv" at 1048,280 160x56
+
+shop -> hub.left@212 "SourceLoad" label.caps=0
+crm -> hub.left@308 "SourceLoad" label.caps=0
+checks -> parquet "SinkWrite" label.caps=0 lpos=996,202
+revenue -> csv "SinkWrite" label.caps=0 lpos=996,298
+
+// ---- the four node kinds -----------------------------------------------------
+text "Every node in a pz run is one of exactly four kinds" at 40,432 style=eyebrow
+
+text "SourceLoad" at 40,460 style=note weight=600
+text "pull rows out of a system and" at 40,480 style=caption
+text "land them in staging" at 40,496 style=caption
+
+text "Pipeline" at 336,460 style=note weight=600
+text "one SQL file, one table" at 336,480 style=caption
+text "created inside staging" at 336,496 style=caption
+
+text "Check" at 632,460 style=note weight=600
+text "an assertion that must hold before" at 632,480 style=caption
+text "anything downstream is allowed to run" at 632,496 style=caption
+
+text "SinkWrite" at 928,460 style=note weight=600
+text "drain one staging table out" at 928,480 style=caption
+text "to its destination" at 928,496 style=caption
+
+text "No cluster, no warehouse, no service to operate. The hub is a file, and the process that built it has already exited." at 40,544 style=dek
+
+legend at 40,568 external="Source system" node="Table built by one SQL file" decision="Check" store="Sink destination" swatch.accent/0.2="The staging DuckDB file"

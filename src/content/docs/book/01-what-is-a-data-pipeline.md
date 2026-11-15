@@ -42,11 +42,13 @@ Every pipeline, no matter how fancy, does some combination of three things:
    database, another file).
 
 <figure class="dgm">
-  <a href="/diagrams/book/01-what-a-pipeline-is.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is.png" alt="Three systems that never talk to each other - a shop database, a CRM API and a payments file - all feeding one pipeline that cleans, joins and totals them into a single weekly revenue report.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/01-what-a-pipeline-is.fdraw">
+    <a href="/diagrams/book/01-what-a-pipeline-is.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is.png" alt="Three systems that never talk to each other - a shop database, a CRM API and a payments file - all feeding one pipeline that cleans, joins and totals them into a single weekly revenue report.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-what-a-pipeline-is-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 The word *pipeline* is a plumbing metaphor, and it's a good one: data flows in one direction,
@@ -121,11 +123,13 @@ platform or a small CLI tool, you are buying the same things: structure for the 
 a scheduler-friendly way to run them, checks for the data, and a record of what happened.
 
 <figure class="dgm">
-  <a href="/diagrams/book/01-etl.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-etl.png" alt="Extract, transform and load shown as three stages, with one order followed all the way through: three mismatched raw shapes become one joined row, then a single aggregated revenue figure.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-etl-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/01-etl.fdraw">
+    <a href="/diagrams/book/01-etl.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/01-etl.png" alt="Extract, transform and load shown as three stages, with one order followed all the way through: three mismatched raw shapes become one joined row, then a single aggregated revenue figure.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/01-etl-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## What a pipeline is *not*
