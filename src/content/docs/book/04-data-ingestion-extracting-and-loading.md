@@ -123,11 +123,13 @@ Then the **load strategy** decides whether you're fine or double-counted:
   the second pass overwrites rows with identical values - harmless.
 
 <figure class="dgm">
-  <a href="/diagrams/book/04-write-modes.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes.png" alt="Replace, append and merge applied to the same starting table and the same incoming rows, showing the exact resulting rows in each case: replace drops the row that was not in the batch, append duplicates a key, merge updates and inserts.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/04-write-modes.fdraw">
+    <a href="/diagrams/book/04-write-modes.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes.png" alt="Replace, append and merge applied to the same starting table and the same incoming rows, showing the exact resulting rows in each case: replace drops the row that was not in the batch, append duplicates a key, merge updates and inserts.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/04-write-modes-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## Delivery guarantees: the honest vocabulary

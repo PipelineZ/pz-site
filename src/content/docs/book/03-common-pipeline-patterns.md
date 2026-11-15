@@ -23,11 +23,13 @@ streaming is a phone call (every word arrives as it's spoken). Phone calls are m
 immediate - and much more expensive to keep open, staff, and debug.
 
 <figure class="dgm">
-  <a href="/diagrams/book/03-batch-vs-streaming.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming.png" alt="Batch and streaming on the same time axis: batch is three large blocks at 06:00 each day with nothing in between, streaming is a continuous line of individual events with visible lunchtime bursts.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/03-batch-vs-streaming.fdraw">
+    <a href="/diagrams/book/03-batch-vs-streaming.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming.png" alt="Batch and streaming on the same time axis: batch is three large blocks at 06:00 each day with nothing in between, streaming is a continuous line of individual events with visible lunchtime bursts.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-batch-vs-streaming-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 The honest guidance: **most analytical needs are batch needs.** "Real-time" in a stakeholder
@@ -64,11 +66,13 @@ SELECT * FROM orders WHERE updated_at > '2026-07-30 06:00:00'  -- last watermark
 ```
 
 <figure class="dgm">
-  <a href="/diagrams/book/03-watermark.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-watermark.png" alt="The watermark loop: read the stored watermark, ask the source only for rows changed after it, fold them into the existing table, then store the newest timestamp seen - with the warning that advancing the watermark before the write commits loses rows for good.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-watermark-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/03-watermark.fdraw">
+    <a href="/diagrams/book/03-watermark.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-watermark.png" alt="The watermark loop: read the stored watermark, ask the source only for rows changed after it, fold them into the existing table, then store the newest timestamp seen - with the warning that advancing the watermark before the write commits loses rows for good.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-watermark-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 Incremental's price is state. The watermark is a little piece of memory between runs, and
@@ -89,11 +93,13 @@ the order of the last two:
   as a separate step.
 
 <figure class="dgm">
-  <a href="/diagrams/book/03-etl-vs-elt.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt.png" alt="ETL and ELT compared by where the transform sits relative to the warehouse boundary: in ETL the transform happens outside and only results land, in ELT raw data lands first and the warehouse's own engine transforms it.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/03-etl-vs-elt.fdraw">
+    <a href="/diagrams/book/03-etl-vs-elt.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt.png" alt="ETL and ELT compared by where the transform sits relative to the warehouse boundary: in ETL the transform happens outside and only results land, in ELT raw data lands first and the warehouse's own engine transforms it.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/03-etl-vs-elt-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ELT won the last decade, for two reasons. First, warehouses became cheap and fast, and SQL is

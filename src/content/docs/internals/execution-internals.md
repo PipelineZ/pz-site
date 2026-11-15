@@ -11,11 +11,13 @@ each phase writes to disk. For the user-facing version, what you see when you ru
 see [How a run works](/concepts/how-a-run-works/); this page does not repeat it.
 
 <figure class="dgm">
-  <a href="/diagrams/02-compile-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges" />
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true" />
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/02-compile-dag.fdraw">
+    <a href="/diagrams/02-compile-dag.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/02-compile-dag.png" alt="Compile: ref(), source() and sink() calls observed during rendering declare the DAG edges" />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/02-compile-dag-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 ## Content-addressed node ids

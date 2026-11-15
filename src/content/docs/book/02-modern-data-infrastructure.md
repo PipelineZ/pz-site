@@ -16,11 +16,13 @@ shopping list.
 ## The map
 
 <figure class="dgm">
-  <a href="/diagrams/book/02-data-platform.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform.png" alt="A full-size data platform: sources feed ingestion, which lands in a data lake and then a warehouse that transformation reads and writes back into, before consumers read it - with orchestration and monitoring cutting across everything.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/02-data-platform.fdraw">
+    <a href="/diagrams/book/02-data-platform.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform.png" alt="A full-size data platform: sources feed ingestion, which lands in a data lake and then a warehouse that transformation reads and writes back into, before consumers read it - with orchestration and monitoring cutting across everything.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-data-platform-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 Let's walk it left to right.
@@ -129,11 +131,13 @@ consumer's needs set the requirements: how fresh, how clean, how fast.
 Here's the honest version for a three-bakery chain:
 
 <figure class="dgm">
-  <a href="/diagrams/book/02-small-version.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-small-version.png" alt="The same platform collapsed into one pipeline tool triggered by cron, writing analytics tables and dated raw files, with a table mapping each big-platform layer to what plays its part in the small version.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-small-version-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/02-small-version.fdraw">
+    <a href="/diagrams/book/02-small-version.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/02-small-version.png" alt="The same platform collapsed into one pipeline tool triggered by cron, writing analytics tables and dated raw files, with a table mapping each big-platform layer to what plays its part in the small version.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/02-small-version-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 One pipeline tool, one scheduler entry, one set of analytics tables, one folder of raw

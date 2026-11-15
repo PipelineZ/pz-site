@@ -31,11 +31,13 @@ central object of orchestration: a **directed acyclic graph**, or **DAG**.
 - **Graph**: dots and arrows.
 
 <figure class="dgm">
-  <a href="/diagrams/book/06-dag.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/06-dag.png" alt="An eleven-node dependency graph resolved into five waves, showing which extracts, staging tables, joins, marts and writes can run at the same time and which must wait.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/06-dag-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/06-dag.fdraw">
+    <a href="/diagrams/book/06-dag.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/06-dag.png" alt="An eleven-node dependency graph resolved into five waves, showing which extracts, staging tables, joins, marts and writes can run at the same time and which must wait.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/06-dag-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 The DAG earns its keep three ways:

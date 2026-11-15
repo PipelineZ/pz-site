@@ -56,5 +56,5 @@ monitored, automated pipeline" is the arc of this series.
 Front to back if you're new - each article builds on the previous one. If you already run
 pipelines for a living, Part I will read as a refresher and you can skim to
 [Meet pz](10-meet-pz/). Every diagram is a FastDraw drawing that follows the site's light
-and dark themes; click one to open it full size, and the editable `.fdraw` source sits
-next to it under `/diagrams/`.
+and dark themes. Drag one to move it, zoom with its buttons, or open it in the FastDraw
+editor; the `.fdraw` source sits next to it under `/diagrams/`.

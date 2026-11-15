@@ -69,11 +69,13 @@ Article 3 introduced the pattern; here it is doing its job. Break the one query 
 steps, each materialized as its own table, each reading only the layer before:
 
 <figure class="dgm">
-  <a href="/diagrams/book/05-layers.png">
-    <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/05-layers.png" alt="Raw, staging and mart layers side by side with the real table names, showing one staging table per raw table and joins and aggregates confined to the mart layer.">
-    <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/05-layers-dark.png" alt="" aria-hidden="true">
-  </a>
-  <figcaption>Click the diagram to open it full size.</figcaption>
+  <fastdraw-diagram src="/diagrams/book/05-layers.fdraw">
+    <a href="/diagrams/book/05-layers.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/book/05-layers.png" alt="Raw, staging and mart layers side by side with the real table names, showing one staging table per raw table and joins and aggregates confined to the mart layer.">
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/book/05-layers-dark.png" alt="" aria-hidden="true">
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
 </figure>
 
 Each staging file is short and boring - and boring is the compliment:

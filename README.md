@@ -19,13 +19,17 @@ Deploys to GitHub Pages on push to `main` (`.github/workflows/deploy.yml`).
 
 ## Diagrams
 
-The diagrams under `public/diagrams/` are [FastDraw](https://fastdraw.dev) files (`.fdraw`). Each
-one has a light PNG and a `-dark.png` drawn with FastDraw's Night look, both committed next to
-the source. After changing a diagram, render it again:
+The diagrams under `public/diagrams/` are [FastDraw](https://fastdraw.dev) files (`.fdraw`). Pages
+show them with `<fastdraw-diagram src="….fdraw">` (loaded from `https://fastdraw.dev/embed.js` in
+`astro.config.mjs`), which draws the file in the page's light or dark theme, lets readers drag and
+zoom, and has an "Open in FastDraw" button.
+
+Inside each element sits a light PNG and a `-dark.png`, shown until the diagram is drawn and to
+readers without JavaScript. After changing a diagram, check it and draw the PNGs again:
 
 ```bash
-scripts/render-diagrams.sh public/diagrams/book/05-layers.fdraw   # one diagram
-scripts/render-diagrams.sh                                        # all of them
+npx fastdraw render public/diagrams/book/05-layers.fdraw --dark --scale 2   # one diagram
+npx fastdraw render public/diagrams --dark --scale 2                        # all of them
 ```
 
 `npx fastdraw open <file>` opens a diagram in the browser editor and saves edits back to the file.

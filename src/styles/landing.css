@@ -605,11 +605,18 @@
 	[data-has-hero] .hero .sl-link-button { transition: none; }
 }
 
-/* Excalidraw diagrams: one PNG per theme, swapped with the site theme.
-   Three states to cover - explicit dark, explicit light, and no attribute
-   at all (Starlight's "auto"), where only prefers-color-scheme decides. */
+/* FastDraw diagrams: <fastdraw-diagram> draws the .fdraw live and follows the site theme
+   itself. The PNG pair inside it is the fallback (before it loads, or without JavaScript):
+   one PNG per theme, swapped with the site theme. Three states to cover - explicit dark,
+   explicit light, and no attribute at all (Starlight's "auto"), where only
+   prefers-color-scheme decides. */
 .dgm {
 	margin: 1.75rem 0;
+}
+.dgm fastdraw-diagram {
+	display: block;
+	max-height: 80vh;
+	border-radius: 0.5rem;
 }
 .dgm a {
 	display: block;
