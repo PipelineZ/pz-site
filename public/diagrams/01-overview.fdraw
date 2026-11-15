@@ -31,8 +31,8 @@ src_az:    external "Azure Blob / ADLS" sub="az:// native scan" at 40,512 208x64
 
 text "staging tables" at 464,372 style=eyebrow
 text "pipelines (SQL)" at 736,372 style=eyebrow
-t_orders:    store "src_crm__orders" at 464,384 192x56
-t_customers: store "src_crm__customers" at 464,464 192x56
+t_orders:    store "src_raw__orders" at 464,384 192x56
+t_customers: store "src_raw__customers" at 464,464 192x56
 p_stg:       node "stg_orders" at 736,384 192x56
 p_enriched:  node "orders_enriched" at 736,464 192x56
 
@@ -43,8 +43,8 @@ t_customers -> p_enriched
 text "SQL transforms run inside DuckDB: parallel and out-of-core, spilling to disk when data > memory_limit." at 464,552 style=caption
 text ".NET never buffers a dataset, only in-flight batches." at 464,568 style=caption
 
-sink_parquet: store "Parquet files" sub="out/curated/, az://..." at 1144,352 208x64
-sink_csv:     store "CSV files" sub="out/totals/" at 1144,432 208x64
+sink_parquet: store "Parquet files" sub="out/orders_curated/, az://..." at 1144,352 208x64
+sink_csv:     store "CSV files" sub="out/order_totals/" at 1144,432 208x64
 sink_sql:     store "SQL Server table" sub="append / replace / merge" at 1144,512 208x64
 
 src_sql.right -> 432,384
@@ -54,9 +54,9 @@ src_az.right -> 432,544
 960,464 -> sink_csv.left
 960,544 -> sink_sql.left
 
-text "connectors: NuGet packages," at 340,624 style=caption anchor=middle
-text "each in its own isolated ALC" at 340,640 style=caption anchor=middle
-text "connectors" at 1052,624 style=caption anchor=middle
+text "builtin connectors run in-process;" at 340,624 style=caption anchor=middle
+text "any other is a NuGet package, out-of-process over PCP" at 340,640 style=caption anchor=middle
+text "sink connectors" at 1052,624 style=caption anchor=middle
 text "(same model)" at 1052,640 style=caption anchor=middle
 
 40,672 -- 1352,672 style=rule
@@ -76,9 +76,9 @@ e6: ellipse at 1124,756 8x8 fill=ink stroke=none
 e7: ellipse at 1296,756 8x8 fill=ink stroke=none
 
 text "load" at 96,788 anchor=middle weight=600 color=ink
-text "restore-check" at 268,788 anchor=middle weight=600 color=ink
-text "compile" at 440,788 anchor=middle weight=600 color=ink
-text "validate" at 612,788 anchor=middle weight=600 color=ink
+text "compile" at 268,788 anchor=middle weight=600 color=ink
+text "validate" at 440,788 anchor=middle weight=600 color=ink
+text "restore-check" at 612,788 anchor=middle weight=600 color=ink
 text "plan" at 784,788 anchor=middle weight=600 color=ink
 text "execute" at 956,788 anchor=middle weight=600 color=accent size=14
 text "finalize" at 1128,788 anchor=middle weight=600 color=ink

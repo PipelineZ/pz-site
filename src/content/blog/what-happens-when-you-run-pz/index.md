@@ -1,6 +1,6 @@
 ---
 title: "What happens when you run pz"
-description: "The seven phases between typing pz run and seeing a result: load, compile, validate, plan, dispatch, finalize, report, and what each one leaves on disk."
+description: "The eight phases between typing pz run and seeing a result: load, compile, validate, restore-check, plan, dispatch, finalize, report, and what each one leaves on disk."
 date: 2026-09-11
 heroImage:
   dark: ./hero-dark.svg
@@ -8,64 +8,70 @@ heroImage:
   alt: "The word Inside above the accent-colored words 'a run', next to a yellow circuit path over a dot grid."
 ---
 
-`pz run` looks like one command. Underneath it's seven phases, each one narrowing what could
+`pz run` looks like one command. Underneath it's eight phases, each one narrowing what could
 still go wrong before any byte of data actually moves. Knowing the shape of a run tells you
 where to look when something fails, and why a retry is usually cheap.
 
 <figure style="overflow-x:auto">
-<svg viewBox="0 0 1200 190" role="img" aria-label="Seven phases of a run: Load, Compile, Validate, Plan, Dispatch, Finalize, Report, connected left to right by arrows" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:640px;height:auto;display:block">
+<svg viewBox="0 0 1300 190" role="img" aria-label="Eight phases of a run: Load, Compile, Validate, Restore-check, Plan, Dispatch, Finalize, Report, connected left to right by arrows" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:760px;height:auto;display:block">
 	<defs>
 		<marker id="pz-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 			<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--sl-color-text-accent)"/>
 		</marker>
 	</defs>
 	<g fill="none" stroke="var(--sl-color-text-accent)" stroke-width="3">
-		<line x1="170" y1="115" x2="200" y2="115" marker-end="url(#pz-arrow)"/>
-		<line x1="335" y1="115" x2="365" y2="115" marker-end="url(#pz-arrow)"/>
-		<line x1="500" y1="115" x2="530" y2="115" marker-end="url(#pz-arrow)"/>
-		<line x1="665" y1="115" x2="695" y2="115" marker-end="url(#pz-arrow)"/>
-		<line x1="830" y1="115" x2="860" y2="115" marker-end="url(#pz-arrow)"/>
-		<line x1="995" y1="115" x2="1025" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="162" y1="115" x2="188" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="320" y1="115" x2="346" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="478" y1="115" x2="504" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="636" y1="115" x2="662" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="794" y1="115" x2="820" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="952" y1="115" x2="978" y2="115" marker-end="url(#pz-arrow)"/>
+		<line x1="1110" y1="115" x2="1136" y2="115" marker-end="url(#pz-arrow)"/>
 	</g>
 	<g font-family="Arial, sans-serif" text-anchor="middle">
-		<rect x="40" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="105" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="105" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">1</text>
-		<text x="105" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Load</text>
-		<text x="105" y="174" font-size="13" fill="var(--sl-color-gray-3)">parse files</text>
-		<rect x="205" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="270" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="270" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">2</text>
-		<text x="270" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Compile</text>
-		<text x="270" y="174" font-size="13" fill="var(--sl-color-gray-3)">build the DAG</text>
-		<rect x="370" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="435" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="435" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">3</text>
-		<text x="435" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Validate</text>
-		<text x="435" y="174" font-size="13" fill="var(--sl-color-gray-3)">dry-compile SQL</text>
-		<rect x="535" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="600" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="600" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">4</text>
-		<text x="600" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Plan</text>
-		<text x="600" y="174" font-size="13" fill="var(--sl-color-gray-3)">pick a path</text>
-		<rect x="700" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="765" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="765" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">5</text>
-		<text x="765" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Dispatch</text>
-		<text x="765" y="174" font-size="13" fill="var(--sl-color-gray-3)">run in parallel</text>
-		<rect x="865" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="930" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="930" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">6</text>
-		<text x="930" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Finalize</text>
-		<text x="930" y="174" font-size="13" fill="var(--sl-color-gray-3)">commit or fail</text>
-		<rect x="1030" y="80" width="130" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
-		<circle cx="1095" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
-		<text x="1095" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">7</text>
-		<text x="1095" y="122" font-size="19" font-weight="700" fill="var(--sl-color-white)">Report</text>
-		<text x="1095" y="174" font-size="13" fill="var(--sl-color-gray-3)">exit code</text>
+		<rect x="33" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="97" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="97" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">1</text>
+		<text x="97" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Load</text>
+		<text x="97" y="174" font-size="13" fill="var(--sl-color-gray-3)">parse files</text>
+		<rect x="191" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="255" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="255" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">2</text>
+		<text x="255" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Compile</text>
+		<text x="255" y="174" font-size="13" fill="var(--sl-color-gray-3)">build the DAG</text>
+		<rect x="349" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="413" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="413" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">3</text>
+		<text x="413" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Validate</text>
+		<text x="413" y="174" font-size="13" fill="var(--sl-color-gray-3)">dry-compile SQL</text>
+		<rect x="507" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="571" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="571" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">4</text>
+		<text x="571" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Restore-check</text>
+		<text x="571" y="174" font-size="13" fill="var(--sl-color-gray-3)">start connectors</text>
+		<rect x="665" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="729" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="729" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">5</text>
+		<text x="729" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Plan</text>
+		<text x="729" y="174" font-size="13" fill="var(--sl-color-gray-3)">pick a path</text>
+		<rect x="823" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="887" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="887" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">6</text>
+		<text x="887" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Dispatch</text>
+		<text x="887" y="174" font-size="13" fill="var(--sl-color-gray-3)">run in parallel</text>
+		<rect x="981" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="1045" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="1045" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">7</text>
+		<text x="1045" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Finalize</text>
+		<text x="1045" y="174" font-size="13" fill="var(--sl-color-gray-3)">commit or fail</text>
+		<rect x="1139" y="80" width="128" height="70" rx="10" fill="var(--sl-color-gray-6)" stroke="var(--sl-color-gray-5)" stroke-width="1.5"/>
+		<circle cx="1203" cy="80" r="15" fill="var(--sl-color-text-accent)"/>
+		<text x="1203" y="86" font-size="15" font-weight="700" fill="var(--sl-color-black)">8</text>
+		<text x="1203" y="122" font-size="17" font-weight="700" fill="var(--sl-color-white)">Report</text>
+		<text x="1203" y="174" font-size="13" fill="var(--sl-color-gray-3)">exit code</text>
 	</g>
 </svg>
-<figcaption>The seven phases of a run, in order. Everything narrows what can still go wrong before dispatch, the only phase that touches real data.</figcaption>
+<figcaption>The eight phases of a run, in order. Everything narrows what can still go wrong before dispatch, the only phase that touches real data.</figcaption>
 </figure>
 
 ## Load and compile
@@ -93,6 +99,10 @@ dry-compiles against empty tables shaped by its known columns. A broken query fa
 clear error, instead of surfacing as a node failure partway through a real run. This is one tier
 of a five-tier validation model; see [Validation and errors](/concepts/validation-and-errors/)
 for the full set, including the connectivity checks that only run with `--connect`.
+
+## Restore-check
+
+Before planning, `pz` checks that `pz.lock.json` still matches the connectors `project.yml` declares (unless you pass `--no-lock-check`) and starts each one: builtin connectors run in-process, restored ones as their own process. This is also where a selection such as `--select` or `--all` becomes the exact set of nodes to run.
 
 ## Plan
 
@@ -156,7 +166,7 @@ down what it did before the next one starts.
 
 ## Try it
 
-[How a run works](/concepts/how-a-run-works/) covers the same seven phases in full, including
+[How a run works](/concepts/how-a-run-works/) covers the same eight phases in full, including
 the exit code table and every artifact a run leaves behind. [Delivery
 guarantees](/concepts/delivery-guarantees/) picks up from here: what each write strategy
 promises the destination when a run dies mid-write, and what `pz retry` will and won't redo.

@@ -6,7 +6,7 @@ host: zone "THE HOST · ONE PROCESS" at 40,120 1008x584 title.align=left
 
 cli:     node "Pz.Cli" sub="the verbs you type: console output, exit codes" at 312,168 464x80
 engine:  node "Pz.Engine" sub="dispatcher, node executors,\nretries, run artifacts, watermarks" at 312,312 224x80
-pm:      node "Pz.PackageManagement" sub="NuGet resolution, pz.lock.json,\nthe connector ALC host" at 808,312 224x80
+pm:      node "Pz.PackageManagement" sub="NuGet resolution, pz.lock.json,\nthe out-of-process connector host" at 808,312 224x80
 core:    node "Pz.Core" sub="YAML + SQL parsing, Scriban,\nDAG compilation, validation" at 64,456 224x80
 duckdb:  node "Pz.DuckDb" sub="the only code that talks to\nDuckDB: Arrow, query, EXPLAIN" at 312,456 224x80
 diag:    node "Pz.Diagnostics" sub="typed run events, tracing,\nmeters: one event stream" at 560,456 224x80
@@ -24,7 +24,7 @@ text "Pz.Cli uses Pz.Core" at 188,372 style=caption
 text "directly too" at 188,388 style=caption
 
 // ---- plugins: each in its own load context -----------------------------------------
-plugins: zone "PLUGINS · EACH IN ITS OWN AssemblyLoadContext" at 1128,120 336x440 title.align=left
+plugins: zone "CONNECTOR SIDE · COMPILES AGAINST THE ABI ONLY" at 1128,120 336x440 title.align=left
 
 conns:   optional "connectors/" sub="fifteen, in this repo:\nLocalFiles  Postgres  S3  SqlServer  AzureBlob\nGcs  Http  MySql  Sqlite  Sftp\nDuckDb  DuckLake  Quack  MotherDuck  Iceberg" at 1152,168 288x96
 toolkit: optional "Pz.Connectors.Toolkit" sub="optional author helpers: codecs, auth,\npaging, transient classification" at 1152,312 288x80
@@ -41,6 +41,9 @@ text "the pz mcp server: typed tools an agent can call to introspect, verify and
 text "Pz.State.Http · Pz.State.SqlServer" at 40,796 style=small size=11
 text "pluggable state backends for watermarks and run artifacts" at 296,796 style=caption
 
-text "That downward-only rule is what makes a connector a plugin instead of a fork: it compiles against the ABI and nothing else." at 40,840 style=dek
+text "Pz.Connectors.Protocol" at 40,820 style=small size=11
+text "generated gRPC code for PCP, the wire format between pz and an out-of-process connector" at 296,820 style=caption
 
-legend at 40,864 node="Host project" focal="The connector ABI everything compiles against" optional="Plugin, loaded in its own AssemblyLoadContext" arrow="Depends on"
+text "That downward-only rule is what makes a connector a plugin instead of a fork: it compiles against the ABI and nothing else." at 40,864 style=dek
+
+legend at 40,888 node="Host project" focal="The connector ABI everything compiles against" optional="Connector-side project" arrow="Depends on"
