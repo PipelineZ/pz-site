@@ -1,0 +1,34 @@
+title: text "How a connector is found and called" at 40,52 style=h1
+text "A builtin is called in process. Any other connector is a shim that starts a child process on first use and talks PCP to it." at 40,80 style=dek
+
+// ---- the pz process ------------------------------------------------------------
+host: zone "PZ PROCESS" at 40,120 784x448 title.align=left
+
+engine:   node "Planner and engine" sub="call ISourceConnector or\nISinkConnector, nothing else" at 64,248 192x80
+registry: focal "ConnectorRegistry" sub="one entry per connector name" at 304,248 200x80
+
+builtin: node "Builtin connector" sub="LocalFiles, Postgres, S3 ...\nadded by BuiltinConnectors" at 576,160 224x80
+lazy:    node "LazyProcessConnector" sub="the shim: same interfaces,\nspawns nothing until called" at 576,336 224x80
+pkgs:    store ".pz/packages" sub="pz.connector.json, verified\nagainst pz.lock.json" at 576,464 224x80
+
+engine -> registry
+registry.right@272 -> builtin.left
+registry.right@304 -> lazy.left
+pkgs.top -> lazy.bottom
+
+text "Nothing above the registry can tell" at 64,376 style=caption
+text "a builtin from a shim: both are plain" at 64,392 style=caption
+text "ISourceConnector / ISinkConnector objects." at 64,408 style=caption
+
+// ---- the child -----------------------------------------------------------------
+child_zone: zone "CHILD PROCESS · ONE PER OPEN" at 952,288 272x152 title.align=left
+child: external "Connector process" sub="served by the C# or Rust SDK" at 976,336 224x80
+
+lazy.right@360 -> child.left@360 "gRPC control" style=link
+lazy.right@392 <-> child.left@392 "Arrow IPC data" lside=below
+
+text "Spawned on the first OpenAsync, ValidateAsync" at 952,476 style=caption
+text "or CheckConnectionAsync. Disposing the opened" at 952,492 style=caption
+text "source or sink ends the process." at 952,508 style=caption
+
+legend at 40,592 node="Part of pz" focal="Where every lookup goes" store="Restored packages on disk" external="Third-party code, out of process" arrow="Resolves to or calls" link="PCP control plane over AF_UNIX"

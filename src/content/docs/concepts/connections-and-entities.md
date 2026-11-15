@@ -134,6 +134,16 @@ The `sample` template uses both spellings deliberately: `customers` and `orders`
 `connections.yml` because more than one pipeline could want them on the same terms, while
 `products` carries its options at its own `source()` call, because only one pipeline reads it.
 
+<figure class="dgm">
+  <fastdraw-diagram src="/diagrams/concepts/connections-and-entities.fdraw">
+    <a href="/diagrams/concepts/connections-and-entities.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/connections-and-entities.png" alt="The sample project's raw and lake connections in connections.yml, with customers and orders read options declared in YAML while products and product_catalog are declared by their source() and sink() calls in product_catalog.sql." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/connections-and-entities-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
+</figure>
+
 ### Secrets
 
 Any connection value can reference an environment variable with `${VAR}`. `pz` interpolates it

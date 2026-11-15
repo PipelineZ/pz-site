@@ -44,6 +44,16 @@ the whole [flow](/concepts/key-concepts/) through it. This is the closure `pz ru
 uses; it does not accept wildcards or tags, only exact node names. `pz ls` prints every node's
 name in the `name` column, so it doubles as the lookup table.
 
+<figure class="dgm">
+  <fastdraw-diagram src="/diagrams/concepts/selecting-nodes.fdraw">
+    <a href="/diagrams/concepts/selecting-nodes.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/selecting-nodes.png" alt="The sample project's graph split in two: pz run orders_enriched selects orders_enriched with its source loads, stg_orders, its checks and lake.orders_curated, and leaves out order_totals and the whole products flow." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/selecting-nodes-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
+</figure>
+
 ### The `--select` grammar
 
 `--select` takes a small expression language, closer to a query than a name:

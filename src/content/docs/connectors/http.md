@@ -514,6 +514,16 @@ the crawl, since every page it serves is full.
 All five strategies work with checkpointed resume: a retried read continues from the page it
 reached.
 
+<figure class="dgm">
+  <fastdraw-diagram src="/diagrams/connectors/http.fdraw">
+    <a href="/diagrams/connectors/http.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/connectors/http.png" alt="Flowchart of one HTTP read: build the request, send it, classify the response as 2xx, transient (the engine retries from the last checkpoint) or permanent (the read fails), extract the records, land the rows with a checkpoint, and loop while there is a next-page signal." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/connectors/http-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
+</figure>
+
 | Pagination key | Default | Meaning |
 |---|---|---|
 | `location` | `query` | `body` writes the page number, offset or cursor into a `post` read's JSON body instead of the URL. See [POST reads](#post-reads). `header` sends a cursor token in a request header; see [Page tokens in headers](#page-tokens-in-headers). |

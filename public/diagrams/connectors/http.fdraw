@@ -1,0 +1,28 @@
+title: text "How one HTTP read pages through an API" at 40,52 style=h1
+text "Each response is classified, its records land with a checkpoint, and the pagination signal decides whether to go round again." at 40,80 style=dek
+
+// ---- the spine: one page per lap ------------------------------------------------
+build:   step "Build the request" sub="path, query, body, with bindings filled in" at 400,128 240x60
+send:    step "Send it" sub="auth added, paced by rate_limit" at 400,216 240x60
+status:  decision "How did the\nAPI answer?" at 420,304 200x96
+extract: step "Extract the records" sub="items pointer, then columns" at 400,440 240x60
+land:    focal "Land the rows" sub="checkpoint after every page" at 400,528 240x60
+next:    decision "Next-page\nsignal?" at 420,616 200x96
+done:    terminal "Read done" at 440,752 160x48
+
+// ---- what a refused response becomes -------------------------------------------
+fail:  terminal "Read fails" sub="any other 4xx" at 168,328 160x48
+retry: step "Engine retries" sub="408, 429, 5xx; resumes at\nthe last checkpoint" at 740,322 200x60
+
+build -> send
+send -> status
+status -> extract "2xx"
+extract -> land
+land -> next
+next -> done "none"
+next.left -> build.left style=primary "next page" via=112,664;112,158 lpos=260,654
+status.left -> fail.right "permanent"
+status.right -> retry.left "transient"
+retry.top -> build.right style=return via=840,158
+
+legend at 40,832 step="One stage of the read" decision="A question about the response" focal="Rows land and the position is saved" terminal="How the read ends" primary="Next page: go round again" return="Retry resumes from the checkpoint"

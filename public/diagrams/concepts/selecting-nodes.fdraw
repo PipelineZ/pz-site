@@ -1,0 +1,34 @@
+title: text "What pz run orders_enriched selects" at 40,52 style=h1
+text "A flow name expands to that node, every ancestor and every descendant. Nothing else in the project runs." at 40,80 style=dek
+
+// ---- the closure of orders_enriched ------------------------------------------
+picked: zone "SELECTED: orders_enriched, its ancestors, its descendants" at 40,120 920x248 fill=accent/0.05 stroke=accent/0.5
+
+customers: external "src_raw__customers" at 64,176 176x64
+orders:    external "src_raw__orders" at 64,272 176x64
+stg:       node "stg_orders" at 296,272 176x64
+enriched:  focal "orders_enriched" at 528,176 176x64
+checks:    decision "2 checks" at 772,168 152x80
+curated:   store "lake.orders_curated" at 760,272 176x64
+
+customers -> enriched
+orders -> stg
+stg.right -> enriched.left@0.7
+enriched -> checks
+enriched.bottom -> curated.left
+
+// ---- everything else stays out -----------------------------------------------
+skipped: zone "NOT SELECTED: not upstream or downstream of orders_enriched" at 40,400 920x216
+
+totals:       node "order_totals" at 528,440 176x64
+lake_totals:  store "lake.order_totals" at 760,440 176x64
+products:     external "src_raw__products" at 64,528 176x64
+catalog:      node "product_catalog" at 296,528 176x64
+lake_catalog: store "lake.product_catalog" at 760,528 176x64
+
+stg.bottom@448 -> totals.left
+totals -> lake_totals
+products -> catalog
+catalog -> lake_catalog
+
+legend at 40,640 external="SourceLoad" node="Pipeline" focal="The node named on the command line" decision="Check" store="SinkWrite"
