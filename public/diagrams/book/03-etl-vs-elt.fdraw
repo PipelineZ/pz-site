@@ -1,0 +1,48 @@
+title: text "ETL and ELT" at 40,52 style=h1
+text "Same three jobs. The only question is which side of the warehouse wall the transform happens on." at 40,80 style=dek
+
+// ---- ETL ----------------------------------------------------------------------
+text "ETL" at 40,140 style=h1 size=20
+text "transform first, land the result" at 40,160 style=caption
+
+etl_extract:   node "Extract" at 64,192 192x56
+etl_transform: focal "Transform" sub="outside the warehouse" at 64,288 192x56
+etl_wall:      zone "INSIDE THE WAREHOUSE" at 40,376 520x144 title.align=right
+etl_load:      store "Load results" at 64,424 192x64
+
+etl_extract -> etl_transform
+etl_transform -> etl_load
+
+text "the tool reshapes the data" at 288,308 style=caption
+text "before the warehouse ever sees it" at 288,324 style=caption
+text "only finished tables" at 288,452 style=caption
+text "ever land" at 288,468 style=caption
+
+// ---- ELT ----------------------------------------------------------------------
+text "ELT" at 640,140 style=h1 size=20
+text "land everything first, transform in place" at 640,160 style=caption
+
+elt_extract:   node "Extract" at 664,192 192x56
+elt_wall:      zone "INSIDE THE WAREHOUSE" at 640,280 520x240 title.align=right
+elt_load:      store "Load raw" at 664,320 192x64
+elt_transform: focal "Transform" sub="the warehouse's SQL engine" at 664,432 192x56
+
+elt_extract -> elt_load
+elt_load -> elt_transform
+
+text "raw data lands untouched;" at 888,348 style=caption
+text "the warehouse's own SQL engine" at 888,364 style=caption
+text "does the reshaping, and you can" at 888,380 style=caption
+text "re-run it without a new extract" at 888,396 style=caption
+
+// ---- when each wins -------------------------------------------------------------
+text "ETL wins when" at 40,560 style=eyebrow
+text "there is no warehouse: the tool is the engine" at 40,584 style=note
+text "the raw data is too big, or too sensitive, to land as-is" at 40,608 style=note
+text "ELT wins when" at 640,560 style=eyebrow
+text "you already pay for a warehouse with spare compute" at 640,584 style=note
+text "analysts want to re-transform without re-extracting" at 640,608 style=note
+
+text "pz is ETL: DuckDB is the engine and it runs inside the tool, so there is no wall to be on the far side of." at 40,656 style=dek
+
+legend at 40,688 node="Extract step" focal="Where the transform runs" store="What lands in the warehouse" zone="The warehouse wall"

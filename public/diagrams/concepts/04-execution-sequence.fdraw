@@ -1,0 +1,44 @@
+title: text "Who calls what, in order" at 40,52 style=h1
+text "The orchestrator never knows what kind of node it is holding. It only knows the node is ready." at 40,80 style=dek
+
+// ---- one band per node kind ---------------------------------------------------
+z_src:  zone "ONE SOURCELOAD NODE" at 40,184 1840x176
+z_pipe: zone "ONE PIPELINE NODE" at 40,376 1840x176
+z_sink: zone "ONE SINKWRITE NODE" at 40,568 1840x232
+
+// ---- participants: lifelines 256px apart ----------------------------------------
+orch: focal    "RunOrchestrator" at 168,112 176x56
+disp: focal    "KindDispatching" sub="Executor" at 424,112 176x56
+src:  node     "SourceLoad" sub="Executor" at 680,112 176x56
+pipe: node     "Pipeline" sub="Executor" at 936,112 176x56
+sink: node     "SinkWrite" sub="Executor" at 1192,112 176x56
+duck: store    "DuckDB" sub="staging" at 1448,112 176x56
+conn: external "sink connector" at 1704,112 176x56
+
+orch_l: orch.bottom -- +0,656 style=lifeline
+disp_l: disp.bottom -- +0,656 style=lifeline
+src_l:  src.bottom  -- +0,656 style=lifeline
+pipe_l: pipe.bottom -- +0,656 style=lifeline
+sink_l: sink.bottom -- +0,656 style=lifeline
+duck_l: duck.bottom -- +0,656 style=lifeline
+conn_l: conn.bottom -- +0,656 style=lifeline
+
+// ---- SourceLoad ------------------------------------------------------------------
+orch_l@240 -> disp_l@240 "raw.orders is ready  (SourceLoad)" label.caps=0
+disp_l@296 -> src_l@296 "execute" label.caps=0
+src_l@336 -> duck_l@336 "land rows into staging.src_raw__orders" label.caps=0 lpos=896,326
+
+// ---- Pipeline --------------------------------------------------------------------
+orch_l@432 -> disp_l@432 "stg_orders is ready  (Pipeline)" label.caps=0
+disp_l@488 -> pipe_l@488 "execute" label.caps=0 lpos=640,478
+pipe_l@528 -> duck_l@528 "CREATE TABLE staging.stg_orders AS ..." label.caps=0 lpos=1152,518
+
+// ---- SinkWrite -------------------------------------------------------------------
+orch_l@624 -> disp_l@624 "lake.order_totals is ready  (SinkWrite)" label.caps=0
+disp_l@680 -> sink_l@680 "execute" label.caps=0 lpos=640,670
+sink_l@728 -> duck_l@728 "read staging.order_totals" label.caps=0
+sink_l@776 -> conn_l@776 "write batches, then Commit" label.caps=0 style=link lpos=1664,766
+
+text "Everything below the dispatcher is one interface deep, which is why adding a node kind never touches the orchestrator." at 40,856 style=note
+
+legend at 40,888 focal="Orchestrator and dispatcher: kind-blind" node="One executor per node kind" store="Shared staging database" external="Destination connector" link="Crosses to the destination"

@@ -1,0 +1,60 @@
+title: text "The modern data platform" at 40,52 style=h1
+text "The full-size version. Data flows left to right; two concerns cut across the whole thing." at 40,80 style=dek
+
+// ---- sources ---------------------------------------------------------------------
+text "Sources" at 40,144 style=eyebrow
+apps:   external "App databases" at 40,160 224x48
+saas:   external "SaaS tools & APIs" at 40,224 224x48
+files:  external "Files & exports" at 40,288 224x48
+events: external "Event streams" at 40,352 224x48
+
+// ---- the platform ------------------------------------------------------------------
+platform: zone "THE DATA PLATFORM" at 312,112 560x288
+
+ingestion: node "Ingestion" at 336,248 144x64
+lake:      store "Data lake" sub="landing zone" at 520,248 144x64
+warehouse: focal "Warehouse" at 704,248 144x64
+transform: node "Transformation" at 704,144 144x64
+
+text "SQL runs inside the" at 528,164 style=caption
+text "warehouse and writes" at 528,180 style=caption
+text "back into it" at 528,196 style=caption
+text "raw copies kept as files" at 520,336 style=caption
+
+apps -> ingestion.left@0.5
+saas -> ingestion.left@0.5
+files -> ingestion.left@0.5
+events -> ingestion.left@0.5
+
+ingestion -> lake
+lake -> warehouse
+warehouse.top@744 -> transform.bottom@744
+transform.bottom@808 -> warehouse.top@808
+
+// ---- consumers ---------------------------------------------------------------------
+text "Consumers" at 920,144 style=eyebrow
+bi:       external "Dashboards & BI" at 920,160 224x48
+analysts: external "Analysts writing SQL" at 920,224 224x48
+ml:       external "ML models" at 920,288 224x48
+other:    external "Other systems" at 920,352 224x48
+
+warehouse.right@0.5 -> bi.left
+warehouse.right@0.5 -> analysts.left
+warehouse.right@0.5 -> ml.left
+warehouse.right@0.5 -> other.left
+
+// ---- two concerns that cut across everything --------------------------------------
+text "Two concerns that" at 40,488 style=eyebrow
+text "cut across everything" at 40,502 style=eyebrow
+
+orchestrator: node "Orchestrator" sub="decides what runs, in what order, and when" at 312,472 560x56 stroke=amber/0.7
+monitoring:   node "Monitoring & catalog" sub="is it running? is it fresh? where did this number come from?" at 40,560 1104x56 stroke=violet/0.6
+
+orchestrator.top@408 -> ingestion.bottom style=return
+orchestrator.top@776 -> warehouse.bottom style=return
+monitoring.top@248 -> events.bottom@248 style=return
+monitoring.top@936 -> other.bottom@936 style=return
+
+text "Almost no team needs all of this. The rest of the series builds the small version - and it is still a data platform." at 40,664 style=dek
+
+legend at 40,696 external="Where data comes from or goes" node="A job the platform does" store="Raw files" focal="Where the answers live" zone="The platform itself" return="Watches or triggers"

@@ -1,0 +1,47 @@
+title: text "The same platform, several boxes smaller" at 40,52 style=h1
+text "Same jobs, far less machinery. Every layer from the big diagram still exists - it just isn't a separate product." at 40,80 style=dek
+
+// ---- sources -----------------------------------------------------------------------
+shop:     external "shop Postgres" at 40,200 224x48
+crm:      external "CRM API" at 40,264 224x48
+payments: external "payments file drop" at 40,328 224x48
+
+// ---- the one tool and its clock ---------------------------------------------------
+cron:     node "cron / Task Scheduler" at 328,112 256x56
+pipeline: focal "one pipeline tool" sub="one process, one machine" at 328,224 256x128
+text "= ingestion + transformation, together" at 328,376 style=caption
+
+cron -> pipeline "06:00 daily" style=return
+
+shop -> pipeline.left@0.5
+crm -> pipeline.left@0.5
+payments -> pipeline.left@0.5
+
+// ---- what it writes -------------------------------------------------------------
+analytics: store "analytics tables" at 648,216 224x56
+raw:       store "dated raw files" at 648,304 224x56
+text "kept so you can rebuild without asking again" at 648,380 style=caption
+dashboard: external "Dashboard" at 920,216 176x56
+
+pipeline.right@244 -> analytics.left style=primary
+pipeline.right@332 -> raw.left
+analytics -> dashboard
+
+// ---- every layer, and what plays its part here ------------------------------------
+text "Every layer from the big diagram - and what plays its part here" at 40,436 style=eyebrow
+
+layers_a: matrix at 40,452 512x0
+  |= "Big-platform layer" "What plays its part here"
+  |  "Ingestion" "the pipeline tool itself"
+  |  "Data lake / landing zone" "a folder of dated raw files"
+  |  "Warehouse" "a handful of analytics tables"
+
+layers_b: matrix at 584,452 512x0
+  |= "Big-platform layer" "What plays its part here"
+  |  "Transformation" "SQL files in the same project"
+  |  "Orchestrator" "cron, or Windows Task Scheduler"
+  |  "Monitoring & catalog" "run logs, exit codes, the DAG"
+
+text "Nothing conceptual is missing. What's missing is five vendors, four services, and a platform team." at 40,600 style=dek
+
+legend at 40,632 external="Source or reader" node="The clock" focal="The one tool doing the work" store="What it writes" primary="The tables people read" return="Starts a run"

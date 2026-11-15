@@ -17,6 +17,19 @@ npm run build    # static build to dist/
 
 Deploys to GitHub Pages on push to `main` (`.github/workflows/deploy.yml`).
 
+## Diagrams
+
+The diagrams under `public/diagrams/` are [FastDraw](https://fastdraw.dev) files (`.fdraw`). Each
+one has a light PNG and a `-dark.png` drawn with FastDraw's Night look, both committed next to
+the source. After changing a diagram, render it again:
+
+```bash
+scripts/render-diagrams.sh public/diagrams/book/05-layers.fdraw   # one diagram
+scripts/render-diagrams.sh                                        # all of them
+```
+
+`npx fastdraw open <file>` opens a diagram in the browser editor and saves edits back to the file.
+
 ## Documentation versions
 
 Step-by-step release procedure: [docs/releasing-documentation.md](docs/releasing-documentation.md).

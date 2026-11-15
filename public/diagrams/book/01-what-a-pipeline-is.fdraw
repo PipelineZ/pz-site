@@ -1,0 +1,49 @@
+title: text "What a data pipeline is" at 40,52 style=h1
+text "Three systems, three shapes, one question: how much revenue did each region make last week?" at 40,80 style=dek
+
+// ---- three systems that never talk to each other -----------------------------
+text "Three systems that never talk to each other" at 40,128 style=eyebrow
+
+shop: external "Shop database" sub="Postgres - the app's own tables" at 40,144 320x56
+shop_rows: table "orders" at 40,212 320x0
+  |= "id" "store_id" "total" "placed_at"
+  |  "81" "3"        "42.10" "2026-07-30"
+
+crm: external "CRM" sub="a SaaS tool, reachable only by API" at 40,316 320x56
+crm_rows: table "GET /contacts" at 40,384 320x0
+  | "{\"id\":55, \"region\":\"North\", \"store\":3}"
+
+pay: external "Payments provider" sub="a file dropped nightly" at 40,464 320x56
+pay_rows: table "payments.csv" at 40,532 320x0
+  |= "txn" "order_id" "amount" "status"
+  |  "p9"  "81"       "42.10"  "settled"
+
+// ---- one pipeline ------------------------------------------------------------
+text "One pipeline" at 456,316 style=eyebrow
+pipeline: focal "Pipeline" sub="clean  ·  join  ·  total" at 456,332 256x96
+
+shop.right -> pipeline.left@0.5
+crm.right -> pipeline.left@0.5
+pay.right -> pipeline.left@0.5
+
+text "What that middle box actually does" at 456,468 style=eyebrow
+text "clean - fix types, drop junk rows" at 456,492 style=note
+text "join - match orders to stores and customers" at 456,516 style=note
+text "total - add up by region and week" at 456,540 style=note
+
+// ---- one answer --------------------------------------------------------------
+text "One answer" at 808,284 style=eyebrow
+text "one row per region per week" at 808,300 style=caption
+report: table "Weekly revenue report" at 808,316 296x0
+  |= "region" "week"     "revenue"
+  |  "North"  "2026-W30" "184,220"
+  |  "South"  "2026-W30" "131,905"
+  |  "West"   "2026-W30" "97,410"
+
+pipeline.right -> report.left@380 style=primary
+
+text "-> this is what the dashboard reads on Monday morning" at 808,468 style=caption
+
+text "That is all a pipeline is - the standing answer to a question no single system can answer alone." at 40,664 style=dek
+
+legend at 40,696 external="A system you don't own" table="What its data looks like" focal="The pipeline" primary="The answer it produces"

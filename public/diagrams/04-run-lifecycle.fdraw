@@ -1,0 +1,90 @@
+title: text "pz run: dispatch, one event stream, retries" at 40,52 style=h1
+text "hello-pz executing with engine.threads: 2. Row counts are the sample's real data." at 40,80 style=dek
+
+// ==== 1. the dispatcher: two slots over time =====================================
+text "1. The dispatcher: topological, engine.threads = 2" at 40,136 style=eyebrow
+
+text "slot 1" at 40,188 style=small color=muted
+text "slot 2" at 40,260 style=small color=muted
+
+s1a: node "crm.orders" at 104,160 136x48 fill=amber/0.12 stroke=amber
+s1b: node "stg_orders" at 248,160 120x48 fill=link/0.1 stroke=link
+s1c: node "orders_enriched" at 376,160 152x48 fill=link/0.1 stroke=link
+s1d: node "checks (x2)" at 536,160 112x48 fill=violet/0.1 stroke=violet
+s1e: node "lake.orders_curated" at 656,160 176x48 fill=teal/0.1 stroke=teal
+
+s2a: node "crm.customers" at 104,232 136x48 fill=amber/0.12 stroke=amber
+text "(idle, waiting)" at 256,260 style=small color=soft
+s2c: node "order_totals" at 376,232 152x48 fill=link/0.1 stroke=link
+s2d: node "lake.order_totals" at 536,232 176x48 fill=teal/0.1 stroke=teal
+
+104,304 -> 832,304 style=line head=arrow
+text "time → (bars coloured by node kind: SourceLoad / Pipeline / Check / SinkWrite)" at 104,324 style=caption
+
+text "A node becomes runnable when all parents succeed. I/O nodes overlap CPU nodes naturally:" at 40,360 style=caption
+text "DuckDB queries run on DuckDB's own threads while .NET async handles the edges." at 40,376 style=caption
+text "max_concurrency (per instance): instance permit acquired BEFORE the global engine.threads slot" at 40,400 style=small color=amber
+
+// ==== 2. what you see: the TTY renderer ===========================================
+text "2. What you see (TTY renderer)" at 904,136 style=eyebrow
+
+tty: table "Running hello_pz (run 01JZX9M2E8...)" at 904,160 768x0 title.align=left
+  | "sources" fill=ink/0.04
+  | "+ crm.customers" "3 rows" "0.1s" "native scan: read_csv"
+  | "+ crm.orders" "5 rows" "0.1s" "native scan: read_csv"
+  | "pipelines" fill=ink/0.04
+  | "+ stg_orders" "3 rows" "0.2s" ""
+  | "~ orders_enriched" "" "61%" "hash join"
+  | "sinks" fill=ink/0.04
+  | "o lake.order_totals" "" "queued" ""
+  | "Summary: 6 of 9 done · peak mem 0.2 GB (duckdb) + 90 MB (host)"
+
+// ==== 3. the same run as NDJSON ==================================================
+text "3. The same run, as a machine sees it" at 40,448 style=eyebrow
+
+ndjson: table "stdout with --log-format json: one event per line" at 40,464 title.align=left
+  | "{\"event\":\"run_started\",\"at\":\"2026-07-09T09:14:03.120Z\",\"runId\":\"01JZX9M2E8…\",\"projectName\":\"hello_pz\",\"nodeCount\":9}"
+  | "{\"event\":\"node_started\",\"nodeId\":\"c9a41f…\",\"kind\":\"SourceLoad\",\"name\":\"crm.orders\"}"
+  | "{\"event\":\"node_progress\",\"name\":\"crm.orders\",\"rows\":5,\"bytes\":183,\"batches\":1}"
+  | "{\"event\":\"node_completed\",\"name\":\"crm.orders\",\"kind\":\"SourceLoad\",\"status\":\"success\",\"rows\":5,\"durationMs\":104}"
+  | "{\"event\":\"retry_scheduled\",\"name\":\"crm.orders\",\"attempt\":2,\"maxAttempts\":3,\"delayMs\":800,\"reason\":\"transient: reset\"}"
+  | "{\"event\":\"node_started\",\"nodeId\":\"7be2d0…\",\"kind\":\"Pipeline\",\"name\":\"stg_orders\"}"
+  | "..."
+  | "{\"event\":\"run_completed\",\"status\":\"success\",\"durationMs\":1240}"
+
+text "One typed event stream, two renderers: the TTY tree above" at 816,488 style=caption
+text "and this NDJSON are the same events (contract: docs/events.md)." at 816,504 style=caption
+text "Per node, order is guaranteed:" at 816,536 style=caption
+text "node_started → node_progress* → retry_scheduled* → node_completed" at 816,552 style=small
+text "Fields are append-only: renaming or removing one" at 816,584 style=caption
+text "is a breaking change." at 816,600 style=caption
+
+// ==== 4. when a node fails ========================================================
+text "4. When a node fails" at 40,736 style=eyebrow
+
+f_ok:   node "crm.orders" sub="ok" at 40,792 144x56 fill=teal/0.1 stroke=teal
+f_bad:  node "stg_orders" sub="FAILED" at 232,792 144x56 fill=rose/0.1 stroke=rose sub.color=rose
+f_sk1:  optional "orders_enriched" sub="skipped" at 432,760 176x56
+f_sk2:  optional "order_totals" sub="skipped" at 432,824 176x56
+
+f_ok -> f_bad
+f_bad.right@820 -> f_sk1.left style=return
+f_bad.right@820 -> f_sk2.left style=return
+
+text "Default = dbt semantics: fail the node, skip its descendants, let independent" at 40,912 style=caption
+text "branches finish (--fail-fast cancels the world). Exit code becomes 1." at 40,928 style=caption
+text "exit codes: 0 success | 1 completed with node failures | 2 config/validation error | 3 fatal" at 40,968 style=small color=ink
+
+rr: table "run_results.json · checkpointed after every node (crash-safe)" at 688,760 title.align=left
+  | "{\"runId\":\"01JZX9M2E8…\",\"nodes\":["
+  | "  {\"name\":\"stg_orders\",\"status\":\"failed\",\"error\":\"PZ0501: Binder Error: column 'amout' does not exist\"},"
+  | "  {\"name\":\"orders_enriched\",\"status\":\"skipped\"}, … ]}"
+
+text "$ pz retry re-runs only failed + skipped nodes; succeeded nodes with unchanged hash and upstream results" at 688,888 style=caption
+text "are skipped. Transient errors also retry in-run: the connector classifies (IsTransient, RetryAfter)," at 688,904 style=caption
+text "the engine backs off + jitters." at 688,920 style=caption
+text "retry config: per source/sink instance + per dataset/output (nearest wins)" at 688,948 style=small color=amber
+
+cb: node "circuit breaker per instance: N transient failures → open (cool-down) → half-open probe → closed" sub="waits don't consume attempts; give-up = PZ0506 (retryable): pz retry picks it back up once recovered" at 688,964 984x56 fill=amber/0.08 stroke=amber dash=5,4 title.align=left
+
+legend at 40,1052 swatch.amber/0.3="SourceLoad" swatch.link/0.3="Pipeline" swatch.violet/0.3="Check" swatch.teal/0.3="SinkWrite or success" swatch.rose/0.3="Failed" optional="Skipped" table="Terminal output or file" return="Skip propagates"

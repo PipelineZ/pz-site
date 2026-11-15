@@ -1,0 +1,90 @@
+title: text "PipelineZ (pz): how a run works" at 40,52 style=h1
+text "dbt-inspired batch ETL CLI for .NET. YAML + SQL in, DuckDB does the heavy lifting, one process, no cluster." at 40,80 style=dek
+
+// ---- the 10-second version ---------------------------------------------------
+text "The 10-second version" at 40,124 style=eyebrow
+
+project: node "project" sub="YAML + SQL files" at 40,136 280x64
+compile: node "pz compile" sub="render SQL, build the DAG" at 384,136 280x64
+run:     focal "pz run" sub="DuckDB executes the DAG" at 728,136 280x64
+result:  store "data written to sinks" sub="+ run_results.json" at 1072,136 280x64
+
+project -> compile
+compile -> run
+run -> result
+
+40,236 -- 1352,236 style=rule
+
+// ---- hub and spoke -------------------------------------------------------------
+text "One process, hub and spoke: DuckDB is the hub" at 40,276 size=16 weight=600 color=ink
+
+text "Sources" at 40,312 style=eyebrow
+text "Sinks" at 1144,312 style=eyebrow
+
+land:  zone "land" at 280,328 120x272
+drain: zone "drain" at 992,328 120x272
+hub:   zone "DuckDB staging DB · .pz/runs/<run_id>/staging.duckdb" at 432,328 528x272
+
+src_sql:   external "SQL Server" sub="arrow stream (SqlClient)" at 40,352 208x64
+src_files: external "Local files" sub="CSV / JSON / Parquet" at 40,432 208x64
+src_az:    external "Azure Blob / ADLS" sub="az:// native scan" at 40,512 208x64
+
+text "staging tables" at 464,372 style=eyebrow
+text "pipelines (SQL)" at 736,372 style=eyebrow
+t_orders:    store "src_crm__orders" at 464,384 192x56
+t_customers: store "src_crm__customers" at 464,464 192x56
+p_stg:       node "stg_orders" at 736,384 192x56
+p_enriched:  node "orders_enriched" at 736,464 192x56
+
+t_orders -> p_stg
+p_stg -> p_enriched
+t_customers -> p_enriched
+
+text "SQL transforms run inside DuckDB: parallel and out-of-core, spilling to disk when data > memory_limit." at 464,552 style=caption
+text ".NET never buffers a dataset, only in-flight batches." at 464,568 style=caption
+
+sink_parquet: store "Parquet files" sub="out/curated/, az://..." at 1144,352 208x64
+sink_csv:     store "CSV files" sub="out/totals/" at 1144,432 208x64
+sink_sql:     store "SQL Server table" sub="append / replace / merge" at 1144,512 208x64
+
+src_sql.right -> 432,384
+src_files.right -> 432,464
+src_az.right -> 432,544
+960,384 -> sink_parquet.left
+960,464 -> sink_csv.left
+960,544 -> sink_sql.left
+
+text "connectors: NuGet packages," at 340,624 style=caption anchor=middle
+text "each in its own isolated ALC" at 340,640 style=caption anchor=middle
+text "connectors" at 1052,624 style=caption anchor=middle
+text "(same model)" at 1052,640 style=caption anchor=middle
+
+40,672 -- 1352,672 style=rule
+
+// ---- lifecycle: phases in order (evenly spaced, not to time scale) --------------
+text "Every command runs the same lifecycle: compile and plan just stop early" at 40,712 size=16 weight=600 color=ink
+
+axis: 96,760 -- 1300,760 stroke=muted/0.45 sw=1 layer=back
+// x = 96 + 172*i
+e0: ellipse at 92,756 8x8 fill=ink stroke=none
+e1: ellipse at 264,756 8x8 fill=ink stroke=none
+e2: ellipse at 436,756 8x8 fill=ink stroke=none
+e3: ellipse at 608,756 8x8 fill=ink stroke=none
+e4: ellipse at 780,756 8x8 fill=ink stroke=none
+e5: ellipse at 948,752 16x16 fill=accent stroke=none
+e6: ellipse at 1124,756 8x8 fill=ink stroke=none
+e7: ellipse at 1296,756 8x8 fill=ink stroke=none
+
+text "load" at 96,788 anchor=middle weight=600 color=ink
+text "restore-check" at 268,788 anchor=middle weight=600 color=ink
+text "compile" at 440,788 anchor=middle weight=600 color=ink
+text "validate" at 612,788 anchor=middle weight=600 color=ink
+text "plan" at 784,788 anchor=middle weight=600 color=ink
+text "execute" at 956,788 anchor=middle weight=600 color=accent size=14
+text "finalize" at 1128,788 anchor=middle weight=600 color=ink
+text "report" at 1300,788 anchor=middle weight=600 color=ink
+
+text "the only phase that moves data" at 956,806 anchor=middle style=caption
+text "backfill-safety knobs: retry / windows / caps / pacing / breaker" at 956,822 anchor=middle style=small
+
+legend at 40,856 node="Step or pipeline (SQL)" focal="The run itself" external="Source system" store="Table or sink output" zone="Connector boundary / DuckDB process" dot.accent="The phase that moves data"

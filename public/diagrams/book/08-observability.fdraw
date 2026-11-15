@@ -1,0 +1,51 @@
+title: text "One event stream, every question" at 40,52 style=h1
+text "Everything you can ask about a pipeline comes out of one place: the events it emits while it runs." at 40,80 style=dek
+
+// ---- what a run emits ---------------------------------------------------------------
+text "What a run emits" at 40,136 style=eyebrow
+
+run: focal "one run" at 40,224 144x64
+
+events: table "events" at 232,192 520x0 title.align=left stroke=accent sw=1.5
+  | "{\"event\":\"run_started\",   \"run\":\"r-8f31\", \"at\":\"06:00:00Z\"}"
+  | "{\"event\":\"node_finished\", \"node\":\"stg_orders\", \"rows\":184220}"
+  | "{\"event\":\"node_failed\",   \"node\":\"revenue_by_region\", ...}" fill=rose/0.1
+  | "{\"event\":\"run_finished\",  \"status\":\"failed\", \"ok\":9, \"bad\":1}"
+
+text "one line per thing that happened, written whether anyone is watching or not" at 232,344 style=caption
+
+history: node "Run history" sub="did last night work? what ran at 3am?" at 816,168 320x48
+metrics: node "Metrics · OpenTelemetry" sub="is it getting slower? wake someone." at 816,232 320x48
+logs:    node "Logs" sub="what exactly happened inside that step?" at 816,296 320x48
+
+run -> events
+events.right@0.5 -> history.left
+events.right@0.5 -> metrics.left
+events.right@0.5 -> logs.left
+
+// ---- what the graph adds -------------------------------------------------------------
+text "What the graph gives you that events cannot" at 40,400 style=eyebrow
+dag:     node "the DAG" at 40,424 144x56
+lineage: node "lineage" at 232,424 192x56
+
+dag -> lineage
+lineage.right -> 488,452
+text "\"this number on the dashboard: which source did it come from, through which steps?\"" at 504,457 style=note
+
+// ---- two ways to fail ---------------------------------------------------------------
+text "Two completely different ways a pipeline fails, and only one of them is loud" at 40,528 style=eyebrow
+
+broke: rect at 40,552 536x128 radius=8 fill=rose/0.08 stroke=rose/0.5
+text "It broke" at 64,584 style=note weight=600 color=rose
+text "A step failed and nothing was written." at 64,608 style=note
+text "You find out in minutes, because the run said so." at 64,632 style=note
+
+lied: rect at 600,552 536x128 radius=8 fill=amber/0.1 stroke=amber/0.5
+text "It lied" at 624,584 style=note weight=600 color=amber
+text "Every step succeeded and the number is wrong." at 624,608 style=note
+text "You find out in a board meeting," at 624,632 style=note
+text "which is why checks and lineage exist." at 624,656 style=note
+
+text "Monitoring answers \"is it running?\". Checks and lineage answer \"is it right?\". You need both, and they are not the same tool." at 40,724 style=dek
+
+legend at 40,756 focal="The run" table="The event stream it writes" node="What reads the stream, or the graph" swatch.rose/0.15="Loud failure" swatch.amber/0.15="Silent failure"

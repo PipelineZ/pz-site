@@ -1,0 +1,56 @@
+title: text "Extract, Transform, Load" at 40,52 style=h1
+text "The three jobs every pipeline does, in the order it does them - and what one order looks like at each step." at 40,80 style=dek
+
+// ---- the three stages --------------------------------------------------------
+extract:   zone "EXTRACT" at 40,112 320x304
+transform: zone "TRANSFORM" at 408,112 352x304
+load:      zone "LOAD" at 808,112 320x304
+
+text "pull raw copies out - change nothing" at 64,152 style=caption
+text "decide what the data actually means" at 432,152 style=caption
+text "publish where people read it" at 832,152 style=caption
+
+read_orders:    node "read orders" at 64,176 272x64
+read_customers: node "read customers" at 64,256 272x64
+read_payments:  node "read payments" at 64,336 272x64
+
+clean:     node "clean & standardize" sub="one shape per source" at 432,176 304x64
+join:      node "join" sub="orders now carry a region" at 432,256 304x64
+aggregate: node "aggregate" sub="millions of rows -> a few" at 432,336 304x64
+
+write: focal "write report tables" at 832,256 272x64
+
+read_orders -> clean.left@0.5
+read_customers -> clean.left@0.5
+read_payments -> clean.left@0.5
+clean -> join
+join -> aggregate
+aggregate.right -> write.left
+
+// ---- one order, followed through ---------------------------------------------
+text "Follow one order all the way through" at 40,456 style=eyebrow
+
+raw: table "as extracted" at 40,472 320x0
+  | "orders"    "81 | 3 | \"42.10\" | 2026-07-30"
+  | "customers" "55 | \"North\""
+  | "payments"  "p9 | 81 | 42.10 | settled"
+
+row: table "after transform" at 408,472 352x0
+  | "order 81"     "store 3"        "region North"
+  | "amount 42.10" "status settled" "week 2026-W30"
+  | "amount is a number now, not text"
+
+report: table "after load" at 808,472 320x0
+  |= "region" "week" "revenue"
+  |  "North"  "2026-W30" "184,220"
+
+raw.right@520 -> row.left@520
+row.right@520 -> report.left@520
+
+text "three shapes, nothing lines up" at 40,604 style=caption
+text "one row that finally knows everything about itself" at 408,604 style=caption
+text "order 81 is now part of a number" at 808,604 style=caption
+
+text "Extract copies. Transform decides meaning. Load publishes. Pipelines go wrong when those three get mixed together." at 40,652 style=dek
+
+legend at 40,684 node="A job inside a stage" focal="Where the answer is published" table="What one order looks like at that point"

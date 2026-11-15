@@ -1,0 +1,59 @@
+title: text "From files on disk to data at the destination" at 40,52 style=h1
+text "Two kinds of file go in. A dependency graph comes out. One process executes it." at 40,80 style=dek
+
+// ---- 1 your project ------------------------------------------------------------------
+text "1. Your project" at 40,136 style=note weight=600
+text "connections.yml: every place this project talks to" at 40,164 style=small
+
+yml: zone at 40,176 400x144 fill=ink/0.04 stroke=ink/0.15
+text "raw:" at 60,196 style=small size=10
+text "connector: localfiles" at 72,212 style=small size=10
+text "entities:" at 72,228 style=small size=10
+text "orders:" at 84,244 style=small size=10
+text "read: { path: data/orders.csv, format: csv }" at 96,260 style=small size=10
+text "lake:" at 60,276 style=small size=10
+text "connector: localfiles" at 72,292 style=small size=10
+text "root: out" at 72,308 style=small size=10
+
+text "pipelines/stg_orders.sql: what to do with it" at 40,356 style=small
+
+sql: zone at 40,368 400x80 fill=ink/0.04 stroke=ink/0.15
+text "select id, customer_id, amount, status" at 60,396 style=small size=10
+text "from {{ source('raw', 'orders') }}" at 60,412 style=small size=10
+text "where amount >= {{ var('min_amount') }}" at 60,428 style=small size=10
+
+// ---- 2 pz compile ----------------------------------------------------------------------
+text "2. pz compile" at 488,136 style=note weight=600
+text "renders the templates, and every source(), ref() and sink()" at 488,164 style=small
+text "call it renders records a DAG edge on the way past" at 488,180 style=small
+
+compiled: zone at 488,192 448x96 fill=ink/0.04 stroke=ink/0.15
+text "-- .pz/target/stg_orders.sql" at 508,220 style=small size=10 color=muted
+text "select id, customer_id, amount, status" at 508,236 style=small size=10
+text "from staging.src_raw__orders" at 508,252 style=small size=10
+text "where amount >= 10" at 508,268 style=small size=10
+
+edges: table "The edges that call just declared" at 488,320 448x0 title.align=left
+  | "source('raw','orders')" "→ raw.orders becomes stg_orders' parent"
+  | "ref('stg_orders')" "→ stg_orders becomes order_totals' parent"
+  | "sink('lake','order_totals')" "→ order_totals feeds lake.order_totals"
+
+text "The SQL text is never parsed to find them." at 488,456 style=note
+text "The calls are the graph." at 488,480 style=note
+
+// ---- 3 pz run ---------------------------------------------------------------------------
+text "3. pz run" at 984,136 style=note weight=600
+
+sources: node "sources extract" at 984,176 280x48
+duckdb:  focal "DuckDB staging" sub="one file, on disk, this run only.\nEvery SQL transform runs in here\nand never leaves." at 984,272 280x104
+sinks:   node "sinks drain results out" at 984,424 280x48
+
+sources -> duckdb
+duckdb -> sinks
+
+text "The .NET side never holds a dataset:" at 984,500 style=caption
+text "only a few Arrow batches in flight." at 984,516 style=caption
+
+text "compile stops after step 2, so \"does this project make sense?\" costs no data movement at all." at 40,564 style=dek
+
+legend at 40,588 swatch.ink/0.08="File contents" table="Edges recorded at compile" node="Run phase" focal="The staging DuckDB file"

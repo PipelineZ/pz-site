@@ -1,0 +1,146 @@
+title: text "Zoom 2: the data plane, two tiers chosen per edge" at 40,52 style=h1
+text "How bytes actually move between a source and DuckDB (sinks mirror it, further down)." at 40,80 style=dek
+
+// ---- the planner question, per edge, per run ----
+text "per edge, per run, the planner asks:" at 904,124 style=caption weight=600
+d1: decision "max_rows_per_second\ndeclared?" at 904,136 240x96
+d2: decision "TryGetNativeScan()\nreturns a scan?" at 432,136 240x96
+d1 -> d2 "no: check native scan" label.caps=0
+d2.left -> tier1.top@200 "yes: fast path" label.caps=0
+d2.bottom -> tier2.top@800 "no: universal path" label.caps=0
+d1.bottom -> tier2.top@1024
+text "yes: universal path (skips TryGetNativeScan)." at 1040,256 style=caption
+text "Pacing needs the batch loop, so a" at 1040,272 style=caption
+text "native-only connector is refused." at 1040,288 style=caption
+
+// ---- tier 1 ----
+tier1: zone "Tier 1: native scan / copy (fast path)" at 40,304 632x496 title.align=left
+az_src: external "az://analytics/clicks/*.parquet" at 64,344 268x56
+readers: focal "DuckDB parallel readers" sub="+ predicate pushdown" at 384,344 264x56
+az_src -> readers
+text "bytes go straight from storage into DuckDB:" at 64,428 style=caption
+text ".NET never sees them" at 64,444 style=caption
+text "transient failures (HTTP 5xx / timeouts)" at 384,428 style=caption color=muted
+text "are classified for retry + breaker" at 384,444 style=caption color=muted
+text "what the connector hands the engine (NativeScan record)" at 64,480 style=caption weight=600
+rect at 64,488 584x96 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "SetupStatements: CREATE SECRET src_az (TYPE azure, CONNECTION_STRING '…');" at 76,508 style=small
+text "SqlFragment:" at 76,524 style=small
+text "-- never logged" at 362,524 style=small
+text "CREATE TABLE staging.src_events__clicks AS" at 87,540 style=small
+text "SELECT * FROM read_parquet('az://analytics/clicks/*.parquet');" at 87,556 style=small
+text "Mechanism: \"read_parquet\"" at 76,572 style=small
+text "-- shows up in pz plan reasons" at 222,572 style=small
+text "The connector's whole job collapses to config translation: YAML connection block in," at 64,620 style=caption
+text "scan SQL + secret setup out. DuckDB's own readers (parquet, csv, azure, ...) do the moving." at 64,636 style=caption
+text "and pz plan tells you which tier won, and why:" at 64,676 style=caption weight=600
+rect at 64,684 584x80 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "$ pz plan" at 76,704 style=small
+text "lake.clicks" at 87,720 style=small
+text "native scan (read_parquet)" at 168,720 style=small
+text "connector supports NativeScan" at 324,720 style=small
+text "mssql.orders" at 87,736 style=small
+text "arrow stream, 2 partitions" at 168,736 style=small
+text "universal tier only (SqlClient)" at 324,736 style=small
+text "d365.contacts" at 87,752 style=small
+text "arrow stream, 4 partitions" at 168,752 style=small
+text "no scanner for SaaS APIs" at 324,752 style=small
+
+// ---- tier 2 ----
+tier2: zone "Tier 2: Arrow batch stream (universal path)" at 712,304 640x496 title.align=left
+r1: node "partition reader 1" at 736,368 160x48
+r2: node "partition reader 2" at 736,432 160x48
+chan: zone "BoundedChannel<RecordBatch>, cap 4" at 928,352 152x128 title.size=9
+rect at 944,392 28x28 radius=4 fill=ink/0.18 stroke=none
+rect at 980,392 28x28 radius=4 fill=ink/0.18 stroke=none
+rect at 1016,392 28x28 radius=4 fill=ink/0.18 stroke=none
+rect at 1052,392 28x28 radius=4 fill=none stroke=ink/0.3 dash=3,3
+text "batches of ~32 MB each" at 1004,456 style=caption anchor=middle
+ingest: focal "arrow_scan ingest" sub="zero-copy via the Arrow\nC Data Interface" at 1120,380 208x72
+staged: store "staging.src_d365__contacts" at 1120,500 208x48
+r1.right -> 928,392
+r2.right -> 928,456
+1080,416 -> ingest.left
+ingest -> staged
+1004,512 -> 904,512 style=return "backpressure"
+text "channel full => readers suspend" at 908,532 style=caption
+text "RatePacer throttles" at 736,500 style=caption color=muted
+text "the batch loop" at 736,516 style=caption color=muted
+text "windowed staging trimmed" at 1120,572 style=caption color=muted
+text "to (lo, hi] post-land" at 1120,588 style=caption color=muted
+text "connector code: async I/O over a REST / OData API," at 736,564 style=caption
+text "1..N partition readers" at 736,580 style=caption
+text "Arrow buffers live off-heap in pooled native memory: a 32 MB batch is invisible to the GC." at 736,620 style=caption
+text "DuckDB reads the connector's buffers directly; no per-value marshaling anywhere." at 736,636 style=caption
+text "the whole universal contract (connector ABI)" at 736,676 style=caption weight=600
+rect at 736,684 288x80 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "PlanReadAsync(spec, hints, ct)" at 748,704 style=small
+text "-> IDatasetPartition [1..N]" at 759,720 style=small
+text "partition.ReadAsync(options, ct)" at 748,736 style=small
+text "-> IAsyncEnumerable<RecordBatch>" at 759,752 style=small
+text "channel stall metrics name the bottleneck" at 1040,676 style=caption weight=600
+rect at 1040,684 288x80 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "orders load: source-bound -" at 1052,704 style=small
+text "reader busy 92%, ingest idle 71%." at 1063,720 style=small
+text "consider partitioned read" at 1063,736 style=small
+text "(connector supports 8)." at 1063,752 style=small
+
+// ---- sinks ----
+text "Sinks mirror the same two tiers" at 40,844 size=16 weight=600 color=ink
+text "native copy: the sink returns COPY (SELECT * FROM staging.order_totals) TO 'out/totals/' (FORMAT csv), and DuckDB writes directly." at 40,872 style=caption
+text "universal: DuckDB result stream -> bounded channel -> ISinkWriteSession.WriteBatchAsync per batch, then Commit XOR Abort." at 40,888 style=caption
+text "temp-write + atomic swap makes write.strategy: replace all-or-nothing: a failed run never leaves a half-replaced output." at 40,904 style=caption
+40,928 -- 1352,928 style=rule
+
+// ---- how much data per run ----
+text "How much data per run? Three modes" at 40,968 size=16 weight=600 color=ink
+text "Within a run, data never arrives all at once: it streams as ~32 MB Arrow batches (tier 2) or a DuckDB scan (tier 1)." at 40,992 style=caption
+text "What IS configurable is how much of the dataset each run claims:" at 40,1008 style=caption
+text "Full load (default)" at 40,1048 style=eyebrow
+text "Incremental (watermark)" at 488,1048 style=eyebrow
+text "Bounded windows" at 936,1048 style=eyebrow
+rect at 40,1056 416x64 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "datasets:" at 52,1076 style=small
+text "orders:" at 63,1092 style=small
+text "table: orders" at 74,1108 style=small
+rect at 488,1056 416x64 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "sync:" at 500,1076 style=small
+text "mode: incremental" at 511,1092 style=small
+text "cursor: updated_at" at 511,1108 style=small
+rect at 936,1056 416x112 radius=6 fill=ink/0.04 stroke=ink/0.12
+text "sync:" at 948,1076 style=small
+text "mode: incremental" at 959,1092 style=small
+text "cursor: updated_at" at 959,1108 style=small
+text "max_window: 1d" at 959,1124 style=small
+text "initial: \"2020-01-01\"" at 959,1140 style=small
+text "until: \"2026-07-01\"" at 959,1156 style=small
+full_bar: rect "the entire dataset, every run" at 40,1192 416x40 radius=4 fill=amber/0.15 stroke=amber/0.6
+text "fine for small / reference tables; sinks with" at 40,1256 style=caption
+text "write.strategy: replace swap it in atomically" at 40,1272 style=caption
+inc_done: rect "already loaded" at 488,1192 256x40 radius=4 fill=ink/0.04 stroke=ink/0.3 dash=4,3
+inc_run: rect "this run" at 744,1192 160x40 radius=4 fill=amber/0.15 stroke=amber/0.6
+744,1180 -- 744,1240 stroke=ink sw=1.5 layer=front
+text "$wm" at 744,1174 style=small anchor=middle weight=600
+text "extracts WHERE updated_at > $wm (pushed down); watermark persists" at 488,1256 style=caption
+text "in .pz/state and advances only after sinks commit" at 488,1272 style=caption
+win_done: rect "done" at 936,1192 96x40 radius=4 fill=ink/0.04 stroke=ink/0.3 dash=4,3
+win_run: rect "this run" at 1032,1192 112x40 radius=4 fill=amber/0.15 stroke=amber/0.6
+win_f1: rect at 1144,1192 100x40 radius=4 fill=none stroke=ink/0.25 dash=4,3
+win_f2: rect at 1244,1192 108x40 radius=4 fill=none stroke=ink/0.25 dash=4,3
+text "future runs" at 1248,1184 style=caption anchor=middle
+text "lo" at 1032,1248 style=small anchor=middle
+text "hi = lo + max_window" at 1144,1248 style=small anchor=middle
+text "this run: WHERE updated_at > lo AND updated_at <= hi" at 936,1276 style=caption
+text "one giant backfill becomes a loop of small committed slices" at 936,1292 style=caption
+1352,1324 -> 936,1324 style=return "external loop"
+text "run -> watermark commits -> repeat until caught up" at 936,1348 style=caption
+text "an empty slice still advances the watermark: a data gap can't stall the loop" at 936,1364 style=caption
+
+// ---- guardrails ----
+text "Guardrails around the flow" at 40,1408 size=16 weight=600 color=ink
+g1: optional "retry: {max_attempts: 5, base_delay: 2s}" sub="per source/sink instance, per dataset" at 40,1424 316x56
+g2: optional "max_concurrency: 2" sub="caps an instance's parallel nodes" at 372,1424 252x56
+g3: optional "max_rows_per_second: 50000" sub="token-bucket pacing in the batch loop" at 640,1424 300x56
+g4: optional "breaker: {failure_threshold: 5, cool_down: 2m}" sub="pause a dying instance's nodes, probe, resume" at 956,1424 396x56
+
+legend at 40,1504 decision="Planner question" focal="Where DuckDB takes the bytes" external="Source storage" node="Connector code" store="Staging table" zone="Tier or channel" optional="Guardrail knob" swatch.amber/0.3="This run's slice" return="Backpressure / loop"
