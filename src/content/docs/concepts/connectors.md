@@ -62,8 +62,12 @@ A builtin connector runs inside the same `pz` process as everything else. A rest
 connector, external or third-party, runs as its own operating-system process instead, speaking a
 wire protocol, PCP, back to pz over a local socket. pz spawns that process with an empty
 environment and repopulates only a small allowlist, `PATH`, `HOME`, and a few others: connection
-config and secrets never leak into the child's environment. They cross the socket as an explicit request instead, the same way pz
-would configure a builtin connector in memory.
+config and the secrets in `connections.yml` never travel through the child's environment. They cross the socket as an explicit request instead, the same way pz
+would configure a builtin connector in memory. The one addition is opt-in: a package whose manifest
+declares an ambient identity group (`aws`, `azure`, `gcp`) also receives that cloud's identity
+variables, so a cloud SDK inside it finds a managed identity, workload identity or task role the
+way a builtin connector does. See
+[Variables passed to out-of-process connectors](/reference/environment-variables/#variables-passed-to-out-of-process-connectors).
 
 This isolation boundary is what lets a packaged connector crash, misbehave, or hold a
 dependency version pz itself doesn't ship, without any of that touching the host process. It is

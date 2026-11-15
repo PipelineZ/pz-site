@@ -28,6 +28,11 @@ variant, and the [azureblob connector reference](/connectors/azureblob/) for its
 behind Microsoft Entra ID, the [http connector](/connectors/http/#azure_ad) signs in with
 `auth: { type: azure_ad, method: managed_identity, ... }`.
 
+Packaged connectors run in their own process with a cleared environment. Their identity modes
+work where the identity needs no variable (a VM's metadata endpoint); elsewhere, such as Container
+Apps or AKS workload identity, they need pz 0.14.0 and a connector release that declares the cloud.
+See [External connectors](/connectors/external/#ambient-cloud-identity).
+
 ## `${VAR}` environment interpolation
 
 Every string in a connection block (and in `project.yml`'s `vars:`) may reference
