@@ -180,6 +180,16 @@ third-party code the CLI has never audited. Nothing above `ConnectorRegistry` (t
 engine, the ABI types above) can tell whether an `ISourceConnector`/`ISinkConnector` instance is
 a builtin or a shim proxying PCP calls to a child process.
 
+<figure class="dgm">
+  <fastdraw-diagram src="/diagrams/internals/connector-architecture.fdraw">
+    <a href="/diagrams/internals/connector-architecture.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/internals/connector-architecture.png" alt="The planner and engine look a connector up in ConnectorRegistry, which resolves it either to a builtin connector in the pz process or to a LazyProcessConnector shim loaded from .pz/packages, which spawns a child connector process on first use and talks to it over a gRPC control socket and an Arrow IPC data socket." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/internals/connector-architecture-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
+</figure>
+
 ## PCP: the out-of-process wire protocol
 
 PCP's control plane is generated gRPC/protobuf code (`Pz.Connectors.Protocol`, built from

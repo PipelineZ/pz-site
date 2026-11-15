@@ -40,6 +40,16 @@ anything, but it does cost you: the next run re-extracts everything from the beg
 
 ## How it works
 
+<figure class="dgm">
+  <fastdraw-diagram src="/diagrams/concepts/state.fdraw">
+    <a href="/diagrams/concepts/state.png">
+      <img class="dgm-light" loading="lazy" decoding="async" src="/diagrams/concepts/state.png" alt="Which pz command reads or writes each file under .pz/: pz run writes the run results and staging database and advances the watermarks, pz state edits the watermarks and appends to audit.jsonl, pz retry reads the run results, and pz clean or retention deletes the staging database." />
+      <img class="dgm-dark" loading="lazy" decoding="async" src="/diagrams/concepts/state-dark.png" alt="" aria-hidden="true" />
+    </a>
+  </fastdraw-diagram>
+  <figcaption>Drag to move the diagram; zoom with the buttons or Ctrl and scroll.</figcaption>
+</figure>
+
 ### Watermarks and sync state
 
 A **watermark** is the highest incremental cursor value a source has already extracted, one

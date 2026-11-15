@@ -1,0 +1,38 @@
+title: text "Where an entity's options live" at 40,52 style=h1
+text "The sample project: connections hold entities, and each entity's options sit in connections.yml or on the call that uses it." at 40,80 style=dek
+
+// ---- connections.yml ------------------------------------------------------------
+yml:  zone at 40,112 600x360
+text "connections.yml" at 56,134 style=eyebrow caps=0
+
+raw:  zone at 64,152 552x136
+text "raw" at 80,174 style=eyebrow caps=0
+text "connector: localfiles" at 120,174 style=small color=muted
+
+customers: node "customers" sub="read: in YAML" at 88,200 152x64
+orders:    node "orders" sub="read: in YAML" at 264,200 152x64
+products:  optional "products" sub="not in YAML" at 440,200 152x64
+
+lake: zone at 64,312 552x136
+text "lake" at 80,334 style=eyebrow caps=0
+text "connector: localfiles   root: out" at 120,334 style=small color=muted
+text "No entities in YAML:" at 88,384 style=caption
+text "every write is bound" at 88,400 style=caption
+text "at its sink() call." at 88,416 style=caption
+
+catalog: optional "product_catalog" sub="not in YAML" at 440,360 152x64
+
+// ---- the pipeline -----------------------------------------------------------------
+sql: zone at 712,112 344x360
+text "pipelines/product_catalog.sql" at 728,134 style=eyebrow caps=0
+
+src:  node "source('raw', 'products', …)" sub="path, format, columns" at 736,200 296x64 title.font=mono
+snk:  node "sink('lake', 'product_catalog', …)" sub="strategy, format" at 736,360 296x64 title.font=mono
+
+src -> products "declares" style=primary
+snk -> catalog "declares" style=primary
+
+// ---- the rule ---------------------------------------------------------------------
+text "Each entity side keeps its options in one place. Declaring them in both is PZ0341: refused, never merged." at 40,508 style=note
+
+legend at 40,536 node="Entity read with options in YAML, or a call in SQL" optional="Entity the YAML never names: its call declares it, options and all" primary="The call declares the entity"

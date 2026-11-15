@@ -1,0 +1,32 @@
+title: text "Who reads and writes what under .pz/" at 40,52 style=h1
+text "A run fills its own run directory and advances the watermark; the other commands read, edit or clean up." at 40,80 style=dek
+
+// ---- the two directories --------------------------------------------------------
+state_dir: zone ".pz/state/" at 296,112 272x224 title.font=mono
+runs_dir:  zone ".pz/runs/<run-id>/" at 296,368 272x224 title.font=mono
+
+wm:      store "Watermarks, sync state" sub="watermarks.json, sync-state.json" at 328,144 208x64
+audit:   store "Audit log" sub="audit.jsonl" at 328,240 208x64
+results: store "Run results" sub="run_results.json" at 328,400 208x64
+staging: store "Staging database" sub="staging.duckdb" at 328,496 208x64
+
+// ---- commands -------------------------------------------------------------------
+run:   node "pz run" at 40,144 136x416 title.font=mono
+state: node "pz state" sub="show, rollback, set, clear" at 688,144 176x160 title.font=mono
+retry: node "pz retry" at 688,400 176x64 title.font=mono
+clean: node "pz clean" sub="or retention: after a run" at 688,496 176x64 title.font=mono
+
+run.right@176 -> wm.left "advances" style=primary
+run.right@432 -> results.left "writes"
+run.right@528 -> staging.left "writes"
+
+state.left@176 -> wm.right "edits"
+state.left@272 -> audit.right "appends"
+results.right -> retry.left "reads"
+clean.left -> staging.right "deletes"
+
+// ---- notes ------------------------------------------------------------------------
+text "The watermark advances only after every downstream write for that run has committed." at 40,624 style=note
+text "Retention deletes old runs' staging databases but keeps their run results, so a failed run can still be retried." at 40,648 style=note
+
+legend at 40,680 node="A pz command, or an automatic step" store="A file under .pz/" primary="Advances the watermark"
