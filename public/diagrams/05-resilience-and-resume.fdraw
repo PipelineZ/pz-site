@@ -24,10 +24,10 @@ text "connectors never retry internally (no double-retry)" at 256,344 style=capt
 bar2: rect at 256,364 220x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
 text "one node attempt" at 488,372 style=small color=rose
 
-text "repeated failures pause that instance's queue; probe after cool-down," at 256,456 style=caption
-text "then resume; other instances keep running" at 256,472 style=caption
+text "repeated failures pause that connection's queue; probe after cool-down," at 256,456 style=caption
+text "then resume; other connections keep running" at 256,472 style=caption
 bar3: rect at 256,492 360x8 fill=rose/0.15 stroke=rose/0.6 sw=1 radius=1
-text "one instance" at 628,500 style=small color=rose
+text "one connection" at 628,500 style=small color=rose
 
 text "re-runs failed + skipped nodes only; reuses the failed run's staged tables;" at 256,584 style=caption
 text "carries committed sinks forward (provenance-gated)" at 256,600 style=caption
@@ -69,8 +69,8 @@ text "reuse & carry-forward" at 1352,604 style=caption
 text "The promise: what the destination sees" at 40,736 style=eyebrow
 
 p1: node "merge / replace → effectively-once" sub="retries converge on the same final state" at 40,760 392x104 fill=teal/0.1 stroke=teal
-p2: node "append → at-least-once" sub="incremental → append needs\nwrite.duplicates: accept (PZ0214)" at 456,760 392x104 fill=amber/0.1 stroke=amber
-p3: node "unknown / unsupported mode → refused" sub="before data moves (PZ0228 / PZ0324)" at 872,760 392x104 fill=amber/0.1 stroke=amber
+p2: node "append → at-least-once" sub="incremental → append needs\nduplicates: 'accept' on the sink (PZ0214)" at 456,760 392x104 fill=amber/0.1 stroke=amber
+p3: node "unsupported strategy → refused" sub="before data moves (PZ0324)" at 872,760 392x104 fill=amber/0.1 stroke=amber
 truth: table "when a sink still fails, pz tells the truth:" at 1288,760 384x0
   | "delivery stopped: up to 45 row(s) already"
   | "visible at the destination (abort: none)"
