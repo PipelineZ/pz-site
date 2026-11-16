@@ -26,7 +26,7 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
 
 ## Prerequisites
 
-- The .NET 10 SDK.
+- The .NET 11 SDK.
 - Familiarity with pz's [connector](/concepts/connectors/) vocabulary: connection, entity,
   builtin versus third-party, native versus universal tier.
 - Know which side you're building. A **source** reads into the [staging database](/concepts/key-concepts/);
@@ -40,7 +40,7 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    ```xml title="MyCompany.Pz.Connector.MySource.csproj"
    <Project Sdk="Microsoft.NET.Sdk">
      <PropertyGroup>
-       <TargetFramework>net10.0</TargetFramework>
+       <TargetFramework>net11.0</TargetFramework>
      </PropertyGroup>
      <ItemGroup>
        <PackageReference Include="Pz.Connectors.Abstractions" Version="x.y.z" />
@@ -575,7 +575,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '10.0.x' }
+        with: { dotnet-version: '11.0.x' }
       - run: dotnet publish src/MyConnector -c Release -r ${{ matrix.rid }} -p:PzNativeStaging=${{ github.workspace }}/stage/
       - uses: actions/upload-artifact@v4
         with:
@@ -588,7 +588,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '10.0.x' }
+        with: { dotnet-version: '11.0.x' }
       - uses: actions/download-artifact@v4
         with:
           pattern: pz-native-*

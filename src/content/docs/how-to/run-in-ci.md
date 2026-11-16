@@ -17,7 +17,7 @@ machine.
 
 ## Steps
 
-1. **Add a workflow file** that installs the .NET 10 SDK, installs `pz` as a global tool, and
+1. **Add a workflow file** that installs the .NET 11 SDK, installs `pz` as a global tool, and
    runs the project on a schedule:
 
    ```yaml title=".github/workflows/pz-run.yml"
@@ -35,7 +35,7 @@ machine.
          - uses: actions/checkout@v4
          - uses: actions/setup-dotnet@v4
            with:
-             dotnet-version: "10.0.x"
+             dotnet-version: "11.0.x"
          - run: dotnet tool install --global pz
          - run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
          - run: pz restore
