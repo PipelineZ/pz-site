@@ -11,7 +11,7 @@ after the install. Read this if you have never run `pz` before.
 
 ## Prerequisites
 
-- The .NET 10 SDK, and `pz` installed as a global tool. See [Install pz](/install/) if you
+- The .NET 11 SDK, and `pz` installed as a global tool. See [Install pz](/install/) if you
   haven't done this yet.
 
 Check it's on your `PATH`:

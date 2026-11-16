@@ -10,8 +10,8 @@ try pz before installing anything, read [Key concepts](/concepts/key-concepts/) 
 
 ## Prerequisites
 
-- The **.NET 10 SDK**. Installing a .NET tool needs the SDK, not only the runtime. Get it from
-  [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0).
+- The **.NET 11 SDK**. Installing a .NET tool needs the SDK, not only the runtime. Get it from
+  [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/11.0).
 - Linux x64 or arm64, Windows x64, or macOS arm64. pz ships as a native binary for each and a
   framework-dependent build for everything else. The installer picks the right one.
 
@@ -19,7 +19,7 @@ Check the SDK is available:
 
 ```console
 $ dotnet --version
-10.0.100
+11.0.100
 ```
 
 ## Install

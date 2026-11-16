@@ -11,7 +11,7 @@ runs correctly by hand and need it running on its own every night.
 
 ## Prerequisites
 
-- The .NET 10 SDK installed on the host.
+- The .NET 11 SDK installed on the host.
 - For Azure SQL authentication, a managed identity attached to the VM. See
   [Secure connection config](/how-to/secure-connection-config/).
 - A release bundle built from a dev machine (`scripts/make-release-bundle.sh` writes

@@ -45,12 +45,12 @@ Dependency direction is strictly downward, with `Pz.Connectors.Abstractions` at 
 carrying near-zero dependencies: it references `Apache.Arrow` and the BCL only, and nothing
 else in the repository depends on that restriction being loosened. `Pz.DuckDb` isolates the
 riskiest code (native interop) behind an interface the engine consumes. Target: current LTS
-(`net10.0`), C# latest, `Nullable` enabled, `TreatWarningsAsErrors` on every project
+(`net11.0`), C# latest, `Nullable` enabled, `TreatWarningsAsErrors` on every project
 (`Directory.Build.props`).
 
 ## Build and test
 
-Requires the .NET 10 SDK. Docker is optional: suites that need Postgres or MinIO
+Requires the .NET 11 SDK. Docker is optional: suites that need Postgres or MinIO
 (Testcontainers) use `Xunit.SkippableFact` and skip cleanly without it
 (`tests/Pz.TestSupport/DockerFacts.cs`). Docker counts as available only when it can run Linux
 containers, so Docker Desktop in Windows-containers mode skips those suites too.
