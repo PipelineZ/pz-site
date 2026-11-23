@@ -60,7 +60,7 @@ pz never downloads an extension that is already in DuckDB's extensions folder, s
 machine needs the files copied there ahead of time:
 
 1. **Find the folder.** It is `~/.duckdb/extensions/<duckdb version>/<platform>/` for the user
-   pz runs as, for example `~/.duckdb/extensions/v1.5.6/linux_amd64/`. The quickest way to get the
+   pz runs as, for example `~/.duckdb/extensions/v2.0.1/linux_amd64/`. The quickest way to get the
    exact path is to run `pz validate` once on that machine: the `PZ0402` error names it.
 2. **Download each file** on a machine with internet access, for the same DuckDB version and
    platform:
@@ -78,6 +78,12 @@ Each extension file works with one DuckDB version and one platform. After a pz u
 DuckDB to a new version, copy the files again for the new version.
 
 ## Things to know
+
+- **A community extension is built per DuckDB version.** After pz moves to a new DuckDB, an
+  extension that has not been built for it yet fails to download (`PZ0402`, HTTP 404) until its
+  author publishes that build. On DuckDB 2.0.1 that includes Jev for now. Query.Farm's extensions
+  (`crypto`, `rapidfuzz`, `hashfuncs`, `lindel` and others) are published for DuckDB 2.0 from
+  Query.Farm's own repository, and the builds in the community repository refuse to load.
 
 - **An extension runs inside pz.** It is native code with access to the run's data and
   credentials. A community extension can be published by anyone, so list one only if you trust it.

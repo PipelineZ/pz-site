@@ -80,6 +80,9 @@ The connector does not declare `Transactional`: commit semantics belong to Mothe
 
 ## Notes
 
+- **Not usable on DuckDB 2.0.1 yet.** MotherDuck's `motherduck` extension refuses to run on DuckDB
+  2.0.1 ("not yet supported"), so every attach fails with `PZ0311` until MotherDuck ships support.
+  Keep MotherDuck projects on a pz release built on DuckDB 1.5 until then.
 - `motherduck` is native-only. Declaring `engine.force_universal` on a `motherduck` entity fails
   at plan time; remove that setting instead.
 - **`append` matches columns by name, not position.** A target column the pipeline does not

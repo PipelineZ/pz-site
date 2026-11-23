@@ -23,6 +23,7 @@ you need an exact flag or default. For the narrative version of how a run procee
 | `pz ls` | List every node in the compiled DAG, in topological order. |
 | `pz runs` | List prior runs, newest first, with their status, timing, and provenance. |
 | `pz preview` | Show a sample of a source or pipeline, from a run or computed fresh. |
+| `pz staging query` | Run one read-only SELECT against a finished run's staging. |
 | `pz connectors` | List every registered connector and its capabilities. |
 | `pz restore` | Resolve and download declared non-builtin connector packages. |
 | `pz connector test` | Run protocol conformance checks against an out-of-process connector. |
@@ -336,6 +337,67 @@ prints on stderr.
 | `3` | An unexpected failure. |
 
 See also: [Preview data](/how-to/preview-data/), [Pipeline config](/reference/pipeline-config/#columns).
+
+## pz staging query
+
+Runs one read-only SELECT against a finished run's `staging.duckdb`: join and filter what the run
+staged, where [`pz preview`](#pz-preview) samples one node. Every source's landed rows and every
+pipeline's output are tables named `staging.<name>`.
+
+```console
+$ pz staging query --run 20261123T165230019Z-3af8 \
+    --sql "select status, count(*) n, sum(amount) total from staging.stg_orders group by all order by n desc"
+status    n  total
+--------  -  -----
+shipped   2  41.25
+returned  1  42.0
+2 rows
+```
+
+| Option | Meaning |
+|---|---|
+| `--run <id>` | Query `.pz/runs/<id>`. Give exactly one of `--run` and `--run-dir`. |
+| `--run-dir <path>` | Query a run directory directly; needs no project files. |
+| `--sql <select>` | One SELECT, or `WITH … SELECT`. A trailing `;` is fine. Required. |
+| `--limit <n>` | Rows to return, 1-500. Default 50. |
+| `--json` | Print one JSON object instead of a table. |
+| `--project <dir>` | Project directory. Default: the current directory. |
+
+- **Reads the run's tables, and nothing else.** The query runs in the same session `pz preview --run`
+  reads with: the file is attached read-only, and filesystem and network access are switched off
+  and locked before the query runs. A write, DDL, several statements, a `PRAGMA`, or reading any
+  other file or URL fails with `PZ0545`.
+- **Rows come in the query's own order.** With more rows than `--limit`, the first `--limit` are
+  printed and the output says so (`truncated` in JSON).
+- **`redact: true` marks do not apply.** A query can join, rename and compute columns, so there is
+  no node column to attach a mark to.
+- `select * from duckdb_tables()` lists what the run staged.
+
+With `--json`, stdout is exactly one object, with its fields in this order:
+
+```json
+{"runId":"20261123T165230019Z-3af8",
+ "columns":[{"name":"customer_id","type":"BIGINT"},{"name":"total","type":"DOUBLE"}],
+ "rows":[[1,67.5],[2,15.75]],
+ "limit":50,"truncated":false}
+```
+
+| Field | Meaning |
+|---|---|
+| `runId` | The `--run` id; `null` with `--run-dir`. |
+| `columns` | One `{ name, type }` per column, in order. `type` is the DuckDB type. Duplicate output names come back renamed (`id`, `id_1`). |
+| `rows` | One array of cells per row, formatted exactly as [`pz preview --json`](#pz-preview) formats them. |
+| `limit` | The `--limit` in effect. |
+| `truncated` | `true` when the query returned more rows than `limit`. |
+
+On failure with `--json`, stdout is `{"error":{"code":"PZ####","message":"..."}}`; the error also
+prints on stderr.
+
+| Exit | When |
+|---|---|
+| `0` | The rows printed. |
+| `2` | `PZ0543` (no such run, cleaned, or still in progress), `PZ0544` (an option rule), or `PZ0545` (the SQL did not run). |
+| `3` | An unexpected failure. |
 
 ## pz connectors
 
