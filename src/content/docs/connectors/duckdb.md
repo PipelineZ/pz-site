@@ -16,13 +16,15 @@ the connector runs on the native tier only.
 warehouse:
   connector: duckdb
   path: data/warehouse.duckdb
+  storage_version: v1.5.0   # optional
 ```
 
 | Key | Required | Default | Meaning |
 |---|---|---|---|
 | `path` | Yes | – | Path to the DuckDB database file. Relative paths resolve against the project directory. A missing file is created by the first write. |
+| `storage_version` | No | the format of the DuckDB pz ships | The on-disk format a **new** file is created in: `vX.Y.Z` or `latest`. See [File format and older DuckDB versions](#file-format-and-older-duckdb-versions). |
 
-`path` is the only connection key. There is no `base_dir` option: relative-path resolution against
+`path` and `storage_version` are the only connection keys. There is no `base_dir` option: relative-path resolution against
 the project directory happens internally. A `path` inside the project's `.pz/` directory is
 refused, since that is the run's own staging and state area.
 
@@ -77,6 +79,25 @@ the [connections.yml reference](/reference/connections-yml/).
 | `Transactional` | Each generated statement commits atomically inside the file. |
 | `BoundedWindow` | Pushes a watermark upper bound into the generated query. |
 | `InclusiveWatermarkBound` | Accepts an inclusive lower watermark bound (`cursor >= value`). |
+
+## File format and older DuckDB versions
+
+pz runs on DuckDB 2.0, and a file it creates is in DuckDB 2.0's format, which DuckDB 1.5 and
+earlier cannot open. If other tools still on an older DuckDB read the file, pin the format it is
+created in:
+
+```yaml title="connections.yml"
+warehouse:
+  connector: duckdb
+  path: data/warehouse.duckdb
+  storage_version: v1.5.0
+```
+
+The pin applies only when the file is created; it never rewrites an existing file. An existing
+file already in the pinned format or older is read and written as it is, and stays readable by the
+DuckDB it came from. A pin below the format an existing file already uses fails the run (`PZ0311`),
+because DuckDB cannot lower a database's format: recreate the file, or export it from a newer
+DuckDB, to move it to an older one.
 
 ## Notes
 

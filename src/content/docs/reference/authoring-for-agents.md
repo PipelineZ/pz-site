@@ -101,6 +101,10 @@ my-project/
   A `columns:` entry may use the long form `email: { type: varchar, redact: true }` (in YAML or in
   the `source()` kwarg) to mark a sensitive column: `pz preview` shows its values as `•••`. Marks
   do not follow a column into a pipeline's output; mark it again in that pipeline's sidecar.
+  On connectors that read JSON records (`http`), the long form also takes `pointer`, a JSON pointer
+  into the record: `status: { type: varchar, pointer: /fields/status/name }` lands a nested value
+  (a missing step is NULL). Other connectors refuse `pointer` (PZ0301), in `pz validate` and again
+  when `pz run` opens the source. Never write `column_pointers` yourself: pz derives it (PZ0101).
 
   An entity does not have to be declared in YAML at all — see [Two surfaces, one
   declaration](#two-surfaces-one-declaration-pz0341) below. `sources:`/`sinks:` directories and a
@@ -191,7 +195,7 @@ network, no wall clock:
 |---|---|
 | `source('<connection>', '<entity>', **kwargs)` | Reads an entity, resolves to a staging table name, declares a DAG edge. `**kwargs` are read options per the two-surfaces rule above. |
 | `ref('<pipeline>')` | Reads another pipeline's output, resolves to its staging table, declares a DAG edge. Takes no other arguments. |
-| `sink('<connection>', '<entity>', **kwargs)` | Must be the pipeline's **leading** `INSERT INTO` marker (whitespace/comments before it are fine). Records the load binding. `**kwargs` are write options per the two-surfaces rule above — `strategy`, `keys`, `duplicates`, `on_delete`, `schema_policy`, `retry` are pz's own names; anything else passes through to the connector unchecked. **The call must fit on one line** — a `sink()`/`source()` split across lines is a template parse error (`PZ0104`). |
+| `sink('<connection>', '<entity>', **kwargs)` | Must be the pipeline's **leading** `INSERT INTO` marker (whitespace/comments before it are fine). Records the load binding. `**kwargs` are write options per the two-surfaces rule above — `strategy`, `keys`, `duplicates`, `order_by`, `on_delete`, `schema_policy`, `retry` are pz's own names; anything else passes through to the connector unchecked. **The call must fit on one line** — a `sink()`/`source()` split across lines is a template parse error (`PZ0104`). |
 | `watermark('<connection>', '<entity>')` | Renders the entity's stored incremental cursor value for a comparison in `WHERE`. Declares the entity incremental **in SQL** — see below. Creates no DAG edge (the paired `source()` call already does). |
 
 A pipeline can feed more than one sink by passing a list of markers instead of one:
@@ -259,6 +263,24 @@ from {{ source('github', 'issues') }}
 
 An incremental source feeding `replace` is refused outright (`PZ0335`, no consent escape — a
 partial extraction would silently truncate the target). `merge` is effectively-once regardless.
+
+### Duplicate keys in one merge batch
+
+When one run's staged input holds several rows for the same merge key, a merge keeps only one. By
+default the sink picks it arbitrarily and the run warns (`PZ0522`). Declare which row wins instead:
+
+```sql
+-- keep, per id, the row with the highest updated_at (then seq); NULLs never win
+INSERT INTO {{ sink('wh', 'orders', strategy: 'merge', keys: ['id'], duplicates: 'latest', order_by: ['updated_at', 'seq']) }}
+-- or refuse the batch outright when any key repeats
+INSERT INTO {{ sink('wh', 'orders', strategy: 'merge', keys: ['id'], duplicates: 'fail') }}
+```
+
+`duplicates: 'fail'` fails the node with `PZ0541` before anything is written. `duplicates: 'latest'`
+needs `order_by` (one column or a list; the highest values win, NULLs sort lowest) and fails with
+`PZ0542` when an `order_by` column is missing or when rows that differ tie for the top. Identical rows
+that tie are fine. Both values are merge-only, and `order_by` is legal only with `latest`. Both work
+with every sink connector: the engine applies them before the write.
 
 ## Out-of-process connectors (PCP)
 

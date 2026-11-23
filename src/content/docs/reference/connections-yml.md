@@ -186,12 +186,13 @@ entirely is equivalent to `mode: auto`. See [Incremental loads](/concepts/increm
 |---|---|---|---|
 | `strategy` | `replace`\|`append`\|`merge` | `append` | How rows land: overwrite the target, add to it, or upsert by key. |
 | `keys` | list of column names | empty | Merge key columns. Required when `strategy: merge` (`PZ0209`); refused on any other strategy (`PZ0211`). |
-| `duplicates` | the literal string `accept` | none (no consent given) | Explicit consent for duplicate rows on a write. The only accepted value is `accept`; any other value is `PZ0334`. |
+| `duplicates` | `accept`\|`fail`\|`latest` | none | `accept` is explicit consent for duplicate rows on an append write. `fail` and `latest` say what a merge does when one run's staged input repeats a key: `fail` fails the node (`PZ0541`), `latest` keeps the row with the highest `order_by` values. Both require `strategy: merge`. Any other value is `PZ0334`. See [Duplicate keys in a merge](/concepts/delivery-guarantees/#duplicate-keys-in-one-merge-batch). |
+| `order_by` | column name, or list of them | none | The columns that pick the surviving row under `duplicates: latest`: highest values win, NULLs sort lowest. Required by `latest` and refused without it (`PZ0334`). |
 | `on_delete` | `delete`\|`soft`\|`ignore` | none | How a CDC-fed merge routes source deletes. Requires `strategy: merge`; any other strategy makes it `PZ0334`. |
 | `schema_policy` | string | `fail_on_change` | How a sink reconciles its target's existing schema. `fail_on_change` compares every declared column by name and type and fails on drift. `evolve` is a recognized name but not implemented; connectors that see it refuse the write. `additive` is recognized narrowly by the `postgres` and `sqlserver` sinks to add the missing soft-delete marker column when `on_delete: soft` is set. |
 | `retry` | map | inherits the connection's `retry:` | Overrides retry for this entity's writes only. |
 
-A malformed `write:` block, or a bad value for `strategy`/`duplicates`/`on_delete`/
+A malformed `write:` block, or a bad value for `strategy`/`duplicates`/`order_by`/`on_delete`/
 `schema_policy`, is `PZ0334`. Anything left in the block after these keys are removed is passed
 through as a connector-specific write option.
 

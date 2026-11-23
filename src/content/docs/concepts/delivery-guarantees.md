@@ -56,6 +56,29 @@ lands once or is replayed. `append` is at-least-once by construction, which is w
 incremental read with `append` requires you to opt in with `duplicates: 'accept'` (`PZ0214`). See
 [Incremental loads](/concepts/incremental-loads/) for the full read side of that pairing.
 
+### Duplicate keys in one merge batch
+
+A merge's guarantee is about replays: the same slice landing twice converges. A different question
+is what happens when one run's staged input holds several rows for the same key, as an event log
+or a change feed often does. Only one of them can be the row the key ends up with. By default the
+sink keeps one it picks itself, which is not necessarily the newest, and pz warns (`PZ0522`).
+
+Declare which row wins instead, on the `write:` block or as `sink()` keyword arguments:
+
+```sql
+-- per order_id, keep the row with the highest updated_at, then seq
+INSERT INTO {{ sink('wh', 'orders', strategy: 'merge', keys: ['order_id'], duplicates: 'latest', order_by: ['updated_at', 'seq']) }}
+```
+
+| `duplicates:` | When a key repeats in the batch |
+|---|---|
+| not set | The sink keeps an arbitrary row per key; the run warns (`PZ0522`). |
+| `fail` | The node fails (`PZ0541`) before anything is written. |
+| `latest` | The row with the highest `order_by` values is written; NULLs sort lowest. The node fails (`PZ0542`) when an `order_by` column is missing or when rows that differ tie for the top. Identical rows that tie are the same row, so they pass. |
+
+pz applies the policy itself, just before the write, so it behaves the same for every sink
+connector, external ones included.
+
 ### Retry tiers
 
 pz absorbs a failure at the smallest scope that can contain it, so a transient error costs as
@@ -83,7 +106,7 @@ inside the [staging database](/concepts/key-concepts/) and are cheap either way.
 fall back: a reused read that no longer matches what was recorded, or a staged table that is
 missing or unreadable, re-extracts instead of failing the retry outright.
 
-A sink write's `keys:`, `duplicates:`, and `on_delete:` are part of what identifies its node, not
+A sink write's `keys:`, `duplicates:`, `order_by:`, and `on_delete:` are part of what identifies its node, not
 just how it writes: changing one of them changes the node's id, so `pz retry` re-runs that sink
 instead of carrying its prior commit forward. `retry:` is not part of that identity, since it only
 changes how this attempt approaches the write, not what gets committed.

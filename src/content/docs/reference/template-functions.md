@@ -72,7 +72,8 @@ SELECT order_id, amount, status FROM {{ source('erp', 'dbo.orders') }}
 |---|---|---|
 | `strategy` | `replace`\|`append`\|`merge` | How rows land. Default `append`. |
 | `keys` | list of column names | Merge key columns. Required when `strategy: merge`. |
-| `duplicates` | the literal string `accept` | Explicit consent for duplicate rows on an append write. |
+| `duplicates` | `accept`\|`fail`\|`latest` | `accept`: consent to duplicate rows on an append write. `fail`/`latest`: what a merge does with a key repeated in one batch. Merge-only. |
+| `order_by` | column name, or list of them | The columns whose highest values win under `duplicates: 'latest'`. Required by `latest`, refused without it. |
 | `on_delete` | `delete`\|`soft`\|`ignore` | How a CDC-fed merge routes source deletes. Requires `strategy: merge`. |
 | `schema_policy` | string | How the sink reconciles its target's existing schema. Default `fail_on_change`. |
 | `retry` | mapping | `{ max_attempts, base_delay, max_delay }`. |
@@ -166,7 +167,7 @@ instead of silently producing empty output.
 | [`PZ0318`](/reference/error-codes/) | `rate_limit`/`max_concurrency` passed at a call site instead of the connection. |
 | [`PZ0332`](/reference/error-codes/) | `source()` was passed the retired `incremental` keyword. |
 | [`PZ0333`](/reference/error-codes/) | `sink()` was passed a retired `mode`/`accept_duplicates`/`write` keyword. |
-| [`PZ0334`](/reference/error-codes/) | `strategy`/`duplicates`/`on_delete`/`schema_policy` at a call site has an invalid value. |
+| [`PZ0334`](/reference/error-codes/) | `strategy`/`duplicates`/`order_by`/`on_delete`/`schema_policy` at a call site has an invalid value. |
 | [`PZ0341`](/reference/error-codes/) | A read or write option declared in both connections.yml and at the call site. |
 | [`PZ0344`](/reference/error-codes/) | An entity name is empty, has an empty dotted segment, or contains whitespace. |
 | [`PZ0348`](/reference/error-codes/) | `table`/`schema` passed as a `source()`/`sink()` keyword instead of a qualified entity name. |
