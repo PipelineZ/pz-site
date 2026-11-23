@@ -227,6 +227,8 @@ maintenance.
 | `PZ0540` | SkippedReadOnIncremental | A rule of the dataset's own config (an http `on_status` rule with `action: skip`) skipped part or all of a read that would commit a watermark or sync token. The node fails and nothing it read is committed. Narrow the rule, or use `action: permanent` or `transient`. | Running a node (extraction) |
 | `PZ0541` | MergeKeyDuplicatesRefused | A `strategy: merge` write with `duplicates: fail` found duplicate merge-key groups in its staged input. The node fails before anything is written; the message gives counts, never row values. Dedup in the pipeline, or use `duplicates: latest` with `order_by`. | Running a node (write) |
 | `PZ0542` | MergeLatestAmbiguous | A `strategy: merge` write with `duplicates: latest` could not pick a row: an `order_by` column is not in the staged input, or rows that differ share the highest `order_by` values within one key. Add a column to `order_by` that breaks the tie. | Running a node (write) |
+| `PZ0543` | StagingServeUnavailable | `pz staging serve` could not serve the run: its directory or `staging.duckdb` is missing, the run is still in progress, the quack extension could not be installed or loaded, or the address is in use. The message names which. | `pz staging serve` |
+| `PZ0544` | StagingServeOptionsInvalid | `pz staging serve`'s options break a rule: not exactly one of `--run` and `--run-dir`, a `--run` id that is not a plain directory name, a `--port` outside 1-65535, or a `--host` that is not a host name or IP address. | `pz staging serve` |
 
 ## 06xx: MCP
 

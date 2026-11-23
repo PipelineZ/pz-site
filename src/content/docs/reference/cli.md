@@ -23,6 +23,7 @@ you need an exact flag or default. For the narrative version of how a run procee
 | `pz ls` | List every node in the compiled DAG, in topological order. |
 | `pz runs` | List prior runs, newest first, with their status, timing, and provenance. |
 | `pz preview` | Show a sample of a source or pipeline, from a run or computed fresh. |
+| `pz staging serve` | Serve a finished run's staging read-only over the Quack protocol, for any DuckDB client to query. |
 | `pz connectors` | List every registered connector and its capabilities. |
 | `pz restore` | Resolve and download declared non-builtin connector packages. |
 | `pz connector test` | Run protocol conformance checks against an out-of-process connector. |
@@ -336,6 +337,57 @@ prints on stderr.
 | `3` | An unexpected failure. |
 
 See also: [Preview data](/how-to/preview-data/), [Pipeline config](/reference/pipeline-config/#columns).
+
+## pz staging serve
+
+Serves a finished run's `staging.duckdb` read-only over the Quack protocol until you press Ctrl+C,
+so any DuckDB 2.0 client can attach it and query every table and view the run staged. Use it to
+see what a source actually landed, or why a pipeline produced no rows.
+
+```console
+$ pz staging serve --run 20261123T165230019Z-3af8
+Serving run 20261123T165230019Z-3af8's staging read-only at quack:localhost:38459 (Ctrl+C to stop).
+
+Attach it from a DuckDB 2.0 client:
+
+  INSTALL quack; LOAD quack;
+  CREATE SECRET pz_staging (TYPE quack, TOKEN '…', SCOPE 'quack:localhost:38459');
+  ATTACH 'quack:localhost:38459' AS run;
+  SELECT * FROM run.staging.order_totals LIMIT 10;
+
+Tables (7):
+  staging.order_totals
+  …
+```
+
+| Option | Meaning |
+|---|---|
+| `--run <id>` | Serve `.pz/runs/<id>`. Give exactly one of `--run` and `--run-dir`. |
+| `--run-dir <path>` | Serve a run directory directly; needs no project files. |
+| `--host <host>` | Address to listen on. Default `localhost`. |
+| `--port <n>` | Port to listen on. Default: a free one. |
+| `--project <dir>` | Project directory. Default: the current directory. |
+
+- **Read-only, and nothing else.** A client can read the run's tables and views; every write is
+  refused. Once listening, the serving process gives up filesystem and network access and locks its
+  configuration, so a client cannot read other files, write any, install extensions, or attach
+  other databases. pz's own bookkeeping tables are not served.
+- **The token is fresh each time** and printed once; it is never stored. Anyone holding it can read
+  the run's data while the server runs.
+- **Localhost by default.** A `--host` other than a loopback address makes the server reachable from
+  other machines, and pz warns: the Quack protocol here is plain HTTP, so the token and every value
+  travel unencrypted. Put a TLS reverse proxy in front, or keep it on localhost.
+- **`redact: true` marks do not apply.** They are a `pz preview` display mark; values are served as
+  stored.
+- **Finished runs only.** A run still in progress is refused, and while serving pz holds the run
+  directory's lock, so retention cannot delete it and no run starts in it.
+- Ctrl+C, `SIGTERM` or `SIGHUP` stops the server and exits `0`. The quack extension is installed on
+  first use, so the first serve needs internet access.
+
+| Exit | When |
+|---|---|
+| `0` | Served until stopped. |
+| `2` | `PZ0543` (the run cannot be served: missing, cleaned, still running, quack unavailable, address in use) or `PZ0544` (an option rule). |
 
 ## pz connectors
 
