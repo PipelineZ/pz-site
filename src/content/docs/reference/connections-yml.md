@@ -120,6 +120,7 @@ through as a connector-specific read option (see [Connector-specific keys](#conn
 | `columns` | map of column name to DuckDB type, or to `{ type, redact, pointer }` | none (contract-less) | Typed read contract, e.g. `id: bigint`, `email: varchar`. Required by some connectors on the universal execution tier; optional elsewhere. The long form marks a column for redaction (see [Redacting columns](#redacting-columns)) or, on `http`, reads a nested field. |
 | `sync` | map: `mode`, plus mode-specific keys | mode `auto` | Resume behavior for this entity. See below. |
 | `retry` | map | inherits the connection's `retry:` | Overrides retry for this entity's reads only. Same keys as connection-level `retry:`. |
+| `variant` | list of column names | none | Landed columns of JSON text that become DuckDB `VARIANT`. See [`variant:`](#variant). |
 | `partition_column`, `partitions` | string, integer (1–16) | none | On connectors that support parallel reads (`postgres`, `sqlserver`): the column to split on and how many partitions to read concurrently. Connector-specific; see that connector's page. |
 
 `rate_limit:` is refused under `read:` (`PZ0318`): it is connection-level only. The retired
@@ -179,6 +180,52 @@ sync:
 `mode: auto` accepts only `mode`. An unknown key under the resolved mode, an unrecognized
 `mode`, or a `sync:` block that is present but not a mapping is also `PZ0334`. Omitting `sync:`
 entirely is equivalent to `mode: auto`. See [Incremental loads](/concepts/incremental-loads/).
+
+### `variant:`
+
+Turns landed columns of JSON text into DuckDB's `VARIANT` type right after the read lands, on any
+connector. Pipeline SQL then reads fields directly instead of calling `json_extract` on text, and
+a field added or removed upstream is not schema drift: the column stays one `VARIANT`.
+
+```yaml
+api:
+  connector: http
+  entities:
+    orders:
+      read:
+        url: https://api.example.com/orders
+        variant: [payload]          # each raw page
+files:
+  connector: localfiles
+  entities:
+    events:
+      read:
+        format: json
+        variant: [record]           # each JSON object, whole
+```
+
+```sql
+select r.id::BIGINT as id, r.customer.name::VARCHAR as customer
+from (select unnest(payload.data::VARIANT[]) as r from {{ source('api', 'orders') }})
+```
+
+- A field is `col.a.b` (or `col['a']`); it is itself a `VARIANT`, so cast it to use it:
+  `payload.status::INTEGER`. A missing field is `NULL`. An array is unnested with
+  `unnest(col.items::VARIANT[])`; plain `unnest(col.items)` is refused by DuckDB.
+- It works the same whether the read is a native scan or arrives over Arrow: an
+  [`http`](/connectors/http/) page's `payload`, a document store's JSON column, a CSV column of JSON.
+  The column must land as `VARCHAR` or `JSON`.
+- On a `format: json` file (`localfiles`, `s3`, `gcs`, `azureblob`), `variant: [record]` lands each
+  object as one `record` column instead of the auto-detected columns. It takes no `columns:`
+  contract (`PZ0362`).
+- A watermark compares a typed column, so `variant:` cannot name the `sync:` cursor (`PZ0367`).
+- A named column that was not landed, is not text, or has rows that are not JSON fails the read
+  (`PZ0547`). The message counts the bad rows and never quotes them; the staged text is left as it
+  was.
+- Declaring or changing `variant:` changes the read's node id, so the next run extracts again.
+- A `VARIANT` column cannot go to a sink that receives rows over Arrow (`PZ0546`): cast it in the
+  pipeline, for example `payload::JSON::VARCHAR`. File sinks and DuckDB-family sinks write it
+  natively.
 
 ## `entities.<name>.write:`
 
@@ -286,6 +333,7 @@ than connecting with a blank credential. Values are redacted from logs and run a
 | [`PZ0346`](/reference/error-codes/) | A `sources/` or `sinks/` directory is present. |
 | [`PZ0347`](/reference/error-codes/) | A top-level `outputs:` block is present. |
 | [`PZ0348`](/reference/error-codes/) | `schema:`/`table:` used under `read:` instead of naming the entity fully. |
+| [`PZ0367`](/reference/error-codes/) | `variant:` is not a list of column names, repeats a name, or names the `sync:` cursor. |
 | [`PZ0359`](/reference/error-codes/) | A native scan needs an unsigned DuckDB extension and `allow_unsigned_extensions: true` is not set. |
 
 ## Related
