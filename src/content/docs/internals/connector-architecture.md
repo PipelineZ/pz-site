@@ -152,6 +152,7 @@ letting it fail or silently degrade at run time.
 | `TextLengthStats` | sink | Wants per-column max text lengths via `OutputSpec.MaxTextLengths` before `BeginWriteAsync`, to size text DDL. |
 | `ColumnPartitionedWrites` | sink | The destination records its own `partition_by` layout, needing no `path:` template. Declared in the ABI; no first-party connector implements it today. |
 | `NativeOnlyRead` | source | No universal read path at all; `PlanReadAsync` always refuses. In process this is the marker interface `INativeOnlySource`; over PCP it is this bit, set by the C# SDK for any connector that implements the interface — an author declares the interface, never the flag. `pz connector test` reads it to skip the vectors that need `PlanRead` to succeed. |
+| `NestedTypes` | sink | Receives nested columns — Arrow `struct`, `list`, `fixed_size_list` and `map` (DuckDB STRUCT, LIST, ARRAY, MAP) of the flat types, at any depth — in its write session. Without it the engine refuses such an output with `PZ0546` before the session opens, so a sink only ever sees the types it declared. Sources need no flag: nested columns a source emits land as DuckDB's nested types. |
 
 `append` needs no capability flag; every sink supports it.
 

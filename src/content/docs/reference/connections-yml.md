@@ -225,7 +225,8 @@ from (select unnest(payload.data::VARIANT[]) as r from {{ source('api', 'orders'
 - Declaring or changing `variant:` changes the read's node id, so the next run extracts again.
 - A `VARIANT` column cannot go to a sink that receives rows over Arrow (`PZ0546`): cast it in the
   pipeline, for example `payload::JSON::VARCHAR`. File sinks and DuckDB-family sinks write it
-  natively.
+  natively. STRUCT, LIST and MAP columns do reach the [`http`](/connectors/http/#nested-columns) and
+  [`postgres`](/connectors/postgres/#nested-columns) sinks.
 
 ## `entities.<name>.write:`
 
