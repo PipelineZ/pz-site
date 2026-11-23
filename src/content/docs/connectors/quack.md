@@ -1,6 +1,6 @@
 ---
 title: "Quack"
-description: "Reference for the quack connector, which reads and writes a remote DuckDB server over the Quack protocol on the native tier only, including how its merge-by-replace works."
+description: "Reference for the quack connector, which reads and writes a remote DuckDB server over the Quack protocol on the native tier only, including how its server-side merge works."
 sidebar:
   order: 10
 ---
@@ -42,29 +42,27 @@ bounded window pushed into the query, so the server returns only the rows the ru
 
 ## Write options
 
-`quack` takes no connector-specific write options. It supports every strategy, but its merge is
-different from the other DuckDB-family connectors:
+`quack` takes no connector-specific write options. It supports every strategy:
 
 | Strategy | What runs |
 |---|---|
 | `append` | `create table if not exists` from the staged rows' shape, then `insert`, matched by column name rather than position. |
 | `replace` | One `create or replace table … as select`. |
-| `merge` | Merge-by-replace: pull the target, merge it with the staged rows locally, and rewrite the whole remote table in one `create or replace table`. |
+| `merge` | The staged rows are shipped into a scratch table on the server, merged into the target with one `merge into`, and the scratch table is dropped, all in one transaction. |
 
-A quack-attached table accepts only bulk `create table as` and `insert` from the wire protocol.
-There is no row-level `update`, `delete`, or `merge`, which is why merge rewrites the table. That
-rewrite is the full blast radius, every time:
+Quack runs `update` and `merge` only when every table the statement reads is on the server, which
+is why the staged rows are shipped first. Only the batch crosses the wire, and:
 
-- Primary keys, `not null` and `default` constraints, and indexes on the target do not survive.
-- The target's column order follows the staged rows' order.
-- A matched row is replaced whole. A column the staged rows omit comes back null on matched rows,
-  so keep the pipeline's column set stable across runs.
-- Duplicate keys within one batch collapse to one connector-chosen survivor.
-- An empty batch still rewrites the table, with every target row kept. Cost grows with the target
-  table's size, since the whole table crosses the wire on every merge.
-
-Whether the rewrite is atomic is the server's guarantee. A failed rewrite can leave the target
-missing or partial until the next run, which recomputes the same result.
+- The target keeps its primary keys, `not null` and `default` constraints, indexes, and column
+  order, and the server enforces them: a batch that violates one fails the merge.
+- Every target column is written, so a batch that omits one fails the merge
+  (`table "…" has N columns but M values were supplied`) rather than nulling it. Select every
+  target column, `null` for the ones the pipeline does not have.
+- Duplicate keys within one batch collapse to one connector-chosen survivor; declare
+  [`duplicates: latest`](/concepts/delivery-guarantees/#duplicate-keys-in-one-merge-batch) with
+  `order_by` to choose it.
+- A failed merge rolls back whole: the target is unchanged and no scratch table is left behind.
+  The scratch table is named per target, so keep one writer per target.
 
 `strategy`, `keys`, `schema_policy`, and `retry` under `write:` are the shared keys documented in
 the [connections.yml reference](/reference/connections-yml/).
@@ -74,9 +72,9 @@ the [connections.yml reference](/reference/connections-yml/).
 | Flag | Meaning |
 |---|---|
 | `NativeScan` | Reads compile to a `select` over the attached server. |
-| `NativeCopy` | Writes compile to native insert, create-or-replace, or merge-by-replace statements. |
+| `NativeCopy` | Writes compile to native insert, create-or-replace, or merge statements. |
 | `ReplaceWrites` | Supports `strategy: replace`. |
-| `Merge` | Supports `strategy: merge` as merge-by-replace. |
+| `Merge` | Supports `strategy: merge` as a server-side `merge into`. |
 | `BoundedWindow` | Pushes a watermark upper bound into the generated query. |
 | `InclusiveWatermarkBound` | Accepts an inclusive lower watermark bound (`cursor >= value`). |
 
@@ -88,8 +86,7 @@ The connector does not declare `Transactional`: commit semantics belong to the s
   time; remove that setting instead.
 - **`append` matches columns by name, not position.** A target column the pipeline does not
   produce keeps its existing default; a column the pipeline produces that the target lacks is an
-  error naming it. (`merge`'s target column order follows the staged rows' order instead — see
-  above; that rule is unrelated to `append`.)
+  error naming it. (`merge` is stricter: a batch must carry every target column, see above.)
 - **The token never appears in an attach string or an error.** It rides a DuckDB secret scoped to
   the normalized `uri`. A wrong token fails as a permanent, redacted error.
 - **TLS is the reverse proxy's job.** The connector has no TLS settings. Put a reverse proxy in
