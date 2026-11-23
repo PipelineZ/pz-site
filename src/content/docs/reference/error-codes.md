@@ -162,6 +162,7 @@ codes from the YAML author's side.
 | `PZ0352` | FeedsRemoved | project.yml declares the removed `feeds:` block. | Loading project.yml |
 | `PZ0365` | RootEscape | A relative `path:`, once resolved against a localfiles/s3/gcs connection's `root:`, lands outside it (a `..` segment escapes). An absolute `path:` is unaffected — it ignores `root:` entirely, by design. | Planning execution, running a node |
 | `PZ0366` | OAuth2RefreshTokenRotated | An http connection with `auth.type: oauth2_refresh_token` got a token response carrying a `refresh_token` different from the configured one: the provider rotates refresh tokens. pz has no secret store to keep the new one, and the configured token may now be revoked, so the read fails permanently and the new access token is never used. Configure the provider for non-rotating refresh tokens, authorize again and update `auth.refresh_token`, or set `auth.rotation: ignore` for a provider that keeps old refresh tokens valid. | Running a node |
+| `PZ0367` | VariantConfigInvalid | A read's `variant:` is not a list of column names, repeats a name, or names the read's incremental cursor (a watermark compares a typed column, not a `VARIANT`). | Loading connections.yml, compiling a `source()` call |
 
 ## 04xx: SQL
 
@@ -230,6 +231,8 @@ maintenance.
 | `PZ0543` | StagingQueryUnavailable | `pz staging query` found nothing to query: the run directory or its `staging.duckdb` is missing (cleaned), or the run is still in progress. | `pz staging query` |
 | `PZ0544` | StagingQueryOptionsInvalid | `pz staging query`'s options break a rule: not exactly one of `--run` and `--run-dir`, a `--run` id that is not a plain directory name, an empty `--sql`, or a `--limit` outside 1-500. | `pz staging query` |
 | `PZ0545` | StagingQueryFailed | `pz staging query`'s SQL did not run: it is not a single SELECT, names a table or column the run did not stage, or tries a write, a file or network access, which the read-only session forbids. The message carries DuckDB's own first line. | `pz staging query` |
+| `PZ0546` | SinkColumnTypeUnsupported | An output's staged input has columns its connector's Arrow path does not carry: STRUCT, LIST, MAP, VARIANT, ENUM, TINYINT, SMALLINT, unsigned integers, FLOAT, BLOB, TIME, INTERVAL, or nanosecond, millisecond or second timestamps. It applies to sinks that receive rows over Arrow (Postgres, SQL Server, MySQL, Http, every out-of-process connector), not to native copies (files, DuckDB-family). The node fails before the connector opens a write; the message names each column with its DuckDB type and the hint gives the cast that fixes it (`rec::JSON::VARCHAR`, `qty::INTEGER`, `f::DOUBLE`). | Writing an output |
+| `PZ0547` | VariantConversionFailed | A `variant:` column could not become `VARIANT` after the read landed: the read did not land it (the message lists what it did land), it landed as something other than `VARCHAR`/`JSON`, or some rows hold text that is not JSON. The message counts those rows and never quotes a value; the staged text is left as it was. | Loading a source |
 
 ## 06xx: MCP
 

@@ -26,6 +26,7 @@ SELECT * FROM {{ source('raw', 'customers') }}
 | `columns` | mapping of column to type, or to `{ type, redact }` | Typed read contract, same shape as `read: columns:` in connections.yml, including the long form that marks a column for redaction. |
 | `sync` | mapping | Resume behavior: `{ mode: 'incremental', cursor: '<column>' }` and friends. Same shape as `read: sync:` in connections.yml. |
 | `retry` | mapping | `{ max_attempts, base_delay, max_delay }`. Same shape as connections.yml's `retry:`. |
+| `variant` | list | Landed columns of JSON text to turn into `VARIANT`: `variant: ['payload']`. Same as connections.yml's [`variant:`](/reference/connections-yml/#variant). |
 | `partition_column`, `partitions` | string, integer | On connectors that support parallel reads: the column to split on and how many partitions to read concurrently. |
 
 Anything else is passed straight through as a connector-specific read option, exactly as an
