@@ -88,12 +88,32 @@ see the [connections.yml reference](/reference/connections-yml/).
 | `InclusiveWatermarkBound` | Accepts an inclusive lower watermark bound (`cursor >= value`). |
 | `ApplyDeletes` | A merge write can apply CDC delete-key batches in the same transaction. |
 | `ChangeCapture` | Supports `sync: {mode: cdc}` reads. |
+| `NestedTypes` | Writes STRUCT, LIST, MAP and ARRAY columns (see [Nested columns](#nested-columns)). |
 
 ## Notes
 
 - `query:` and `sync: {mode: cdc}` are mutually exclusive on the same entity.
 - The session is pinned to UTC so watermark and window comparisons against a `timestamptz` cursor
   stay exact; this is internal and needs no configuration.
+
+### Nested columns
+
+Since pz 0.22.0, a postgres array column reads as a DuckDB list (`integer[]` as `INTEGER[]`, `text[]`
+as `VARCHAR[]`, and so on for every type this connector reads), with NULL elements kept. Before,
+such a column failed as outside the type matrix.
+
+An output can carry DuckDB's nested types:
+
+| DuckDB column | Postgres column |
+|---|---|
+| LIST or ARRAY of a flat type (`BIGINT[]`, `VARCHAR[]`, `DECIMAL(p,s)[]`, `DATE[]`, `TIMESTAMP[]`, `INTEGER[3]`…) | an array of that type (`bigint[]`, `text[]`, `numeric(38,9)[]`, `date[]`, `timestamptz[]`, `integer[]`), null elements kept |
+| STRUCT, MAP, or a LIST of nested values (`STRUCT(...)[]`, `INTEGER[][]`) | `jsonb`: a struct or map as an object (map keys as their text), a list as an array |
+
+A missing target is created with these types. An existing target is checked against them under
+`schema_policy: fail_on_change`, including an array's element type (`integer[]` is not
+`bigint[]`); a numeric array's precision is not compared. VARIANT, UNION, and FLOAT or narrow
+integers, on their own or inside a nested column, still fail with `PZ0546`: cast them in the
+pipeline (`payload::JSON::VARCHAR`, `qty::INTEGER`).
 
 ### Decimal values
 

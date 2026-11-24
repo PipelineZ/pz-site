@@ -395,7 +395,9 @@ With no `columns:`, every record under `items` lands as one row of a fixed raw e
 | *(cursor name)* | *(`cursor_type`)* | Present only when `cursor`/`cursor_type` are set. |
 
 Declaring `columns:` instead types the fields you want at extraction time. Extra JSON keys are
-ignored; a declared key absent from a record lands as null. File datasets have their own raw
+ignored; a declared key absent from a record lands as null. A column's type may be nested
+(`tags: "varchar[]"`, `owner: "struct(name varchar)"`): the record's JSON arrays and objects fill it
+(see [Column types](/reference/connections-yml/#column-types)). File datasets have their own raw
 envelope; see [Files](#files).
 
 #### Nested fields
@@ -1212,6 +1214,22 @@ column and sends one keyed `PUT`/`PATCH` per row. `replace` is not supported: th
 atomically overwrite an arbitrary endpoint's prior state. The connection's `auth`, `proxy` and
 `tls` apply to writes as they do to reads.
 
+### Nested columns
+
+Since pz 0.22.0, each row's JSON follows the output's DuckDB types at any depth: a STRUCT becomes
+an object, a LIST or ARRAY an array, a MAP an object keyed by the map keys' text (as DuckDB's own
+`::JSON` renders it).
+
+```sql title="pipelines/orders_out.sql"
+INSERT INTO {{ sink('webhook', 'orders_out', strategy: 'append', path: '/orders') }}
+SELECT id, {'name': customer, 'tier': tier} AS customer, list(sku) AS skus
+FROM {{ ref('order_lines') }} GROUP BY ALL
+```
+
+sends rows like `{"id":7,"customer":{"name":"Ada","tier":"gold"},"skus":["A1","B2"]}`. A merge
+key must be a scalar column; a nested one is refused before any request. VARIANT and UNION
+columns still fail with `PZ0546`: cast them in the pipeline (`payload::JSON::VARCHAR`).
+
 ## Capabilities
 
 | Flag | Meaning |
@@ -1223,6 +1241,7 @@ atomically overwrite an arbitrary endpoint's prior state. The connection's `auth
 | `CheckpointableReads` | A retried read can resume mid-crawl rather than restarting from page one. |
 | `Merge` | The sink supports `strategy: merge`. |
 | `CheckpointableWrites` | A retried write resumes past whatever prefix the destination already confirmed, instead of re-sending rows. |
+| `NestedTypes` | Writes STRUCT, LIST, MAP and ARRAY columns as JSON objects and arrays (see [Nested columns](#nested-columns)). |
 
 ## Notes
 

@@ -6,8 +6,10 @@ sidebar:
 ---
 
 The `sftp` connector reads and writes csv, tsv, parquet, and json files over SFTP. There is no native
-DuckDB path for SFTP, so every read and write runs on the universal Arrow tier: SSH.NET streams
-files through managed format readers and writers.
+DuckDB path for SFTP. Reads run on the universal Arrow tier: SSH.NET streams files through managed
+format readers. Since pz 0.22.0, writes run on the [spool tier](/internals/data-plane/#the-spool-tier):
+DuckDB writes each output to local files and the connector uploads them. `engine.force_universal`
+keeps the previous managed writers.
 
 ## Connection
 
@@ -43,11 +45,11 @@ documented in [connections.yml reference](/reference/connections-yml/).
 | Key | Required | Default | Meaning |
 |---|---|---|---|
 | `path` | No | `<entity>.<format>` | Remote path or glob, relative to `root`. Supports calendar tokens (see below). |
-| `format` | No | `csv` | `csv`, `tsv`, `parquet`, or `json`. `xlsx` and `avro` are native-tier only; this connector has no native tier at all, so either is refused with `PZ0361`. |
+| `format` | No | `csv` | `csv`, `tsv`, `parquet`, or `json`. `xlsx` and `avro` need DuckDB's native tier for reads; this connector has none, so either is refused with `PZ0361`. A parquet read returns nested columns (lists, structs, maps, fixed-size arrays) with every null in place. |
 | `columns` | Required for json | — | Column-to-type contract. json has no schema inference; csv/tsv without a contract reports every header column as `varchar`; parquet reads its footer. |
 | `files_per_partition` | No | `1` | How many matched files load into each partition. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
-| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) is the only layout this connector reads; `array` is native-tier only and is refused here with `PZ0361`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) is the only layout this connector reads; `array` is refused here with `PZ0361`. |
 
 ```yaml title="connections.yml"
 lake:
@@ -70,16 +72,18 @@ lake:
 
 | Key | Required | Default | Meaning |
 |---|---|---|---|
-| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, or `json`. `xlsx` is refused here too (native-tier only, no native tier on this connector); `avro` is read-only everywhere, so it is refused regardless. |
+| `format` | No | `parquet` | `csv`, `tsv`, `parquet`, `json`, or `xlsx`. `avro` is read-only everywhere, so it is refused. |
 | `path` | No | `<entity>` | Destination directory, relative to `root`. Must carry calendar tokens if `partition_by` is set. |
 | `partition_by` | No | — | A single timestamp or date column. Fans rows out into one file per calendar folder, rendered from `path`'s tokens. |
 | `delimiter` | No | `,` | csv only, one ASCII character other than a quote, newline, or carriage return. tsv is fixed to tab; setting `delimiter` on it is `PZ0362`. |
-| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) is the only layout this connector writes; `array` is native-tier only and is refused here with `PZ0361`. |
+| `layout` | No | `ndjson` | json only. `ndjson` (newline-delimited) or `array`. |
 
 Only `strategy: append` and `strategy: replace` are supported; there is no `merge` for a file
 store. `replace` writes one stable name (`<entity>.<format>`); `append` writes a run-unique,
-guid-suffixed name so repeated runs accumulate files. Every write lands via a temp-file-then-rename
-commit, so a failed or aborted write never leaves a partial file at the final path.
+guid-suffixed name so repeated runs accumulate files. Every write uploads under a temporary name and
+then renames, so a failed or aborted write never leaves a partial file at the final path. The
+output matches what [localfiles](/connectors/localfiles/) writes byte for byte, csv formatting
+included, and parquet carries decimals and nested columns.
 
 ### Path templating
 
@@ -97,6 +101,8 @@ folder per row from its timestamp value using the same tokens.
 | `BoundedWindow` | Honors an entity's upper watermark bound, applied row-by-row since there is no native filter pushdown. |
 | `PathTemplating` | Understands calendar tokens in `path`, for both read pruning and `partition_by` writes. |
 | `GatedOperations` | Every SSH operation routes through `rate_limit` pacing. |
+| `NestedTypes` | Writes STRUCT, LIST, MAP and ARRAY columns (see Notes). |
+| `SpoolWrites` | DuckDB writes each output to local files and the connector uploads them (see [the spool tier](/internals/data-plane/#the-spool-tier)). |
 
 ## Host key pinning
 
@@ -118,16 +124,22 @@ than silently accepting it — only pin a fingerprint you've verified out of ban
 
 ## Notes
 
+- Since pz 0.22.0, nested columns are written as nested parquet, as objects and arrays to json, and
+  as JSON text to csv, tsv and xlsx. Under `engine.force_universal` the managed writers are used
+  instead, and the parquet one refuses a nested column before writing anything, naming it, since it
+  cannot tell a null list from an empty one: write json or csv, or cast the column
+  (`col::JSON::VARCHAR`).
+
 - `password` and `private_key_path` are mutually exclusive; declaring both, or neither, fails
   validation.
 - A json entity always needs a `columns` contract. There is no managed NDJSON schema inference for
   this connector.
 - csv reads parse with the resolved `delimiter` (comma by default) instead of auto-detecting it —
   a semicolon-delimited file labelled `format: csv` needs `delimiter: ";"`.
-- `xlsx` and `avro` need DuckDB's native tier (see [DuckDB
+- Reading `xlsx`, `avro` or json `layout: array` needs DuckDB's native tier (see [DuckDB
   extensions](/concepts/connections-and-entities/#duckdb-extensions)), which this connector has
-  none of: both are refused with `PZ0361` regardless of direction. Move the entity to
-  `localfiles`, `s3`, `gcs`, or `azureblob` to read or write it.
+  none of: each is refused with `PZ0361`. Move the entity to `localfiles`, `s3`, `gcs`, or
+  `azureblob` to read it. `avro` is refused for writes too.
 
 ## Related
 

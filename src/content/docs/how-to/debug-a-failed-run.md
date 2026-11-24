@@ -197,6 +197,7 @@ Once a node succeeds, confirm the exit code is `0` and, for an incremental entit
 |---|---|---|
 | [`PZ0201`](/reference/error-codes/) | A `source()`/`ref()` call is malformed: missing arguments, or extra positional arguments where only keyword options belong. | Rendering pipeline SQL |
 | [`PZ0301`](/reference/error-codes/) | A connection or entity config value fails the connector's own published schema. | Loading `connections.yml` |
+| [`PZ0368`](/reference/error-codes/) | A `columns:` type does not parse. | Loading `connections.yml` |
 | [`PZ0312`](/reference/error-codes/) | An entity option needs the universal read path, but its connector supports only the native path. | Compiling the DAG, planning execution |
 | [`PZ0313`](/reference/error-codes/) | An entity declares `max_window`, but its connector doesn't declare bounded-window support. | Planning execution |
 | [`PZ0331`](/reference/error-codes/) | A live-fetched schema disagrees with a `columns:` contract, or an entity's last observed schema. | `pz validate --connect`, `pz run` |

@@ -68,6 +68,8 @@ neither a `Merge` nor a `ChangeCapture` capability.
   pipeline, or whose column order differs from the pipeline's select list, lands every value under
   its own column name rather than by position. A target column the pipeline does not produce keeps
   its existing default; a column the pipeline produces that the target lacks is an error naming it.
+- Since pz 0.22.0, a STRUCT, LIST, MAP or ARRAY column is written as JSON text, readable with
+  SQLite's `json_extract`, instead of DuckDB's literal syntax.
 
 ## Related
 

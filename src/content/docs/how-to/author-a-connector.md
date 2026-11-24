@@ -194,7 +194,10 @@ for C# (see [C# SDK](#c-sdk) below) and the `pz-connector` crate for Rust
    a current SDK, and reports Skip rather than Fail against an older one. **The schema/batch,
    cancellation, and ticket-handling vectors report Skip, not Fail, against a source that declares
    `NativeOnlyRead`** (see step 4) instead of demanding a `PlanRead` result such a source can never
-   give.
+   give. Two write vectors need a `write:` probe and a
+   declared capability: **`nested-columns-write`** (`NestedTypes`) and **`spool-commit`**
+   (`SpoolWrites`). Without the capability they skip; a write probe whose output refuses nested
+   columns with a config error also skips `nested-columns-write`.
 
 7. **Package it as a NuGet package.** A connector is an ordinary NuGet package. Tag it
    `pipelinez-connector` in `<PackageTags>`, the ecosystem's discovery tag, and name it under your
@@ -290,6 +293,62 @@ The `Pz.Connectors.TestKit` sink suite checks it through the type-matrix hooks
 value with a 29-digit integer part and requires that it either reads back with every digit or
 the write fails with a permanent error naming the column. It is a no-op for a sink that has not
 set the hooks.
+
+### Nested columns
+
+A sink receives STRUCT, LIST, MAP and fixed-size ARRAY columns (Arrow `struct`, `list`, `map`,
+`fixed_size_list`) only when it declares `ConnectorCapabilities.NestedTypes`; without it, the
+engine refuses such an output with `PZ0546` before your session opens. Declare it only if every
+format your universal writer offers can carry them, or refuse a nested column in `BeginWriteAsync`
+with a permanent `PzConnectorException` that names it and suggests a cast. A native copy into a
+destination without composite types sets `NativeCopy.NestedAsJson = true`, and the engine
+substitutes a relation whose composite columns are DuckDB `JSON`.
+
+A sink reads a nested cell with `ArrowCell`: `WriteJson`/`ToJson` give its JSON (a struct as an
+object, a list as an array, a map as an object keyed by the keys' text), and `GetValue` gives boxed
+.NET values (a struct as a field-ordered `Dictionary<string, object?>`, a list as `List<object?>`,
+a map as `List<KeyValuePair<object, object?>>`, a timestamp as a UTC `DateTimeOffset`).
+
+A source emits nested columns through `ArrowBatchBuilder`. Box the values passed to `AppendRow`:
+
+| Column | Value |
+|---|---|
+| list or fixed-size list | any `IEnumerable` that is not a `string` |
+| struct | an `IReadOnlyDictionary<string, object?>`, or an `object?[]` in field order |
+| map | an `IDictionary` |
+
+They nest to any depth, with nulls at every level, and `AppendFrom` copies nested Arrow cells. A
+value of the wrong shape fails naming the column. `ColumnContractType` parses a `columns:` contract
+type (`varchar[]`, `struct(...)`) and maps it to Arrow. `DataReaderSource` has overloads that take
+an array-element resolver, for providers whose reader reports every array column as `System.Array`.
+
+The TestKit fact `Nested_columns_are_written_when_NestedTypes_is_declared` writes a batch with a
+null at every nesting level and requires that the commit report every row. Point it at its own
+destination by overriding `NestedOutput`; a connector that declares the capability without it sees
+the fact skipped with a message saying so.
+
+### Spooling sinks
+
+A sink whose destination DuckDB cannot write to directly, such as an SFTP server, but which can
+take a finished file, declares `ConnectorCapabilities.SpoolWrites` and implements `ISpoolingSink`
+on the `ISink` it opens:
+
+- `TryGetSpool(OutputSpec, out SpoolPlan?)` is cheap and offline, like `TryGetNativeCopy`. The plan
+  names the DuckDB `COPY` options, the file extension, setup statements, whether nested columns
+  are written as JSON text (`NestedAsJson`), and optionally a `partition_by` column and calendar
+  path template. Return false to take the Arrow path.
+- `CommitSpoolAsync(OutputSpec, IReadOnlyList<SpooledFile>, CancellationToken)` delivers the files
+  and returns the `WriteResult`. The engine `COPY`s the staged output to local files under the run
+  directory, one per `partition_by` folder (the folder is rendered from the column's UTC value,
+  and is empty without a partition column), then deletes them after the call returns or throws,
+  so finish reading them first. Make each delivery atomic (a temporary name, then rename).
+
+The engine tries the spool after `TryGetNativeCopy` declines, and never under
+`engine.force_universal`. The tier is reported as `spool` in `plan.json`, `pz plan` and the
+`node_completed` event's `strategy`. Since DuckDB writes the file, every format it writes is
+available, nested columns included. Over PCP the host asks only a connector that declares
+`SpoolWrites`, through the `TrySpool` and `CommitSpool` RPCs; the C# SDK serves them for any sink
+implementing `ISpoolingSink`.
 
 ## C# SDK
 
@@ -626,7 +685,10 @@ already covers sources, but no Rust trait exists yet to implement one against.
 A minimal Rust sink implements three traits: `SinkConnector` (`validate`, `check`, `open`, and
 `try_native_copy`), `Sink` (`begin_write`), and `WriteSession` (`write_batch` and the commit/abort
 pair). It is the same shape as the C# `ISinkConnector`/`ISink`/`ISinkWriteSession` triad above, just in
-Rust. The crate still produces the same `pz.connector.json` package shape described in step 5:
+Rust. A sink that declares `SpoolWrites` also implements the defaulted `SinkConnector::try_spool` and
+`Sink::commit_spool`, the counterparts of `TryGetSpool` and `CommitSpoolAsync`. A native copy into a
+destination without composite types sets `NativeCopy::nested_as_json` (a public field, so a struct
+literal needs `..Default::default()`). The crate still produces the same `pz.connector.json` package shape described in step 5:
 `runtime: "process"` with a per-RID entrypoint pointing at the compiled binary.
 
 ### Telemetry

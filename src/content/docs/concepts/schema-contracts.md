@@ -42,7 +42,9 @@ crm:
           updated_at: timestamp
 ```
 
-Each value is a DuckDB type name: `bigint`, `varchar`, `double`, `timestamp`, and so on. A
+Each value is a type: one of `int`, `bigint`, `double`, `decimal`, `varchar`, `boolean`, `date` or
+`timestamp`, or a nested type such as `varchar[]`, `int[3]`, `struct(name varchar, tags varchar[])`
+or `map(varchar, bigint)` (see [Column types](/reference/connections-yml/#column-types)). A
 contract does two things at once: it types every column so pz never has to guess, and it prunes
 the read to exactly those columns, nothing more. It also lets pz validate an incremental
 [`watermark()`](/concepts/incremental-loads/) cursor ahead of time, rather than discovering at run
@@ -158,6 +160,7 @@ project gets the same watch for free, with no per-entity configuration.
 | [`PZ0227`](/reference/error-codes/) | A SQL `watermark()` call's cursor column is missing from, or outside the allowed types in, a declared `columns:` contract. |
 | [`PZ0331`](/reference/error-codes/) | A declared column is missing or retyped under `pz validate --connect`, or a contract-less entity's schema drifted under `on_source_drift: fail`. |
 | [`PZ0334`](/reference/error-codes/) | `write.schema_policy` (or another `write:` key) is malformed or unrecognized. |
+| [`PZ0368`](/reference/error-codes/) | A `columns:` type does not parse, reported at load for every bad column. |
 
 ## Related
 

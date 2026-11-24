@@ -6,7 +6,7 @@ sidebar:
 ---
 
 This page is for contributors. It explains how bytes physically move through `pz`: why DuckDB
-is the hub, the two tiers a connector's data can travel on, why Arrow `RecordBatch` is the one
+is the hub, the two tiers a connector's data can travel on (plus the spool, a variant of the native write), why Arrow `RecordBatch` is the one
 canonical in-memory format, and the ownership rules that keep the zero-copy path safe.
 
 <figure class="dgm">
@@ -62,6 +62,18 @@ as well by implementing
 
 The planner chooses the tier **per edge, per run**, prefers the native path, and logs which
 tier each edge used. `pz plan` shows the choice and the reason before anything runs.
+
+### The spool tier
+
+A sink whose destination DuckDB cannot write to directly, but which can take a finished file (an SFTP
+server), declares `ConnectorCapabilities.SpoolWrites` and implements `ISpoolingSink`. The engine
+`COPY`s the staged output to local files under the run directory with DuckDB's own writer, so every
+format DuckDB writes is available, nested columns included, and the output is the same bytes a
+`localfiles` write produces. There is one file per `partition_by` folder, the folder rendered from
+the column's UTC value. The sink delivers the files, and the engine deletes them afterwards. The
+planner tries the spool after `TryGetNativeCopy` declines, and never under `engine.force_universal`,
+which keeps the Arrow path. `plan.json`, `pz plan` and the `node_completed` event's `strategy`
+report it as `spool`. See [Spooling sinks](/how-to/author-a-connector/#spooling-sinks).
 
 ## Tier 2: the universal Arrow path
 

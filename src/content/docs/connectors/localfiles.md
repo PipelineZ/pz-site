@@ -80,6 +80,7 @@ Sink file: `<entity>.xlsx` for an xlsx write, same as every other format.
 | `ReplaceWrites` | Supports `strategy: replace`. |
 | `BoundedWindow` | Pushes a watermark upper bound into the native scan for incremental reads. |
 | `PartitionedRead` | A large csv file may split into more than one partition for parallel reads. |
+| `NestedTypes` | Universal-tier writes accept STRUCT, LIST, MAP and ARRAY columns (json, csv). |
 
 ## Notes
 
@@ -90,6 +91,12 @@ Sink file: `<entity>.xlsx` for an xlsx write, same as every other format.
   `delimiter: ";"`. A non-comma delimiter also disables csv split-partitioning: a large file reads
   as a single partition instead of splitting across `PartitionedRead`.
 - `strategy: merge` is refused: `localfiles` has no keyed upsert, since files have no primary key.
+- Since pz 0.22.0, a STRUCT, LIST or MAP column is written to csv, tsv and xlsx as JSON text
+  (`{"a":1}`, `[1,2]`), not DuckDB's literal syntax (`{'a': 1}`); parquet and json keep it nested.
+- On the universal tier (`engine.force_universal`, or when the native copy is declined), json
+  writes nested columns as objects and arrays and csv/tsv as the same JSON text; parquet refuses a
+  nested column before writing anything, naming it, since that writer cannot tell a null list from
+  an empty one. Write json or csv there, or cast the column (`col::JSON::VARCHAR`).
 - An absolute `path` on an entity ignores the connection's `root` entirely.
 - When the connection declares `root:`, a relative `path` whose `..` segments resolve outside it is
   refused with [`PZ0365`](/reference/error-codes/), naming the connection and dataset/output.

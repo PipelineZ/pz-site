@@ -30,7 +30,7 @@ windowed read or a change-capture read. "Merge" names keyed upsert writes.
 | [s3](/connectors/s3/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
 | [azureblob](/connectors/azureblob/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
 | [gcs](/connectors/gcs/) | ✓ | ✓ | ✓ | ✓ | – | – | csv, tsv, parquet, json, xlsx (read), avro (read) |
-| [sftp](/connectors/sftp/) | ✓ | ✓ | – | ✓ | – | – | csv, tsv, parquet, json |
+| [sftp](/connectors/sftp/) | ✓ | ✓ | – | ✓ | – | – | csv, tsv, parquet, json (xlsx write) |
 | [http](/connectors/http/) | ✓ | ✓ | – | ✓ | – | ✓ | json, csv (read), tsv (read), xml (read) |
 
 :::note
