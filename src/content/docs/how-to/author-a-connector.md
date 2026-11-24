@@ -304,6 +304,11 @@ with a permanent `PzConnectorException` that names it and suggests a cast. A nat
 destination without composite types sets `NativeCopy.NestedAsJson = true`, and the engine
 substitutes a relation whose composite columns are DuckDB `JSON`.
 
+A sink reads a nested cell with `ArrowCell`: `WriteJson`/`ToJson` give its JSON (a struct as an
+object, a list as an array, a map as an object keyed by the keys' text), and `GetValue` gives boxed
+.NET values (a struct as a field-ordered `Dictionary<string, object?>`, a list as `List<object?>`,
+a map as `List<KeyValuePair<object, object?>>`, a timestamp as a UTC `DateTimeOffset`).
+
 A source emits nested columns through `ArrowBatchBuilder`. Box the values passed to `AppendRow`:
 
 | Column | Value |
