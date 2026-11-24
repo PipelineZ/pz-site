@@ -103,7 +103,7 @@ See also: [How a run works](/concepts/how-a-run-works/).
 ## pz plan
 
 Show the per-node execution strategy the engine would use, and why: native scan or copy versus
-the universal batch path. Always compiles the full project and writes `.pz/target/plan.json`;
+the universal batch path, or the spool (`spool`: DuckDB writes local files that the connector delivers, as `sftp` does). Always compiles the full project and writes `.pz/target/plan.json`;
 names, `--select`, and `--all` only filter the printed table. The selection also tells the planner
 which nodes `pz run` with the same selection would execute, so a connector's plan-time refusal
 ([`PZ0353`](/reference/error-codes/)) on a node outside it is recorded in `plan.json`, not raised.

@@ -395,7 +395,9 @@ With no `columns:`, every record under `items` lands as one row of a fixed raw e
 | *(cursor name)* | *(`cursor_type`)* | Present only when `cursor`/`cursor_type` are set. |
 
 Declaring `columns:` instead types the fields you want at extraction time. Extra JSON keys are
-ignored; a declared key absent from a record lands as null. File datasets have their own raw
+ignored; a declared key absent from a record lands as null. A column's type may be nested
+(`tags: "varchar[]"`, `owner: "struct(name varchar)"`): the record's JSON arrays and objects fill it
+(see [Column types](/reference/connections-yml/#column-types)). File datasets have their own raw
 envelope; see [Files](#files).
 
 #### Nested fields

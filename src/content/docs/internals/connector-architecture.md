@@ -153,6 +153,7 @@ letting it fail or silently degrade at run time.
 | `ColumnPartitionedWrites` | sink | The destination records its own `partition_by` layout, needing no `path:` template. Declared in the ABI; no first-party connector implements it today. |
 | `NativeOnlyRead` | source | No universal read path at all; `PlanReadAsync` always refuses. In process this is the marker interface `INativeOnlySource`; over PCP it is this bit, set by the C# SDK for any connector that implements the interface — an author declares the interface, never the flag. `pz connector test` reads it to skip the vectors that need `PlanRead` to succeed. |
 | `NestedTypes` | sink | Receives nested columns — Arrow `struct`, `list`, `fixed_size_list` and `map` (DuckDB STRUCT, LIST, ARRAY, MAP) of the flat types, at any depth — in its write session. Without it the engine refuses such an output with `PZ0546` before the session opens, so a sink only ever sees the types it declared. Sources need no flag: nested columns a source emits land as DuckDB's nested types. |
+| `SpoolWrites` | sink | `16777216`. Takes finished files the engine writes with DuckDB: the sink implements `ISpoolingSink` (`TryGetSpool`, `CommitSpoolAsync`), and over PCP this bit says the host may call `TrySpool` and `CommitSpool`. Tried after `TryGetNativeCopy` declines, never under `engine.force_universal`. |
 
 `append` needs no capability flag; every sink supports it.
 
@@ -297,6 +298,8 @@ Every RPC PCP defines, control plane unless noted:
 | `TryNativeCopy` | host → child | Asks for a native-tier DuckDB copy fragment. |
 | `BeginWrite` | host → child | Opens a write session and the paired data-plane socket. |
 | `CommitWrite` | host → child | Commits an open write session. |
+| `TrySpool` | host → child | Asks for a spool plan: the DuckDB `COPY` options, file extension and optional `partition_by` folders for a sink that takes finished files. Asked only of a connector that declares `SpoolWrites`. |
+| `CommitSpool` | host → child | Hands the spooled local files to the connector to deliver, and returns the write's result. Asked only of a connector that declares `SpoolWrites`. |
 | `AbortWrite` | host → child | Aborts an open write session. |
 | `Cancel` | host → child | Propagates run cancellation into an in-flight operation. |
 | `Shutdown` | host → child | Graceful shutdown request, ahead of the cancel-then-kill ladder. |

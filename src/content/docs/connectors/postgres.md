@@ -98,7 +98,11 @@ see the [connections.yml reference](/reference/connections-yml/).
 
 ### Nested columns
 
-Since pz 0.22.0, an output can carry DuckDB's nested types:
+Since pz 0.22.0, a postgres array column reads as a DuckDB list (`integer[]` as `INTEGER[]`, `text[]`
+as `VARCHAR[]`, and so on for every type this connector reads), with NULL elements kept. Before,
+such a column failed as outside the type matrix.
+
+An output can carry DuckDB's nested types:
 
 | DuckDB column | Postgres column |
 |---|---|

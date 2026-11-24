@@ -78,7 +78,8 @@ restored ones as their own process. This is also where a selection (a flow name,
 
 For every edge, `pz` decides how the data actually moves: a native path when the connector can
 hand DuckDB the work directly (`native_scan` for a read, `native_copy` for a write), or the
-universal batch path (`duck_sql`) otherwise. `pz plan` prints this table without running
+universal batch path (`duck_sql`) otherwise. A write to a destination DuckDB cannot reach directly (`sftp`)
+uses `spool`: DuckDB writes local files and the connector delivers them. `pz plan` prints this table without running
 anything; `pz run` computes the same plan and writes it to `.pz/target/plan.json`. Since 0.12.0 the
 plan also shows what a `native_scan` read pushes down: the columns and the filter the pipeline
 needs, which the native scan applies so it stages only those columns and the matching rows.

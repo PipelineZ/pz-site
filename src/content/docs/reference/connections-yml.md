@@ -117,7 +117,7 @@ through as a connector-specific read option (see [Connector-specific keys](#conn
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `columns` | map of column name to DuckDB type, or to `{ type, redact, pointer }` | none (contract-less) | Typed read contract, e.g. `id: bigint`, `email: varchar`. Required by some connectors on the universal execution tier; optional elsewhere. The long form marks a column for redaction (see [Redacting columns](#redacting-columns)) or, on `http`, reads a nested field. |
+| `columns` | map of column name to a contract type, or to `{ type, redact, pointer }` | none (contract-less) | Typed read contract, e.g. `id: bigint`, `email: varchar`, `tags: "varchar[]"`. See [Column types](#column-types). Required by some connectors on the universal execution tier; optional elsewhere. The long form marks a column for redaction (see [Redacting columns](#redacting-columns)) or, on `http`, reads a nested field. |
 | `sync` | map: `mode`, plus mode-specific keys | mode `auto` | Resume behavior for this entity. See below. |
 | `retry` | map | inherits the connection's `retry:` | Overrides retry for this entity's reads only. Same keys as connection-level `retry:`. |
 | `variant` | list of column names | none | Landed columns of JSON text that become DuckDB `VARIANT`. See [`variant:`](#variant). |
@@ -126,6 +126,30 @@ through as a connector-specific read option (see [Connector-specific keys](#conn
 `rate_limit:` is refused under `read:` (`PZ0318`): it is connection-level only. The retired
 `incremental:` block, and `schema:`/`table:` qualifiers, are described under
 [Retired forms](#retired-forms).
+
+### Column types
+
+A `columns:` type is one of the flat types `int`, `bigint`, `double`, `decimal`, `varchar`,
+`boolean`, `date` and `timestamp`, or a nested type built from them:
+
+| Form | Meaning |
+|---|---|
+| `t[]` | list of `t` |
+| `t[n]` | fixed-size list of `n` values of `t` |
+| `struct(name type, ...)` | struct with the named fields; a field name is bare or double-quoted |
+| `map(key, type)` | map; the key is a flat type |
+
+Nested types nest freely: `struct(name varchar, tags varchar[])`, `map(varchar, bigint[])`.
+Inside a YAML flow mapping, quote a nested type:
+
+```yaml
+columns: { id: bigint, tags: "varchar[]", owner: "struct(name varchar, age int)" }
+```
+
+json files and `http` records type a nested column from their objects and arrays. csv, tsv and
+xlsx cells hold the value's JSON text (what pz writes there). Both work on the native scan and on
+the universal readers, so pipeline SQL can index `tags[1]` or `owner.name`. A type that does not
+parse is [`PZ0368`](/reference/error-codes/), reported for every bad column at load.
 
 ### Redacting columns
 
@@ -337,6 +361,7 @@ than connecting with a blank credential. Values are redacted from logs and run a
 | [`PZ0347`](/reference/error-codes/) | A top-level `outputs:` block is present. |
 | [`PZ0348`](/reference/error-codes/) | `schema:`/`table:` used under `read:` instead of naming the entity fully. |
 | [`PZ0367`](/reference/error-codes/) | `variant:` is not a list of column names, repeats a name, or names the `sync:` cursor. |
+| [`PZ0368`](/reference/error-codes/) | A `columns:` type that does not parse. |
 | [`PZ0359`](/reference/error-codes/) | A native scan needs an unsigned DuckDB extension and `allow_unsigned_extensions: true` is not set. |
 
 ## Related
