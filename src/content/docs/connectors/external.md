@@ -35,8 +35,8 @@ for your platform and talks to it over PCP, so each needs **pz 0.5.1 or newer**.
 deltalake and snowflake before 0.2.0 were in-process packages, which `PZ0360` refuses; pin 0.2.0
 or later.
 
-The versions pinned below are built on `Pz.Connectors.Sdk` 0.11.0, or 0.14.0 for bigquery,
-cosmosdb and eventhubs 0.3.0, which declare their [ambient cloud identity](#ambient-cloud-identity).
+The versions pinned below are built on `Pz.Connectors.Sdk` 0.22.0 (github on 0.19.0) and carry
+[nested columns](#nested-columns), which need pz 0.22.0; on an older pz they run without them.
 Earlier releases of the
 bigquery, cosmosdb, databricks, deltalake, elasticsearch, mongodb and snowflake connectors fail
 every column-pruned read on pz 0.6.1 with `PZ0501`, and can crash pz 0.6.0 on a projection that is
@@ -83,7 +83,7 @@ last-write-wins on the session's own sequence and null-safe keys). Auth is a ser
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.BigQuery
-    version: 0.3.0
+    version: 0.5.0
 ```
 
 **Before you install it:** views are refused on read — point `query:` at them instead. a `BIGNUMERIC`
@@ -118,7 +118,7 @@ targets) are supported. A private CA is set with `tls_ca_file`.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.ClickHouse
-    version: 0.2.0
+    version: 0.4.0
 ```
 
 **Before you install it:** this connector is built on `Pz.Connectors.Sdk` 0.11.0, and its tests run
@@ -149,7 +149,7 @@ truncate.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.CosmosDb
-    version: 0.3.0
+    version: 0.5.0
 ```
 
 **Before you install it:** the container must already exist — partition key and throughput are
@@ -182,7 +182,7 @@ Auth is a personal access token or a service principal's OAuth client credential
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Databricks
-    version: 0.2.0
+    version: 0.4.0
 ```
 
 **Before you install it:** every read and every commit runs statements on the warehouse, billed as
@@ -204,7 +204,7 @@ DuckDB has no native Delta write path.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.DeltaLake
-    version: 0.3.0
+    version: 0.6.0
 ```
 
 **Before you install it:** it's a 200 MB download — the package ships a Native AOT binary plus
@@ -223,8 +223,9 @@ merge-cost numbers on a partitioned table, and what's proven per backend.
 ## elasticsearch
 
 An index (alias, or pattern) reads as a table: the mapping is the schema — numerics, booleans and
-standard-format dates typed, objects flattened into dotted columns, everything else (`nested`,
-`flattened`, geo, vectors, custom date formats) landed as JSON or text — plus a trailing `_id`.
+standard-format dates typed, objects flattened into dotted columns, a `nested` field whose leaves
+all type as a list of structs, everything else (`flattened`, geo, vectors, custom date formats, a
+`nested` field with an untyped leaf) landed as JSON or text — plus a trailing `_id`.
 Reads page through a point in time, so a run sees one consistent version of the index; an
 incremental cursor (`cursor > watermark`) and a bounded window become a `range` clause alongside
 your own `query:` (Query DSL). The sink is `_bulk`: `append`, `merge` (`_id` from the keys, a
@@ -234,7 +235,7 @@ atomic aliases request.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Elasticsearch
-    version: 0.2.0
+    version: 0.4.0
 ```
 
 **Before you install it:** it targets Elasticsearch 9.x through the official 9.x client — nothing
@@ -264,7 +265,7 @@ Entra credential chain, a service principal, or managed identity.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.EventHubs
-    version: 0.3.0
+    version: 0.5.0
 ```
 
 **Before you install it:** there's no checkpoint store / Event Processor and no Schema Registry —
@@ -293,7 +294,7 @@ JSON, kept off the same AOT-compatibility bet the elasticsearch connector above 
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Github
-    version: 0.2.0
+    version: 0.3.0
 ```
 
 **Before you install it:** a run created before the watermark advances past it, but which keeps
@@ -318,7 +319,7 @@ giving at-least-once delivery across runs.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Kafka
-    version: 0.2.0
+    version: 0.4.0
 ```
 
 **Before you install it:** there's no Schema Registry / Avro / Protobuf decoding — `value` arrives
@@ -347,7 +348,7 @@ server-side rename.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.MongoDb
-    version: 0.2.0
+    version: 0.4.0
 ```
 
 **Before you install it:** an inferred schema is only as stable as the head of the collection —
@@ -371,7 +372,7 @@ password-auth surface.
 ```yaml title="project.yml"
 connectors:
   - package: Pz.Connector.Snowflake
-    version: 0.3.0
+    version: 0.5.0
 ```
 
 **Before you install it:** prefer a glibc Linux host over Alpine — the driver's documented Linux
@@ -383,6 +384,34 @@ option for GCP-hosted accounts, either. The package is self-contained rather tha
 against the project directory (the manifest declares a project-directory anchor). See its
 [README](https://github.com/PipelineZ/pz-connector-snowflake#readme) for connection keys, schema
 policy, and type mapping.
+
+## Nested columns
+
+Every connector here except github declares `NestedTypes`, so a STRUCT, LIST, MAP or fixed-size
+ARRAY column reaches the sink as itself instead of being refused (`PZ0546`). What it becomes is the
+destination's own shape:
+
+| Connector | Writes a nested column as | Reads nested data as |
+|---|---|---|
+| bigquery | RECORD, REPEATED, a map as REPEATED RECORD (`key`, `value`). A null list element is refused (`PZBQ0308`): filter it with `list_filter(col, x -> x is not null)`. A list of lists or of maps is refused. | RECORD and REPEATED, typed |
+| clickhouse | `Tuple`, `Array` (a fixed-size array too), `Map`. ClickHouse forbids a nullable container, so a null list or map lands as `[]` or `{}`, a null struct as a tuple of nulls or defaults. | `Tuple`, `Array`, `Map`, typed; a container whose elements need a cast (`Array(Date)`, a UUID in a tuple) as text |
+| cosmosdb | Objects and arrays in the document | Declared under `fields:` with a nested type; inference unchanged |
+| databricks | `STRUCT`, `ARRAY`, `MAP<STRING, T>`, rebuilt with `from_json` | `STRUCT`, `ARRAY`, `MAP`, typed; one with a leaf pz cannot type (BINARY, VARIANT) as JSON text |
+| deltalake | Delta struct, list (a fixed-size array too) and map, nulls at every level | Typed, through `delta_scan` |
+| elasticsearch | Objects and arrays; the index's mapping decides (the sink creates no `nested` mapping) | A `nested` field with typed leaves as a list of structs |
+| eventhubs | Objects and arrays in the JSON body | — (fixed envelope) |
+| kafka | Objects and arrays in the JSON value; a nested key or header column is refused | — (text envelope) |
+| mongodb | Sub-documents and arrays | Declared under `fields:` with a nested type; inference unchanged |
+| snowflake | `VARIANT`, through `parse_json` | `ARRAY`, `OBJECT`, `MAP`, `VARIANT` as JSON text; type them with a `columns:` contract |
+
+Wherever a column picks a document, a key or a partition (a merge key, cosmosdb's `id`/`id_from` and
+partition key, deltalake's partition columns, a kafka or eventhubs key), a nested column is refused by
+name: compare a flat value instead. A sink writing JSON refuses a map whose keys share the same text.
+
+Two reads changed shape in these releases: elasticsearch's typed `nested` fields (0.4.0) and
+databricks' `STRUCT`/`ARRAY`/`MAP` columns (0.4.0) used to land as JSON text. To keep the text, list
+the field under elasticsearch's `json_fields:`, read `to_json(col)` through databricks' `query:`, or
+cast in the pipeline (`col::JSON::VARCHAR`).
 
 ## Ambient cloud identity
 
