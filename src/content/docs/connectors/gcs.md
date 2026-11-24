@@ -107,8 +107,16 @@ timestamp value using the same tokens.
 | `BoundedWindow` | Honors an entity's upper watermark bound. |
 | `PathTemplating` | Understands calendar tokens in `path`, for both read pruning and `partition_by` writes. |
 | `GatedOperations` | SDK-tier writes route through `rate_limit` pacing. |
+| `NestedTypes` | SDK-tier writes accept STRUCT, LIST, MAP and ARRAY columns (json, csv). |
 
 ## Notes
+
+- Since pz 0.22.0, a STRUCT, LIST or MAP column is written to csv, tsv and xlsx as JSON text
+  (`{"a":1}`, `[1,2]`), not DuckDB's literal syntax (`{'a': 1}`); parquet and json keep it nested.
+- On the universal tier (`engine.force_universal`, or when the native copy is declined), json
+  writes nested columns as objects and arrays and csv/tsv as the same JSON text; parquet refuses a
+  nested column before writing anything, naming it, since that writer cannot tell a null list from
+  an empty one. Write json or csv there, or cast the column (`col::JSON::VARCHAR`).
 
 - Forcing the universal tier on a read (`engine.force_universal`, or setting
   `files_per_partition`) fails with `PZ0312`: `hmac` reads have no universal path at all.

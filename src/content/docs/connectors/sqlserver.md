@@ -108,6 +108,7 @@ where updated_at > {{ watermark('erp', 'dbo.orders') }}
 | `ApplyDeletes` | A merge write can apply CDC delete-key batches in the same transaction. |
 | `ChangeCapture` | Supports `sync: {mode: cdc}` reads, backed by SQL Server change data capture. |
 | `TextLengthStats` | The engine hands the sink per-column max text lengths to size DDL. |
+| `NestedTypes` | Writes STRUCT, LIST, MAP and ARRAY columns as JSON text. |
 
 ## Notes
 
@@ -116,6 +117,10 @@ where updated_at > {{ watermark('erp', 'dbo.orders') }}
   watermark cursor and its upper bound.
 - CDC reads need SQL Server change data capture enabled on the source table; see
   [Capture changes with CDC](/how-to/capture-changes-with-cdc/).
+- Since pz 0.22.0, a STRUCT, LIST, MAP or ARRAY column is written as its JSON text
+  (`{"n":7,"tags":["a",null]}`) to an `nvarchar(max)` column, readable with `JSON_VALUE` and
+  `OPENJSON`, in append, replace and merge alike. An existing target may hold it in any
+  `nvarchar(n)` or `varchar(n)` column.
 
 - Since pz 0.12.0, a `decimal(38,x)` value beyond .NET `decimal`'s range (more than 28 significant
   digits) is written to SQL Server with every digit. The Postgres sink refuses such a value

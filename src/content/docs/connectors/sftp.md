@@ -97,6 +97,7 @@ folder per row from its timestamp value using the same tokens.
 | `BoundedWindow` | Honors an entity's upper watermark bound, applied row-by-row since there is no native filter pushdown. |
 | `PathTemplating` | Understands calendar tokens in `path`, for both read pruning and `partition_by` writes. |
 | `GatedOperations` | Every SSH operation routes through `rate_limit` pacing. |
+| `NestedTypes` | Writes STRUCT, LIST, MAP and ARRAY columns to json and csv (see Notes). |
 
 ## Host key pinning
 
@@ -117,6 +118,11 @@ Once `host_key_fingerprint` is set, a server presenting a different key fails th
 than silently accepting it — only pin a fingerprint you've verified out of band.
 
 ## Notes
+
+- Since pz 0.22.0, nested columns are written as objects and arrays to json and as JSON text to
+  csv/tsv. Parquet refuses a nested column before writing anything, naming it, since this writer
+  cannot tell a null list from an empty one: write json or csv, or cast the column
+  (`col::JSON::VARCHAR`).
 
 - `password` and `private_key_path` are mutually exclusive; declaring both, or neither, fails
   validation.

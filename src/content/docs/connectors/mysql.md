@@ -79,6 +79,9 @@ upsert, and the connector declares no `Merge` capability.
   its existing default; a column the pipeline produces that the target lacks is an error naming it.
 - `pz validate --connect` checks reachability and server version over a raw TCP probe, not
   credentials. A bad password surfaces only at run time.
+- Since pz 0.22.0, a STRUCT, LIST, MAP or ARRAY column is written as JSON text (DuckDB's mysql
+  extension creates a `text` column), readable with `JSON_EXTRACT`. Before, such a column failed the
+  write ("MySQL does not support composite types").
 
 ## Related
 

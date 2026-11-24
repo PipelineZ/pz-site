@@ -291,6 +291,21 @@ value with a 29-digit integer part and requires that it either reads back with e
 the write fails with a permanent error naming the column. It is a no-op for a sink that has not
 set the hooks.
 
+### Nested columns
+
+A sink receives STRUCT, LIST, MAP and fixed-size ARRAY columns (Arrow `struct`, `list`, `map`,
+`fixed_size_list`) only when it declares `ConnectorCapabilities.NestedTypes`; without it, the
+engine refuses such an output with `PZ0546` before your session opens. Declare it only if every
+format your universal writer offers can carry them, or refuse a nested column in `BeginWriteAsync`
+with a permanent `PzConnectorException` that names it and suggests a cast. A native copy into a
+destination without composite types sets `NativeCopy.NestedAsJson = true`, and the engine
+substitutes a relation whose composite columns are DuckDB `JSON`.
+
+The TestKit fact `Nested_columns_are_written_when_NestedTypes_is_declared` writes a batch with a
+null at every nesting level and requires that the commit report every row. Point it at its own
+destination by overriding `NestedOutput`; a connector that declares the capability without it sees
+the fact skipped with a message saying so.
+
 ## C# SDK
 
 `Pz.Connectors.Sdk` serves any `Pz.Connectors.Abstractions` connector over PCP and packs it as a

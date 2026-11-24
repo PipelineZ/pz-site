@@ -134,7 +134,7 @@ letting it fail or silently degrade at run time.
 | `PredicatePushdown` | source | Honors `ReadHints.PredicateSql`. |
 | `PartitionedRead` | source | `PlanReadAsync` may return more than one partition. |
 | `NativeScan` | source | Can hand DuckDB a native scan via `TryGetNativeScan`. A source that also implements `IProjectingNativeScan` (since 0.12.0) can narrow that scan to the columns the pipeline reads. |
-| `NativeCopy` | sink | Can hand DuckDB a native copy via `TryGetNativeCopy`. |
+| `NativeCopy` | sink | Can hand DuckDB a native copy via `TryGetNativeCopy`. A copy into a destination without composite types sets `NativeCopy.NestedAsJson`, and the engine hands it STRUCT, LIST, MAP, UNION and VARIANT columns as DuckDB `JSON`. |
 | `Merge` | sink | Supports `mode: merge`. |
 | `Transactional` | sink | Commit is atomic (temp-swap or equivalent). |
 | `BoundedWindow` | source | Applies `WatermarkUpperBound` during extraction; a windowed dataset on a connector without this flag is refused at plan time (`PZ0313`). |
